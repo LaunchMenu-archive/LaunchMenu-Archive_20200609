@@ -1,0 +1,38 @@
+{
+  "name": "launchmenu",
+  "version": "1.0.0",
+  "description": "An open source utility program focusing on file searches",
+  "main": "dest/main.s",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "babel-watch src/main.js",
+    "build": "babel --delete-dir-on-start --out-dir dist src"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LaunchMenu/LaunchMenu.git"
+  },
+  "keywords": [
+    "LaunchMenu",
+    "LM",
+    "spotlight"
+  ],
+  "author": "Sancarn, Tar van Krieken",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LaunchMenu/LaunchMenu/issues"
+  },
+  "homepage": "https://github.com/LaunchMenu/LaunchMenu#readme",
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-plugin-transform-react-jsx": "^6.24.1",
+    "babel-preset-es2016": "^6.24.1",
+    "babel-watch": "^2.0.7",
+    "react": "^16.4.1",
+    "react-dom": "^16.4.1"
+  },
+  "dependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-node6": "^11.0.0"
+  }
+}
