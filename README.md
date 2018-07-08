@@ -4,7 +4,7 @@
 `npm install`
 
 ## Commands
-Action | Command
---- | ---
-run | `npm start`
-build | `npm run build`
+Action | Command | Description
+--- | --- | ---
+run | `npm start` | Runs the actual program using the code in the dist folder
+watch | `npm run watch` | Transpiles src to dist folder, and keeps listening for changes and transpile those automatically

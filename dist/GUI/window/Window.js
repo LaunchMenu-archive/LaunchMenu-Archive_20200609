@@ -5,6 +5,8 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.Window = undefined;
 
+require("source-map-support/register");
+
 var _Test = require("./Test.js");
 
 var _Test2 = _interopRequireDefault(_Test);
@@ -15,3 +17,4 @@ console.log("Window");
 
 class Window {}
 exports.Window = Window;
+//# sourceMappingURL=Window.js.map

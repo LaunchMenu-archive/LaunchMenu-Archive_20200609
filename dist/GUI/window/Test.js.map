@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../src/GUI/window/Test.js"],"names":["console","log","Test"],"mappings":";;;;;;;;;AAAAA,QAAQC,GAAR,CAAY,MAAZ;AACO,MAAMC,IAAN,CAAU;QAAJA,I,GAAAA,I","file":"Test.js","sourcesContent":["console.log(\"Test\");\r\nexport class Test{\r\n\r\n}\r\n"]}

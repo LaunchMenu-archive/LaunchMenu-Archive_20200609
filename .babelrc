@@ -4,7 +4,8 @@
         "es2016"
     ],
     "plugins": [
-        "relative-import",
         "transform-react-jsx",
+        "source-map-support",
+        "transform-runtime"
     ]
 }

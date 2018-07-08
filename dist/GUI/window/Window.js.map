@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../src/GUI/window/Window.js"],"names":["console","log","Window"],"mappings":";;;;;;;;;AAAA;;;;;;AAEAA,QAAQC,GAAR,CAAY,QAAZ;;AAEO,MAAMC,MAAN,CAAY;QAANA,M,GAAAA,M","file":"Window.js","sourcesContent":["import Test from \"./Test.js\";\r\n\r\nconsole.log(\"Window\");\r\n\r\nexport class Window{\r\n\r\n}\r\n"]}
