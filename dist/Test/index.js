@@ -10,12 +10,16 @@ var _reactDom = require("react-dom");
 
 var _reactDom2 = _interopRequireDefault(_reactDom);
 
+var _importTest = require("./importTest");
+
+var _importTest2 = _interopRequireDefault(_importTest);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var el = _react2.default.createElement(
   "div",
   { className: "test" },
-  "Click Me"
+  "Click Me (though nothing will happen)"
 );
 console.log(document.getElementById('root'));
 _reactDom2.default.render(el, document.getElementById('root'));

@@ -1,5 +1,4 @@
 //this is merely some test code
-import Window from "./GUI/window/Window.js";
 import {app as app, BrowserWindow as BrowserWindow} from "electron";
 import url from "url";
 import path from "path";

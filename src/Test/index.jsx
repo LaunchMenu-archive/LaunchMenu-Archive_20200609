@@ -1,9 +1,10 @@
 import React from "react";
 import ReactDOM from 'react-dom';
+import importTest from "./importTest";
 
 var el = (
     <div className="test">
-      Click Me
+      Click Me (though nothing will happen)
     </div>
 );
 console.log(document.getElementById('root'));
