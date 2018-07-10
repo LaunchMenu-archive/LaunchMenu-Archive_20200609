@@ -2,6 +2,7 @@
 import {app as app, BrowserWindow as BrowserWindow} from "electron";
 import url from "url";
 import path from "path";
+import IPC from "../core/communication/IPC";
 
 
 // var {app, BrowserWindow} = require('electron');
@@ -12,19 +13,27 @@ app.on('window-all-closed', function() {
   	}
 });
 app.on('ready', function() {
-	  mainWindow = new BrowserWindow({width: 1360, height: 800});
-	  // mainWindow.loadURL(url.format({
-		//   pathname: "www.google.com",
-		//   protocol: 'https:',
-		//   slashes: true
-	  // }));
-      mainWindow.loadURL(url.format({
-		  pathname: path.join(process.cwd(), "dist", "Test", "index.html"),
-		  protocol: 'file:',
-		  slashes: true
-	  }))
-	  mainWindow.openDevTools();
-	  mainWindow.on('closed', function() {
-	    	mainWindow = null;
-	  });
+	mainWindow = new BrowserWindow({width: 1360, height: 800});
+	// mainWindow.loadURL(url.format({
+	//   pathname: "www.google.com",
+	//   protocol: 'https:',
+	//   slashes: true
+	// }));
+	mainWindow.loadURL(url.format({
+	  pathname: path.join(process.cwd(), "dist", "Test", "index.html"),
+	  protocol: 'file:',
+	  slashes: true
+	}))
+	mainWindow.openDevTools();
+	mainWindow.on('closed', function() {
+		mainWindow = null;
+	});
+IPC._registerWindow(mainWindow);
+});
+
+
+// IPC testing
+IPC.on("ping", (event)=>{
+	console.log(event);
+	IPC.send("pong", {data:2}, 1);
 });
