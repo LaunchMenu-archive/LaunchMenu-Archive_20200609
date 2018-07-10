@@ -1,1 +1,1 @@
-{"version":3,"sources":[],"names":[],"mappings":"","file":"module.js","sourcesContent":[]}
+{"version":3,"sources":["../../../src/core/registry/module.js"],"names":["Module","getClass","__proto__","constructor"],"mappings":";;;;;;;;AAAe,MAAMA,MAAN,CAAY;AACvBC,eAAU;AACN,eAAO,KAAKC,SAAL,CAAeC,WAAtB;AACH;AAHsB;kBAANH,M","file":"module.js","sourcesContent":["export default class Module{\r\n    getClass(){\r\n        return this.__proto__.constructor;\r\n    }\r\n}\r\n"]}

@@ -12,11 +12,15 @@ var _path = require("path");
 
 var _path2 = _interopRequireDefault(_path);
 
+var _IPC = require("../core/communication/IPC");
+
+var _IPC2 = _interopRequireDefault(_IPC);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // var {app, BrowserWindow} = require('electron');
-var mainWindow; //this is merely some test code
-
+//this is merely some test code
+var mainWindow;
 _electron.app.on('window-all-closed', function () {
 	if (process.platform != 'darwin') {
 		_electron.app.quit();
@@ -38,5 +42,12 @@ _electron.app.on('ready', function () {
 	mainWindow.on('closed', function () {
 		mainWindow = null;
 	});
+	_IPC2.default._registerWindow(mainWindow);
+});
+
+// IPC testing
+_IPC2.default.on("ping", event => {
+	console.log(event);
+	_IPC2.default.send("pong", { data: 2 }, 1);
 });
 //# sourceMappingURL=main.js.map
