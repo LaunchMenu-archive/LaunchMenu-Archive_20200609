@@ -8,7 +8,7 @@ require("source-map-support/register");
 
 var _electron = require("electron");
 
-var _extendedJSON = require("./extendedJSON");
+var _extendedJSON = require("../communication/extendedJSON");
 
 var _extendedJSON2 = _interopRequireDefault(_extendedJSON);
 
@@ -178,6 +178,8 @@ class IPC {
         }
     }
 }
+// import ExtendedJSON from "./extendedJSON";
+
 IPC.__setup();
 exports.default = IPC;
 //# sourceMappingURL=IPC.js.map

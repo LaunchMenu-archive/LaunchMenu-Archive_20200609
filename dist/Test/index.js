@@ -22,7 +22,13 @@ var _IPC = require("../core/communication/IPC");
 
 var _IPC2 = _interopRequireDefault(_IPC);
 
+var _registry = require("../core/registry/registry");
+
+var _registry2 = _interopRequireDefault(_registry);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+(0, _importTest2.default)();
 
 var el = _react2.default.createElement(
     "div",
@@ -32,7 +38,7 @@ var el = _react2.default.createElement(
 console.log(document.getElementById('root'));
 _reactDom2.default.render(el, document.getElementById('root'));
 
-//extendedJSON testing
+// ExtendedJSON testing
 
 var obj = {
     test: 5,
@@ -44,7 +50,7 @@ var obj = {
 obj.obj.n = obj.obj;
 console.log(_ExtendedJSON2.default.decode(_ExtendedJSON2.default.encode(obj)), obj);
 
-//IPC testing
+// IPC testing
 
 _IPC2.default.send("ping", { data: 1 }, 0);
 _IPC2.default.on("pong", event => {
@@ -54,6 +60,18 @@ _IPC2.default.on("ping", event => {
     console.log("ping", event);
 });
 
-//error message test with source mapping:
+// Module registry test
+
+_registry2.default.requestModule({ type: "test" }).then(module => {
+    console.log(module);
+
+    // Module instance transfer test
+    var instance = new module("itsName");
+    instance.setSomething("someValue");
+
+    _IPC2.default.send("moduleInstanceTransfer", instance, 0);
+});
+
+// Error message test with source mapping:
 console.log(somethingThatDoesntExist.poop());
 //# sourceMappingURL=index.js.map

@@ -1,1 +1,1 @@
-{"version":3,"sources":["../../src/Test/importTest.js"],"names":["console","log"],"mappings":";;;;AAAAA,QAAQC,GAAR,CAAY,yBAAZ","file":"importTest.js","sourcesContent":["console.log(\"This correctly imported\");\r\n"]}
+{"version":3,"sources":["../../src/Test/importTest.js"],"names":["console","log"],"mappings":";;;;;;kBACe,YAAU;AACrBA,YAAQC,GAAR,CAAY,MAAZ;AACH,C;;;;AAHDD,QAAQC,GAAR,CAAY,yBAAZ","file":"importTest.js","sourcesContent":["console.log(\"This correctly imported\");\r\nexport default function(){\r\n    console.log(\"test\");\r\n}\r\n"]}
