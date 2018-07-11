@@ -1,6 +1,9 @@
 import Path from "path";
 import IPC from "../communication/IPC";
 var globalModulePath;
+/**
+ * A class to track all the modules, and handle module requests
+ */
 class Registry{
     /**
      * Request modules to handle the passed data and establish a connection with these modules

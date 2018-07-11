@@ -6,6 +6,12 @@ var serializeSymbol = Symbol("serialize");
 var deserializeSymbol = Symbol("deserialize");
 
 export {serializeSymbol, deserializeSymbol};
+/**
+ * An extended version of JSON that is able to also encode the following information:
+ *  - Module classes
+ *  - Module class instances (if the class has serialize and deserialize methods)
+ *  - recursive objects/internal object references
+ */
 export default class ExtendedJSON{
     /**
      * Encode more complicated data into a serializable object
