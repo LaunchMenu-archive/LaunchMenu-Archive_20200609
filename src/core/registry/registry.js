@@ -1,5 +1,6 @@
 import Path from "path";
 import IPC from "../communication/IPC";
+var globalModulePath;
 class Registry{
     /**
      * Request modules to handle the passed data and establish a connection with these modules
@@ -7,9 +8,11 @@ class Registry{
      * @return {Promise} The Promise that shall return the channels created to communicate with the modules
      */
     static requestHandle(data){
+        if(!request.use) request.use = "all";
         return this.__request(request, "handle");
     }
     static requestModule(request){
+        if(!request.use) request.use = "one";
         return this.__request(request, "module");
     }
     /**
@@ -19,26 +22,33 @@ class Registry{
      * @return {Undefined} The method returns no useful information
      */
     static register(Class, ...classListeners){
+        // Set the path of the module
+        Class.modulePath = globalModulePath;
+
         // Register the module itself
-        this.modules[window.currentPath] = {
+        this.modules[Class.modulePath] = {
             class: Class,
             listeners: classListeners
         };
 
         // Register all the listeners
         classListeners.forEach(listener=>{
+            // Keep a connection with the module itself
+            listener.module = Class;
+
+            // Add to the list of listeners for this request type
             var listeners = this.__getListeners(listener.type);
-            listeners.listeners.push({
-                module: Class,
-                listener: listener
-            });
+            listeners.listeners.push(listener);
         });
     }
 
     // Protected methods
     static loadModule(path){
-        window.currentPath = path;
-        require(path);
+        if(!this.modules[path]){
+            globalModulePath = path;
+            require(this.__getModulesPath(path));
+        }
+        return this.modules[path] && this.modules[path].class;
     }
     static loadAllModules(){
         //TODO make a module loader
@@ -72,23 +82,21 @@ class Registry{
 
     static __getModules(request){
         // Get the module listeners to handle this type of request
-        var listeners = this.listeners[request.type];
+        var listenerType = this.__getListeners(request.type);
 
         // Map modules with their priority to this particular request
-        var priorities = listeners.map(listener=>{
+        var priorities = listenerType.listeners.map(listener=>{
             return {
                 priority:listener.filter(request),
                 module:listener.module
             };
-        }).filter(priority=>{
-            return priority.priority>0;
-        });
+        }).filter(priority=>priority.priority>0);
 
         // Sort the results
         priorities.sort((a,b)=>b.priority-a.priority);
 
         // Determine what modules to return
-        if(request.use=="*"){
+        if(request.use=="all"){
             return priorities.map(a=>a.module);
         }else if(typeof(request.use)=="Function"){
             return priorities.filter(request.use).map(a=>a.module);
@@ -171,7 +179,7 @@ class Registry{
                 var request = event.data;
 
                 // Retrieve the priority mapping
-                var modules = this.__mapHandlerModules(request);
+                var modules = this.__getModules(request);
 
                 // Return the mapping of modules and their priorities
                 IPC.send("Registry.returnRequest", {modules:modules, requestID:request.ID}, source);

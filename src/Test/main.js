@@ -3,7 +3,7 @@ import {app as app, BrowserWindow as BrowserWindow} from "electron";
 import url from "url";
 import path from "path";
 import IPC from "../core/communication/IPC";
-
+import Registry from "../core/registry/registry";
 
 // var {app, BrowserWindow} = require('electron');
 var mainWindow;
@@ -28,12 +28,18 @@ app.on('ready', function() {
 	mainWindow.on('closed', function() {
 		mainWindow = null;
 	});
-IPC._registerWindow(mainWindow);
+	IPC._registerWindow(mainWindow);
 });
 
+// Module registry
+Registry.loadModule("testModule");
 
 // IPC testing
 IPC.on("ping", (event)=>{
 	console.log(event);
 	IPC.send("pong", {data:2}, 1);
+	// IPC.send("module", TestModule, 1);
+});
+IPC.on("moduleInstanceTransfer", (event)=>{
+    console.log(event);
 });

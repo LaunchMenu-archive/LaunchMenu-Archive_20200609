@@ -1,5 +1,6 @@
 import {ipcMain, ipcRenderer} from "electron";
-import ExtendedJSON from "./extendedJSON";
+// import ExtendedJSON from "./extendedJSON";
+import ExtendedJSON from "../communication/extendedJSON";
 class IPC{
     /**
      * Send data to another window or the main script
