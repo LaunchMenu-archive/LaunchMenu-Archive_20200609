@@ -251,6 +251,7 @@ export default class ExtendedJSON{
         return deserializeSymbol;
     }
 
+    // Private methods
     /**
      * Goes through an object and returns all the pathSymbols from it
      * @param  {Object} object The object to clean up
@@ -268,7 +269,7 @@ export default class ExtendedJSON{
 
             // If no path is present, recurse on its children
             for(var key in object)
-                this.__cleanObject(object[key]);
+                this.__cleanObject(object[key], prop);
 
             // Remove the cleanSymbol which prevent recursion
             delete object[cleanSymbol];

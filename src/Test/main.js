@@ -4,6 +4,7 @@ import url from "url";
 import path from "path";
 import IPC from "../core/communication/IPC";
 import Registry from "../core/registry/registry";
+import Channel from "../core/communication/channel";
 
 // var {app, BrowserWindow} = require('electron');
 var mainWindow;
@@ -20,9 +21,9 @@ app.on('ready', function() {
 	//   slashes: true
 	// }));
 	mainWindow.loadURL(url.format({
-	  pathname: path.join(process.cwd(), "dist", "Test", "index.html"),
-	  protocol: 'file:',
-	  slashes: true
+		pathname: path.join(process.cwd(), "dist", "Test", "index.html"),
+		protocol: 'file:',
+		slashes: true
 	}))
 	mainWindow.openDevTools();
 	mainWindow.on('closed', function() {
@@ -43,3 +44,25 @@ IPC.on("ping", (event)=>{
 IPC.on("moduleInstanceTransfer", (event)=>{
     console.log(event);
 });
+
+// Channel testing
+var channel = Channel.createReceiver("TestName", {
+	doSomething: event=>{
+		console.log("smth", event);
+	},
+	doSomethingElse: event=>{
+		console.log("smthElse", event);
+	}
+});
+channel.createSubChannel("getColor", {
+	onColor: event=>{
+		console.log("color", event);
+	},
+	doSomethingElse: function(event){
+		console.log("smthElse Overwritten", event, event.senderID);
+		Channel.createSender(event.senderID, "", this.getID()).then(channel=>{
+			console.log("establish connection");
+			channel.smth("stuff");
+		});
+	}
+})

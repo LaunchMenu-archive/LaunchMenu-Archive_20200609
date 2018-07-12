@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from 'react-dom';
 import importTest from "./importTest";
+import Channel from "../core/communication/channel";
 importTest();
 
 var el = (
@@ -45,6 +46,18 @@ Registry.requestModule({type:"test"}).then(module=>{
     IPC.send("moduleInstanceTransfer", instance, 0);
 });
 
+// Channel test
+Channel.createSender("TestName", "getColor", "crap").then(channel=>{
+    console.log("set up connection");
+    channel.doSomething("cheese");
+    channel.doSomethingElse("crap");
+    channel.onColor("purple");
+});
+var channel = Channel.createReceiver("crap", {
+    smth: event=>{
+        console.log("smth", event);
+    }
+});
 
 // Error message test with source mapping:
 console.log(somethingThatDoesntExist.poop());

@@ -65,9 +65,9 @@ class IPC{
      */
     static once(type, handler){
         var orHandler = handler;
-        handler = ()=>{
+        handler = event=>{
             this.off(type, handler);
-            orHandler.apply(this, arguments);
+            orHandler.call(this, event);
         };
         this.on(type, handler);
     }
@@ -135,11 +135,10 @@ class IPC{
      */
     static __emitEvent(type, event){
         var listeners = this.listeners[type];
-        if(listeners){
+        if(listeners)
             listeners.forEach(listener=>{
                 listener.call(this, event);
             });
-        }
     }
     /**
      * The initial setup method to be called by this file itself, initialises the static fields of the class
