@@ -14,6 +14,9 @@ var _extendedJSON2 = _interopRequireDefault(_extendedJSON);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+/**
+ * A class that allows for communication between different processes and renderers
+ */
 class IPC {
     /**
      * Send data to another window or the main script
@@ -76,9 +79,9 @@ class IPC {
      */
     static once(type, handler) {
         var orHandler = handler;
-        handler = () => {
+        handler = event => {
             this.off(type, handler);
-            orHandler.apply(this, arguments);
+            orHandler.call(this, event);
         };
         this.on(type, handler);
     }
@@ -146,11 +149,9 @@ class IPC {
      */
     static __emitEvent(type, event) {
         var listeners = this.listeners[type];
-        if (listeners) {
-            listeners.forEach(listener => {
-                listener.call(this, event);
-            });
-        }
+        if (listeners) listeners.forEach(listener => {
+            listener.call(this, event);
+        });
     }
     /**
      * The initial setup method to be called by this file itself, initialises the static fields of the class

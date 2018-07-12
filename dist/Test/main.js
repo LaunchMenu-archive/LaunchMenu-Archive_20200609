@@ -20,11 +20,15 @@ var _registry = require("../core/registry/registry");
 
 var _registry2 = _interopRequireDefault(_registry);
 
+var _channel = require("../core/communication/channel");
+
+var _channel2 = _interopRequireDefault(_channel);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // var {app, BrowserWindow} = require('electron');
-var mainWindow; //this is merely some test code
-
+//this is merely some test code
+var mainWindow;
 _electron.app.on('window-all-closed', function () {
 	if (process.platform != 'darwin') {
 		_electron.app.quit();
@@ -60,5 +64,27 @@ _IPC2.default.on("ping", event => {
 });
 _IPC2.default.on("moduleInstanceTransfer", event => {
 	console.log(event);
+});
+
+// Channel testing
+var channel = _channel2.default.createReceiver("TestName", {
+	doSomething: event => {
+		console.log("smth", event);
+	},
+	doSomethingElse: event => {
+		console.log("smthElse", event);
+	}
+});
+channel.createSubChannel("getColor", {
+	onColor: event => {
+		console.log("color", event);
+	},
+	doSomethingElse: function (event) {
+		console.log("smthElse Overwritten", event, event.senderID);
+		_channel2.default.createSender(event.senderID, "", this.getID()).then(channel => {
+			console.log("establish connection");
+			channel.smth("stuff");
+		});
+	}
 });
 //# sourceMappingURL=main.js.map

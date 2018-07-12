@@ -29,6 +29,13 @@ var deserializeSymbol = (0, _symbol2.default)("deserialize");
 
 exports.serializeSymbol = serializeSymbol;
 exports.deserializeSymbol = deserializeSymbol;
+/**
+ * An extended version of JSON that is able to also encode the following information:
+ *  - Module classes
+ *  - Module class instances (if the class has serialize and deserialize methods)
+ *  - recursive objects/internal object references
+ */
+
 class ExtendedJSON {
     /**
      * Encode more complicated data into a serializable object
@@ -267,6 +274,7 @@ class ExtendedJSON {
         return deserializeSymbol;
     }
 
+    // Private methods
     /**
      * Goes through an object and returns all the pathSymbols from it
      * @param  {Object} object The object to clean up
@@ -283,7 +291,7 @@ class ExtendedJSON {
             if (prop in object) delete object[prop];
 
             // If no path is present, recurse on its children
-            for (var key in object) this.__cleanObject(object[key]);
+            for (var key in object) this.__cleanObject(object[key], prop);
 
             // Remove the cleanSymbol which prevent recursion
             delete object[cleanSymbol];

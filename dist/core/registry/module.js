@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", {
 require("source-map-support/register");
 
 class Module {
+    constructor() {}
     getClass() {
         return this.__proto__.constructor;
     }

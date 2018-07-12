@@ -21,6 +21,9 @@ var _IPC2 = _interopRequireDefault(_IPC);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var globalModulePath;
+/**
+ * A class to track all the modules, and handle module requests
+ */
 class Registry {
     /**
      * Request modules to handle the passed data and establish a connection with these modules

@@ -14,6 +14,10 @@ var _importTest = require("./importTest");
 
 var _importTest2 = _interopRequireDefault(_importTest);
 
+var _channel = require("../core/communication/channel");
+
+var _channel2 = _interopRequireDefault(_channel);
+
 var _ExtendedJSON = require("../core/communication/ExtendedJSON");
 
 var _ExtendedJSON2 = _interopRequireDefault(_ExtendedJSON);
@@ -70,6 +74,19 @@ _registry2.default.requestModule({ type: "test" }).then(module => {
     instance.setSomething("someValue");
 
     _IPC2.default.send("moduleInstanceTransfer", instance, 0);
+});
+
+// Channel test
+_channel2.default.createSender("TestName", "getColor", "crap").then(channel => {
+    console.log("set up connection");
+    channel.doSomething("cheese");
+    channel.doSomethingElse("crap");
+    channel.onColor("purple");
+});
+var channel = _channel2.default.createReceiver("crap", {
+    smth: event => {
+        console.log("smth", event);
+    }
 });
 
 // Error message test with source mapping:
