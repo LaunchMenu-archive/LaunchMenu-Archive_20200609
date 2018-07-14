@@ -43,8 +43,8 @@ class ChannelSender{
             }
         }else{ // Call is actually setting up the data
             // Gatyher the relevant message types
-            var messageTypes = types.globalListeners;
-            var subChannelMessageTypes = types.subChannelListeners[this.subChannelID];
+            let messageTypes = types.globalListeners;
+            const subChannelMessageTypes = types.subChannelListeners[this.subChannelID];
             if(subChannelMessageTypes)
                 messageTypes = messageTypes.concat(subChannelMessageTypes);
 
@@ -129,12 +129,12 @@ class ChannelReciever{
 
         // Forward IPC messages
         IPC.on("channel.message:"+ID, event=>{
-            var data = event.data;
+            let data = event.data;
 
             // Extract the data to build the event to emit in this channel
-            var sender = data.senderID;
-            var subChannelID = data.subChannelID;
-            var message = data.message;
+            const sender = data.senderID;
+            const subChannelID = data.subChannelID;
+            const message = data.message;
             data = data.data;
 
             // Emit the event
@@ -189,8 +189,8 @@ class ChannelReciever{
     __emitEvent(message, event, subChannelID){
         if(subChannelID){
             // Attempt to find message listeners on this subchannel
-            var subChannel = this.subChannelListeners[subChannelID];
-            var listener = subChannel && subChannel[message];
+            const subChannel = this.subChannelListeners[subChannelID];
+            const listener = subChannel && subChannel[message];
 
             // If listeners exist, call them and don't invoke any global listeners
             if(listener){
@@ -200,7 +200,7 @@ class ChannelReciever{
         }
 
         // Retrieve listeners
-        var listener = this.globalListeners[message];
+        const listener = this.globalListeners[message];
 
         // If listeners exist, call them
         if(listener)
@@ -213,7 +213,7 @@ class ChannelReciever{
      */
     __broadCastMessageTypes(processes="*"){
         // Create object to broadcast to the requesting renderer/process
-        var messageTypes = {
+        const messageTypes = {
             globalListeners: Object.keys(this.globalListeners),
             subChannelListeners: {
                 // Will be filled by the for loop below
@@ -221,7 +221,7 @@ class ChannelReciever{
         };
 
         // Add all the subChannel
-        for(var key in this.subChannelListeners)
+        for(let key in this.subChannelListeners)
             messageTypes.subChannelListeners[key] = Object.keys(this.subChannelListeners[key]);
 
         // Broadcast the messages

@@ -26,13 +26,17 @@ console.log(ExtendedJSON.decode(ExtendedJSON.encode(obj)), obj);
 
 // IPC testing
 import IPC from "../core/communication/IPC";
-IPC.send("ping", {data:1}, 0);
+IPC.send("loaded", null, 0);
+
+// IPC.send("ping", {data:1});
 IPC.on("pong", (event)=>{
     console.log("pong", event);
+    return 4;
 });
 IPC.on("ping", (event)=>{
     console.log("ping", event);
 });
+IPC.send("pong", null).then(data=>console.log("pong response", data));
 
 // Module registry test
 import Registry from "../core/registry/registry";
@@ -57,6 +61,14 @@ var channel = Channel.createReceiver("crap", {
     smth: event=>{
         console.log("smth", event);
     }
+});
+
+//RequestPath testing
+import RequestPath from "../core/registry/requestPath";
+const rootRequestPath = new RequestPath("root");
+rootRequestPath.augmentPath("test").then(requestPath=>{
+	console.log(requestPath.toString(true));
+    requestPath._attachModuleInstance("crap");
 });
 
 // Error message test with source mapping:

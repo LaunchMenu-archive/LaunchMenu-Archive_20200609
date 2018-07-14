@@ -5,6 +5,7 @@ import path from "path";
 import IPC from "../core/communication/IPC";
 import Registry from "../core/registry/registry";
 import Channel from "../core/communication/channel";
+import RequestPath from "../core/registry/requestPath";
 
 // var {app, BrowserWindow} = require('electron');
 var mainWindow;
@@ -29,40 +30,58 @@ app.on('ready', function() {
 	mainWindow.on('closed', function() {
 		mainWindow = null;
 	});
+
+	// Register window
 	IPC._registerWindow(mainWindow);
 });
 
-// Module registry
-Registry.loadModule("testModule");
 
-// IPC testing
-IPC.on("ping", (event)=>{
-	console.log(event);
-	IPC.send("pong", {data:2}, 1);
-	// IPC.send("module", TestModule, 1);
-});
-IPC.on("moduleInstanceTransfer", (event)=>{
-    console.log(event);
-});
+IPC.once("loaded", (event)=>{
+	// Module registry
+	Registry.loadModule("testModule");
 
-// Channel testing
-var channel = Channel.createReceiver("TestName", {
-	doSomething: event=>{
-		console.log("smth", event);
-	},
-	doSomethingElse: event=>{
-		console.log("smthElse", event);
-	}
+	IPC.on("pong", event=>{
+		return 3;
+	})
+
+	// IPC testing
+	IPC.on("ping", (event)=>{
+		console.log("ping", event);
+		IPC.send("pong", {data:2}, 1).then(data=>{
+	        console.log("response", data);
+	    });
+		// IPC.send("module", TestModule, 1);
+	});
+	IPC.on("moduleInstanceTransfer", (event)=>{
+	    console.log(event);
+	});
+
+	// Channel testing
+	var channel = Channel.createReceiver("TestName", {
+		doSomething: event=>{
+			console.log("smth", event);
+		},
+		doSomethingElse: event=>{
+			console.log("smthElse", event);
+		}
+	});
+	channel.createSubChannel("getColor", {
+		onColor: event=>{
+			console.log("color", event);
+		},
+		doSomethingElse: function(event){
+			console.log("smthElse Overwritten", event, event.senderID);
+			Channel.createSender(event.senderID, "", this.getID()).then(channel=>{
+				console.log("establish connection");
+				channel.smth("stuff");
+			});
+		}
+	});
+
+    //RequestPath testing
+	const rootRequestPath = new RequestPath("root");
+	rootRequestPath.augmentPath("test").then(requestPath=>{
+		console.log(requestPath.toString(true));
+		requestPath._attachModuleInstance("shit");
+	});
 });
-channel.createSubChannel("getColor", {
-	onColor: event=>{
-		console.log("color", event);
-	},
-	doSomethingElse: function(event){
-		console.log("smthElse Overwritten", event, event.senderID);
-		Channel.createSender(event.senderID, "", this.getID()).then(channel=>{
-			console.log("establish connection");
-			channel.smth("stuff");
-		});
-	}
-})
