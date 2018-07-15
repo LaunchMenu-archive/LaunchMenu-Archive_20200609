@@ -55,6 +55,7 @@ With lmf code:
         constructor(name){
             super();
             this.body.appendElement($(`
+              <!--< REALLY TERRIBLE GUI >-->
               <button onclick="selectFile(e)"> Select file 1 </button>
               <button onclick="selectFile(e)"> Select file 2 </button>
               <button onclick="doStuff(e)">Execute</button>
