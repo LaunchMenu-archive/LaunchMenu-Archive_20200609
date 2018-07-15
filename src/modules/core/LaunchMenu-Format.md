@@ -37,24 +37,31 @@ someBat.lmf
 
 With lmf code:
 
-```json
-{
-  "title": "Awesome script!",
-  "icon" : "<<DATA-URL>>",
-  "Description": "Some awesome script"
-}
+```js
+    export default class Preview {
+        constructor(name){
+            this.title = "Awesome script!";
+            this.icon = "<<DATA-URL>>";
+            this.description = "Some awesome bat script which copies files!"
+        }
+    }
 ```
 
 ### Example 2
 
-{
-  "title": "Awesome script!",
-  "icon" : "<<DATA-URL>>",
-  "onload" : function(){
-    //some GUI rendering code here
-  }
-}
-
+```js
+    import * from "PreviewWrapper"
+    export default class Preview extends PreviewWrapper {
+        constructor(name){
+            super();
+            this.body.appendElement($(`
+              <button onclick="selectFile(e)"> Select file 1 </button>
+              <button onclick="selectFile(e)"> Select file 2 </button>
+              <button onclick="doStuff(e)">Execute</button>
+            `))
+        }
+    }
+```
 
 ## Displaying file-list details:
 
