@@ -17,8 +17,8 @@ class IPC{
     }
     /**
      * Listen for data being send by the main process or renderers
-     * @param  {String} type The type of event to listen for
-     * @param  {Function(event)} handler The function to handle the event occuring
+     * @param  {String} type                The type of event to listen for
+     * @param  {Function(event)} handler    The function to handle the event occuring
      * @return {Undefined} The method returns no useful information
      */
     static on(type, handler){
@@ -29,8 +29,8 @@ class IPC{
     }
     /**
      * Listen for data being send by the main process or renderers, but only listen for it once
-     * @param  {String} type The type of event to listen for
-     * @param  {Function(event)} handler The function to handle the event when occuring
+     * @param  {String} type                The type of event to listen for
+     * @param  {Function(event)} handler    The function to handle the event when occuring
      * @return {Undefined} The method returns no useful information
      */
     static once(type, handler){
@@ -43,8 +43,8 @@ class IPC{
     }
     /**
      * Stop listening for data being send by the main process or renderers
-     * @param  {String} type The type of event that is being listened for
-     * @param  {Function(event)} handler The function that handles the event when occuring
+     * @param  {String} type                The type of event that is being listened for
+     * @param  {Function(event)} handler    The function that handles the event when occuring
      * @return {Undefined} The method returns no useful information
      */
     static off(type, handler){

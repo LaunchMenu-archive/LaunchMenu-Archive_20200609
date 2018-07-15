@@ -228,7 +228,7 @@ class ChannelReciever{
         IPC.send("channel.sendMessageTypes:"+this.ID, messageTypes, processes);
     }
 }
-
+export {ChannelSender, ChannelReciever};
 /**
  * The public class to create channel senders and recievers, as the creation of a channel sender is asynchronous
  */

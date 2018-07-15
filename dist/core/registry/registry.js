@@ -60,7 +60,7 @@ class Registry {
             listener.module = Class;
 
             // Add to the list of listeners for this request type
-            var listeners = this.__getListeners(listener.type);
+            const listeners = this.__getListeners(listener.type);
             listeners.listeners.push(listener);
         });
     }
@@ -104,10 +104,10 @@ class Registry {
 
     static __getModules(request) {
         // Get the module listeners to handle this type of request
-        var listenerType = this.__getListeners(request.type);
+        const listenerType = this.__getListeners(request.type);
 
         // Map modules with their priority to this particular request
-        var priorities = listenerType.listeners.map(listener => {
+        const priorities = listenerType.listeners.map(listener => {
             return {
                 priority: listener.filter(request),
                 module: listener.module
@@ -128,7 +128,7 @@ class Registry {
     }
     static __resolveRequest(requestID, modules) {
         // Check if there is a request that goes by this ID
-        var request = this.requests[requestID];
+        const request = this.requests[requestID];
         if (request) {
             // Delete the request as we are answering it now
             delete this.requests[requestID];
@@ -144,7 +144,7 @@ class Registry {
     }
     static __request(request, type) {
         // Attach extra data to the request
-        var ID = this.requests.ID++;
+        const ID = this.requests.ID++;
         request.ID = ID;
         request = {
             requestData: request,
@@ -152,7 +152,7 @@ class Registry {
         };
 
         // Create a promise to return, and make it resolvable from the request
-        var promise = new _promise2.default((resolve, reject) => {
+        const promise = new _promise2.default((resolve, reject) => {
             request.resolve = resolve;
         });
 
@@ -165,7 +165,7 @@ class Registry {
             _IPC2.default.send("Registry.request", request.requestData, 0);
         } else {
             // Directly resolve the request as we have access to all modules
-            var modules = this.__getModules(request.data);
+            const modules = this.__getModules(request.data);
             this.__resolveRequest(ID, modules);
         }
 
@@ -191,17 +191,18 @@ class Registry {
         if (_IPC2.default._isRenderer()) {
             // Resolve the request when the main process returns the modules
             _IPC2.default.on("Registry.returnRequest", event => {
-                var data = event.data;
+                const data = event.data;
+
                 this.__resolveRequest(data.requestID, data.modules);
             });
         } else {
             // Filter out possible modules in this window to handle the handle request
             _IPC2.default.on("Registry.request", event => {
-                var source = event.sourceID;
-                var request = event.data;
+                const source = event.sourceID;
+                const request = event.data;
 
                 // Retrieve the priority mapping
-                var modules = this.__getModules(request);
+                const modules = this.__getModules(request);
 
                 // Return the mapping of modules and their priorities
                 _IPC2.default.send("Registry.returnRequest", { modules: modules, requestID: request.ID }, source);

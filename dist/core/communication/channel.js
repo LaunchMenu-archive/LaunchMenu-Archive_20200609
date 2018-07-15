@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.ChannelReciever = exports.ChannelSender = undefined;
 
 var _keys = require("babel-runtime/core-js/object/keys");
 
@@ -69,8 +70,8 @@ class ChannelSender {
         } else {
             // Call is actually setting up the data
             // Gatyher the relevant message types
-            var messageTypes = types.globalListeners;
-            var subChannelMessageTypes = types.subChannelListeners[this.subChannelID];
+            let messageTypes = types.globalListeners;
+            const subChannelMessageTypes = types.subChannelListeners[this.subChannelID];
             if (subChannelMessageTypes) messageTypes = messageTypes.concat(subChannelMessageTypes);
 
             // Setup the methods
@@ -153,12 +154,12 @@ class ChannelReciever {
 
         // Forward IPC messages
         _IPC2.default.on("channel.message:" + ID, event => {
-            var data = event.data;
+            let data = event.data;
 
             // Extract the data to build the event to emit in this channel
-            var sender = data.senderID;
-            var subChannelID = data.subChannelID;
-            var message = data.message;
+            const sender = data.senderID;
+            const subChannelID = data.subChannelID;
+            const message = data.message;
             data = data.data;
 
             // Emit the event
@@ -213,8 +214,8 @@ class ChannelReciever {
     __emitEvent(message, event, subChannelID) {
         if (subChannelID) {
             // Attempt to find message listeners on this subchannel
-            var subChannel = this.subChannelListeners[subChannelID];
-            var listener = subChannel && subChannel[message];
+            const subChannel = this.subChannelListeners[subChannelID];
+            const listener = subChannel && subChannel[message];
 
             // If listeners exist, call them and don't invoke any global listeners
             if (listener) {
@@ -224,7 +225,7 @@ class ChannelReciever {
         }
 
         // Retrieve listeners
-        var listener = this.globalListeners[message];
+        const listener = this.globalListeners[message];
 
         // If listeners exist, call them
         if (listener) listener.call(this, event);
@@ -236,7 +237,7 @@ class ChannelReciever {
      */
     __broadCastMessageTypes(processes = "*") {
         // Create object to broadcast to the requesting renderer/process
-        var messageTypes = {
+        const messageTypes = {
             globalListeners: (0, _keys2.default)(this.globalListeners),
             subChannelListeners: {
                 // Will be filled by the for loop below
@@ -244,16 +245,18 @@ class ChannelReciever {
         };
 
         // Add all the subChannel
-        for (var key in this.subChannelListeners) messageTypes.subChannelListeners[key] = (0, _keys2.default)(this.subChannelListeners[key]);
+        for (let key in this.subChannelListeners) messageTypes.subChannelListeners[key] = (0, _keys2.default)(this.subChannelListeners[key]);
 
         // Broadcast the messages
         _IPC2.default.send("channel.sendMessageTypes:" + this.ID, messageTypes, processes);
     }
 }
-
+exports.ChannelSender = ChannelSender;
+exports.ChannelReciever = ChannelReciever;
 /**
  * The public class to create channel senders and recievers, as the creation of a channel sender is asynchronous
  */
+
 class Channel {
     /**
      * Create a new channel sender, allowing to send messages to the channel

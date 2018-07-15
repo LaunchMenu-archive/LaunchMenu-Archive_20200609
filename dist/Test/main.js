@@ -24,11 +24,15 @@ var _channel = require("../core/communication/channel");
 
 var _channel2 = _interopRequireDefault(_channel);
 
+var _requestPath = require("../core/registry/requestPath");
+
+var _requestPath2 = _interopRequireDefault(_requestPath);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // var {app, BrowserWindow} = require('electron');
-//this is merely some test code
-var mainWindow;
+var mainWindow; //this is merely some test code
+
 _electron.app.on('window-all-closed', function () {
 	if (process.platform != 'darwin') {
 		_electron.app.quit();
@@ -50,41 +54,58 @@ _electron.app.on('ready', function () {
 	mainWindow.on('closed', function () {
 		mainWindow = null;
 	});
+
+	// Register window
 	_IPC2.default._registerWindow(mainWindow);
 });
 
-// Module registry
-_registry2.default.loadModule("testModule");
+_IPC2.default.once("loaded", event => {
+	// Module registry
+	_registry2.default.loadModule("testModule");
 
-// IPC testing
-_IPC2.default.on("ping", event => {
-	console.log(event);
-	_IPC2.default.send("pong", { data: 2 }, 1);
-	// IPC.send("module", TestModule, 1);
-});
-_IPC2.default.on("moduleInstanceTransfer", event => {
-	console.log(event);
-});
+	_IPC2.default.on("pong", event => {
+		return 3;
+	});
 
-// Channel testing
-var channel = _channel2.default.createReceiver("TestName", {
-	doSomething: event => {
-		console.log("smth", event);
-	},
-	doSomethingElse: event => {
-		console.log("smthElse", event);
-	}
-});
-channel.createSubChannel("getColor", {
-	onColor: event => {
-		console.log("color", event);
-	},
-	doSomethingElse: function (event) {
-		console.log("smthElse Overwritten", event, event.senderID);
-		_channel2.default.createSender(event.senderID, "", this.getID()).then(channel => {
-			console.log("establish connection");
-			channel.smth("stuff");
+	// IPC testing
+	_IPC2.default.on("ping", event => {
+		console.log("ping", event);
+		_IPC2.default.send("pong", { data: 2 }, 1).then(data => {
+			console.log("response", data);
 		});
-	}
+		// IPC.send("module", TestModule, 1);
+	});
+	_IPC2.default.on("moduleInstanceTransfer", event => {
+		console.log(event);
+	});
+
+	// Channel testing
+	var channel = _channel2.default.createReceiver("TestName", {
+		doSomething: event => {
+			console.log("smth", event);
+		},
+		doSomethingElse: event => {
+			console.log("smthElse", event);
+		}
+	});
+	channel.createSubChannel("getColor", {
+		onColor: event => {
+			console.log("color", event);
+		},
+		doSomethingElse: function (event) {
+			console.log("smthElse Overwritten", event, event.senderID);
+			_channel2.default.createSender(event.senderID, "", this.getID()).then(channel => {
+				console.log("establish connection");
+				channel.smth("stuff");
+			});
+		}
+	});
+
+	//RequestPath testing
+	const rootRequestPath = new _requestPath2.default("root");
+	rootRequestPath.augmentPath("test").then(requestPath => {
+		console.log(requestPath.toString(true));
+		requestPath._attachModuleInstance("shit");
+	});
 });
 //# sourceMappingURL=main.js.map

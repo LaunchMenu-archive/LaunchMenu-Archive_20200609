@@ -30,6 +30,10 @@ var _registry = require("../core/registry/registry");
 
 var _registry2 = _interopRequireDefault(_registry);
 
+var _requestPath = require("../core/registry/requestPath");
+
+var _requestPath2 = _interopRequireDefault(_requestPath);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 (0, _importTest2.default)();
@@ -56,13 +60,17 @@ console.log(_ExtendedJSON2.default.decode(_ExtendedJSON2.default.encode(obj)), o
 
 // IPC testing
 
-_IPC2.default.send("ping", { data: 1 }, 0);
+_IPC2.default.send("loaded", null, 0);
+
+// IPC.send("ping", {data:1});
 _IPC2.default.on("pong", event => {
     console.log("pong", event);
+    return 4;
 });
 _IPC2.default.on("ping", event => {
     console.log("ping", event);
 });
+_IPC2.default.send("pong", null).then(data => console.log("pong response", data));
 
 // Module registry test
 
@@ -87,6 +95,14 @@ var channel = _channel2.default.createReceiver("crap", {
     smth: event => {
         console.log("smth", event);
     }
+});
+
+//RequestPath testing
+
+const rootRequestPath = new _requestPath2.default("root");
+rootRequestPath.augmentPath("test").then(requestPath => {
+    console.log(requestPath.toString(true));
+    requestPath._attachModuleInstance("crap");
 });
 
 // Error message test with source mapping:

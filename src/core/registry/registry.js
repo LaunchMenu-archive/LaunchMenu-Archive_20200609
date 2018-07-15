@@ -57,6 +57,30 @@ class Registry{
         //TODO make a module loader
     }
 
+    // Protected methods
+    static _registerModuleInstance(moduleInstance){
+        return new Promise((resolve, reject)=>{
+            const requestPath = moduleInstance.getPath();
+            IPC.send("Registry.registerModuleInstance", {
+                requestPath: requestPath.toString(true)
+            }, 0).then(responses=>{
+                const ID = responses[0];
+                requestPath.getModuleID().ID = ID;
+                resolve(ID);
+            });
+        });
+    }
+    static _deregisterModuleInstance(moduleInstance){
+        return new Promise((resolve, reject)=>{
+            const requestPath = moduleInstance.getPath();
+            IPC.send("Registry.deregisterModuleInstance", {
+                requestPath: requestPath.toString(true)
+            }, 0).then(responses=>{
+                resolve();
+            });
+        });
+    }
+
     // Private methods
     /**
      * Creates the listener variable for a certain type if necessary, and returns it
@@ -120,6 +144,9 @@ class Registry{
                 request.resolve(modules);
             }else if(request.type=="handle"){
                 //TODO make handle requests instantiate modules and return channels
+                modules.forEach(module=>{
+
+                });
             }
         }
     }
@@ -187,6 +214,34 @@ class Registry{
 
                 // Return the mapping of modules and their priorities
                 IPC.send("Registry.returnRequest", {modules:modules, requestID:request.ID}, source);
+            });
+
+
+            // Stores lists of unique module instance request paths, indexed by request paths
+            this.moduleInstancePaths = {};
+
+            // Listen for module instances being registered
+            IPC.on("Registry.registerModuleInstance", event=>{
+                const requestPath = new RequestPath(event.data.requestPath);
+                let paths = this.moduleInstancePaths[requestPath.toString()];
+                if(!paths)
+                    paths = this.moduleInstancePaths[requestPath.toString()] = {};
+
+                let IDS = Object.values(paths).map(path=>path.getModuleID().ID);
+                let ID = 0;
+                while(IDS.indexOf(ID)!=-1) ID++;
+                requestPath.getModuleID().ID = ID;
+                this.moduleInstancePaths[requestPath.toString()] = requestPath;
+                return ID;
+            });
+
+            // Listen for module instances being deregistered
+            IPC.on("Registry.deregisterModuleInstance", event=>{
+                const requestPath = new RequestPath(event.data.requestPath);
+                let paths = this.moduleInstancePaths[requestPath.toString()];
+                if(paths){
+                    delete paths[requestPath.toString(true)];
+                }
             });
         }
 
