@@ -6,6 +6,7 @@ import IPC from "../core/communication/IPC";
 import Registry from "../core/registry/registry";
 import Channel from "../core/communication/channel";
 import RequestPath from "../core/registry/requestPath";
+import GlobalData from "../core/communication/data/globalData";
 
 // var {app, BrowserWindow} = require('electron');
 var mainWindow;
@@ -78,10 +79,28 @@ IPC.once("loaded", (event)=>{
 		}
 	});
 
-    //RequestPath testing
-	const rootRequestPath = new RequestPath("root");
-	rootRequestPath.augmentPath("test").then(requestPath=>{
-		console.log(requestPath.toString(true));
-		requestPath._attachModuleInstance("shit");
+    // GlobalData testing
+	GlobalData.create("test", {
+		someField: {
+			someData: 1,
+			someOtherData: true
+		},
+		someStuff: "message",
+		change: {
+			1: 5,
+			2: 5
+		}
+	}).then(globalData=>{
+		console.log(globalData, globalData.get("someField.someData"));
+		globalData.on("someField.update", event=>{
+			console.log(event);
+			globalData.change({
+				someStuff: {
+					crap: 3
+				}
+			});
+		});
 	});
+
+	return 4;
 });

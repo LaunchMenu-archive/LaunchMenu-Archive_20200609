@@ -1,5 +1,5 @@
 import {ipcMain, ipcRenderer} from "electron";
-// import ExtendedJSON from "./extendedJSON";
+import isMain from "../isMain";
 import ExtendedJSON from "../communication/extendedJSON";
 /**
  * A class that allows for communication between different processes and renderers
@@ -7,13 +7,22 @@ import ExtendedJSON from "../communication/extendedJSON";
 class IPC{
     /**
      * Send data to another window or the main script
-     * @param  {String} type                        The event type to send (preferbly prefixed with some module ID)
+     * @param  {String} type                        The event type to send (preferably prefixed with some class ID)
      * @param  {Object} data                        The data to send
      * @param  {String|[String, ...]} [dest="*"]    The window ID(s) to send this data to
      * @return {Promise} The promise that will get called with all the returned data from the listeners
      */
     static send(type, data, dest="*"){
         return this.__send(type, data, dest);
+    }
+    /**
+     * Send data synchronously to the main script
+     * @param  {String} type                        The event type to send (preferably prefixed with some class ID)
+     * @param  {Object} data                        The data to send
+     * @return {Promise} The promise that will get called with all the returned data from the listeners
+     */
+    static sendSync(type, data){
+        return this.__sendSync(type, data);
     }
     /**
      * Listen for data being send by the main process or renderers
@@ -88,13 +97,6 @@ class IPC{
         const index = this.windows.indexOf(window);
         if(index!=-1) delete this.windows[index];
     }
-    /**
-     * A method to check whether this is the main process or a renderer
-     * @return {Boolean} The boolean indicating whether this is a renderer
-     */
-    static _isRenderer(){
-        return !!ipcRenderer;
-    }
 
     // Private methods
     /**
@@ -146,11 +148,7 @@ class IPC{
 
         // Send the data
         const encodedData = ExtendedJSON.encode(data);
-        if(this._isRenderer()){ // If the call is made from a renderer
-            // Send the data to the main process such that it can spread it to the appropriate windows
-            const forwardData = {dest:dest, type:type, sourceID:this.ID, responseID:respID, data:encodedData};
-            ipcRenderer.send("IPC.forward", forwardData);
-        }else{
+        if(isMain){ // If the call is made from the main process
             // Send the data to the appropriate windows
             const windows = this._getWindows();
 
@@ -159,7 +157,7 @@ class IPC{
                 // If we want to target all windows (and the main thread), create a list of all destinations
                 dest = [];
                 for(let i in windows)
-                    dest.push(i);
+                dest.push(i);
             }else if(!(dest instanceof Array)){
                 // If only a single destination is provided, still make sure it is an array
                 dest = [dest];
@@ -168,7 +166,7 @@ class IPC{
                 for(let i=dest.length-1; i>=0; i--){
                     let id = dest[i];
                     if(!this.windows[Number(id)])
-                        dest.splice(i, 1);
+                    dest.splice(i, 1);
                 }
             }
 
@@ -202,10 +200,33 @@ class IPC{
                     }
                 }
             });
+        }else{
+            // Send the data to the main process such that it can spread it to the appropriate windows
+            const forwardData = {dest:dest, type:type, sourceID:this.ID, responseID:respID, data:encodedData};
+            ipcRenderer.send("IPC.forward", forwardData);
         }
 
         // Return the response promise
         return promise;
+    }
+    /**
+     * Send data synchronously to the main script
+     * @param  {String} type                        The event type to send (preferably prefixed with some class ID)
+     * @param  {Object} data                        The data to send
+     * @param  {Number} source                      The process/renderer ID that the event was originally sent from
+     * @return {Promise} The promise that will get called with all the returned data from the listeners
+     */
+    static __sendSync(type, data, sourceID){
+        if(isMain){ // If the call is made from the main process
+            return this.__emitEvent(type, {
+                sourceID: sourceID,
+                data: data
+            });
+        }else{
+            // Send event to the main process and return the data
+            const response = ipcRenderer.sendSync("IPC.syncCall", {type:type, data:ExtendedJSON.encode(data)});
+            return ExtendedJSON.decode(response);
+        }
     }
     /**
      * Send a response to the source window that emitted the event
@@ -217,21 +238,30 @@ class IPC{
      */
     static __sendResponse(sourceID, responseData){
         // Check whether this is the main process or a renderer
-        if(this._isRenderer()){
-            // If this is a renderer, pass the response back to the main process
-            responseData.sourceID = sourceID;
-            ipcRenderer.send("IPC.forwardResponse", responseData);
-        }else{
+        if(isMain){
             // If this is the main process, and the event was sent by the main process, process the data
             if(sourceID==0){
                 this.__recieveResponse(responseData.responseID, responseData.responses, responseData.responseOriginCount);
+
             // If this is the main process and the data was meant for a renderer, forward the data
             }else{
                 const window = this.windows[Number(sourceID)];
                 if(window){
-                    window.webContents.send("IPC.recieveResponse", responseData);
+                    window.webContents.send("IPC.recieveResponse", {
+                        responseID: responseData.responseID,
+                        responseOriginCount: responseData.responseOriginCount,
+                        responses: ExtendedJSON.encode(responseData.responses)
+                    });
                 }
             }
+        }else{
+            // If this is a renderer, pass the response back to the main process
+            ipcRenderer.send("IPC.forwardResponse", {
+                sourceID: sourceID,
+                responseID: responseData.responseID,
+                responseOriginCount: responseData.responseOriginCount,
+                responses: ExtendedJSON.encode(responseData.responses)
+            });
         }
     }
     /**
@@ -266,7 +296,25 @@ class IPC{
         this.responseListeners = {ID:0}; // The response listeners in this process/renderer
 
         // Check whether this is the main process or a renderer
-        if(this._isRenderer()){
+        if(isMain){
+            this.ID = 0;
+
+            // Forward the call made by a renderer, and passing the sourceID to track the origin
+            ipcMain.on("IPC.forward", (event, arg)=>{
+                this.__send(arg.type, ExtendedJSON.decode(arg.data), arg.dest, arg.sourceID, arg.responseID);
+            });
+
+            // Return any responses to the source process/renderer when recieved
+            ipcMain.on("IPC.forwardResponse", (event, arg)=>{
+                this.__sendResponse(arg.sourceID, arg);
+            });
+
+            // Listen for synchonous IPC calls
+            ipcMain.on("IPC.syncCall", (event, arg)=>{
+                const response = this.__sendSync(arg.type, ExtendedJSON.decode(arg.data), arg.sourceID);
+                event.returnValue = ExtendedJSON.encode(response);
+            });
+        }else{  // Is a renderer thread
             this.ID = require('electron').remote.getCurrentWindow().id; // (Starts from 1)
 
             // Emit the event to all listeners whenever it is recieved
@@ -287,19 +335,7 @@ class IPC{
 
             // Call the response listener whenever the response returned
             ipcRenderer.on("IPC.recieveResponse", (event, arg)=>{
-                this.__recieveResponse(arg.responseID, arg.responses, arg.responseOriginCount);
-            });
-        }else{  // Is the main thread
-            this.ID = 0;
-
-            // Forward the call made by a renderer, and passing the sourceID to track the origin
-            ipcMain.on("IPC.forward", (event, arg)=>{
-                this.__send(arg.type, ExtendedJSON.decode(arg.data), arg.dest, arg.sourceID, arg.responseID);
-            });
-
-            // Return any responses to the source process/renderer when recieved
-            ipcMain.on("IPC.forwardResponse", (event, arg)=>{
-                this.__sendResponse(arg.sourceID, arg);
+                this.__recieveResponse(arg.responseID, ExtendedJSON.decode(arg.responses), arg.responseOriginCount);
             });
         }
     }

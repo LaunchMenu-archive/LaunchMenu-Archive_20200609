@@ -4,7 +4,7 @@ import {serializeSymbol, deserializeSymbol} from "../core/communication/extended
 
 export default class TestModule extends Module{
     constructor(name){
-        super();
+        super(undefined, true);
         this.name = name;
     }
     setSomething(something){

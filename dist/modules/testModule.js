@@ -20,7 +20,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 class TestModule extends _module2.default {
     constructor(name) {
-        super();
+        super(undefined, true);
         this.name = name;
     }
     setSomething(something) {

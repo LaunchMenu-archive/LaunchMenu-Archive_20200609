@@ -28,11 +28,15 @@ var _requestPath = require("../core/registry/requestPath");
 
 var _requestPath2 = _interopRequireDefault(_requestPath);
 
+var _globalData = require("../core/communication/data/globalData");
+
+var _globalData2 = _interopRequireDefault(_globalData);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // var {app, BrowserWindow} = require('electron');
-var mainWindow; //this is merely some test code
-
+//this is merely some test code
+var mainWindow;
 _electron.app.on('window-all-closed', function () {
 	if (process.platform != 'darwin') {
 		_electron.app.quit();
@@ -101,11 +105,29 @@ _IPC2.default.once("loaded", event => {
 		}
 	});
 
-	//RequestPath testing
-	const rootRequestPath = new _requestPath2.default("root");
-	rootRequestPath.augmentPath("test").then(requestPath => {
-		console.log(requestPath.toString(true));
-		requestPath._attachModuleInstance("shit");
+	// GlobalData testing
+	_globalData2.default.create("test", {
+		someField: {
+			someData: 1,
+			someOtherData: true
+		},
+		someStuff: "message",
+		change: {
+			1: 5,
+			2: 5
+		}
+	}).then(globalData => {
+		console.log(globalData, globalData.get("someField.someData"));
+		globalData.on("someField.update", event => {
+			console.log(event);
+			globalData.change({
+				someStuff: {
+					crap: 3
+				}
+			});
+		});
 	});
+
+	return 4;
 });
 //# sourceMappingURL=main.js.map

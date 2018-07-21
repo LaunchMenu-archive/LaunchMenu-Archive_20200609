@@ -26,7 +26,7 @@ console.log(ExtendedJSON.decode(ExtendedJSON.encode(obj)), obj);
 
 // IPC testing
 import IPC from "../core/communication/IPC";
-IPC.send("loaded", null, 0);
+IPC.sendSync("loaded", null);
 
 // IPC.send("ping", {data:1});
 IPC.on("pong", (event)=>{
@@ -40,15 +40,14 @@ IPC.send("pong", null).then(data=>console.log("pong response", data));
 
 // Module registry test
 import Registry from "../core/registry/registry";
-Registry.requestModule({type:"test"}).then(module=>{
-    console.log(module);
+const module = Registry.requestModule({type:"test"});
 
-    // Module instance transfer test
-    var instance = new module("itsName");
-    instance.setSomething("someValue");
+// Module instance transfer test
+console.log(module);
+var instance = new module("itsName");
+instance.setSomething("someValue");
 
-    IPC.send("moduleInstanceTransfer", instance, 0);
-});
+IPC.send("moduleInstanceTransfer", instance, 0);
 
 // Channel test
 Channel.createSender("TestName", "getColor", "crap").then(channel=>{
@@ -63,12 +62,29 @@ var channel = Channel.createReceiver("crap", {
     }
 });
 
-//RequestPath testing
-import RequestPath from "../core/registry/requestPath";
-const rootRequestPath = new RequestPath("root");
-rootRequestPath.augmentPath("test").then(requestPath=>{
-	console.log(requestPath.toString(true));
-    requestPath._attachModuleInstance("crap");
+// GlobalData testing
+import GlobalData from "../core/communication/data/globalData";
+GlobalData.create("test", {
+
+}).then(globalData=>{
+    console.log(globalData, globalData.get());
+    globalData.on("someStuff.update", event=>{
+        console.log(event);
+    });
+    globalData.change({
+        someField: {
+            someOtherData: false
+        }
+    });
+    globalData.on("change.update", event=>{
+        console.log(event);
+    });
+    globalData.change({
+        change: {
+            1: "test",
+            2: 4
+        }
+    });
 });
 
 // Error message test with source mapping:

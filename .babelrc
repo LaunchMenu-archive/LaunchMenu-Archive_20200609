@@ -6,6 +6,6 @@
     "plugins": [
         "transform-runtime",
         "transform-react-jsx",
-        "source-map-support"
+        "source-map-support",
     ]
 }

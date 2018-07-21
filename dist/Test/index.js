@@ -30,9 +30,9 @@ var _registry = require("../core/registry/registry");
 
 var _registry2 = _interopRequireDefault(_registry);
 
-var _requestPath = require("../core/registry/requestPath");
+var _globalData = require("../core/communication/data/globalData");
 
-var _requestPath2 = _interopRequireDefault(_requestPath);
+var _globalData2 = _interopRequireDefault(_globalData);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -60,7 +60,7 @@ console.log(_ExtendedJSON2.default.decode(_ExtendedJSON2.default.encode(obj)), o
 
 // IPC testing
 
-_IPC2.default.send("loaded", null, 0);
+_IPC2.default.sendSync("loaded", null);
 
 // IPC.send("ping", {data:1});
 _IPC2.default.on("pong", event => {
@@ -74,15 +74,14 @@ _IPC2.default.send("pong", null).then(data => console.log("pong response", data)
 
 // Module registry test
 
-_registry2.default.requestModule({ type: "test" }).then(module => {
-    console.log(module);
+const _module = _registry2.default.requestModule({ type: "test" });
 
-    // Module instance transfer test
-    var instance = new module("itsName");
-    instance.setSomething("someValue");
+// Module instance transfer test
+console.log(_module);
+var instance = new _module("itsName");
+instance.setSomething("someValue");
 
-    _IPC2.default.send("moduleInstanceTransfer", instance, 0);
-});
+_IPC2.default.send("moduleInstanceTransfer", instance, 0);
 
 // Channel test
 _channel2.default.createSender("TestName", "getColor", "crap").then(channel => {
@@ -97,12 +96,27 @@ var channel = _channel2.default.createReceiver("crap", {
     }
 });
 
-//RequestPath testing
+// GlobalData testing
 
-const rootRequestPath = new _requestPath2.default("root");
-rootRequestPath.augmentPath("test").then(requestPath => {
-    console.log(requestPath.toString(true));
-    requestPath._attachModuleInstance("crap");
+_globalData2.default.create("test", {}).then(globalData => {
+    console.log(globalData, globalData.get());
+    globalData.on("someStuff.update", event => {
+        console.log(event);
+    });
+    globalData.change({
+        someField: {
+            someOtherData: false
+        }
+    });
+    globalData.on("change.update", event => {
+        console.log(event);
+    });
+    globalData.change({
+        change: {
+            1: "test",
+            2: 4
+        }
+    });
 });
 
 // Error message test with source mapping:

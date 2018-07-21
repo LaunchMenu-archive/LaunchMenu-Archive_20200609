@@ -4,6 +4,10 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
+var _values = require("babel-runtime/core-js/object/values");
+
+var _values2 = _interopRequireDefault(_values);
+
 var _promise = require("babel-runtime/core-js/promise");
 
 var _promise2 = _interopRequireDefault(_promise);
@@ -13,6 +17,10 @@ require("source-map-support/register");
 var _path = require("path");
 
 var _path2 = _interopRequireDefault(_path);
+
+var _isMain = require("../isMain");
+
+var _isMain2 = _interopRequireDefault(_isMain);
 
 var _IPC = require("../communication/IPC");
 
@@ -36,7 +44,7 @@ class Registry {
     }
     static requestModule(request) {
         if (!request.use) request.use = "one";
-        return this.__request(request, "module");
+        return this.__request(request, "module", true);
     }
     /**
      * Registers a module in the registry such that it can be requested by other modules
@@ -76,6 +84,30 @@ class Registry {
     static loadAllModules() {}
     //TODO make a module loader
 
+
+    // Protected methods
+    static _registerModuleInstance(moduleInstance) {
+        return new _promise2.default((resolve, reject) => {
+            const requestPath = moduleInstance.getPath();
+            _IPC2.default.send("Registry.registerModuleInstance", {
+                requestPath: requestPath.toString(true)
+            }, 0).then(responses => {
+                const ID = responses[0];
+                requestPath.getModuleID().ID = ID;
+                resolve(ID);
+            });
+        });
+    }
+    static _deregisterModuleInstance(moduleInstance) {
+        return new _promise2.default((resolve, reject) => {
+            const requestPath = moduleInstance.getPath();
+            _IPC2.default.send("Registry.deregisterModuleInstance", {
+                requestPath: requestPath.toString(true)
+            }, 0).then(responses => {
+                resolve();
+            });
+        });
+    }
 
     // Private methods
     /**
@@ -126,51 +158,44 @@ class Registry {
             return priorities[0] && priorities[0].module;
         }
     }
-    static __resolveRequest(requestID, modules) {
-        // Check if there is a request that goes by this ID
-        const request = this.requests[requestID];
-        if (request) {
-            // Delete the request as we are answering it now
-            delete this.requests[requestID];
-
+    static __resolveRequest(type, modules) {
+        return new _promise2.default((resolve, reject) => {
             // Resolve request by simply returning the module if it was a module request,
             //      or instanciate a module and return a channel on a handle request
-            if (request.type == "module") {
-                request.resolve(modules);
-            } else if (request.type == "handle") {
+            if (type == "module") {
+                resolve(modules);
+            } else if (type == "handle") {
                 //TODO make handle requests instantiate modules and return channels
+                modules.forEach(module => {});
             }
-        }
-    }
-    static __request(request, type) {
-        // Attach extra data to the request
-        const ID = this.requests.ID++;
-        request.ID = ID;
-        request = {
-            requestData: request,
-            type: "module"
-        };
-
-        // Create a promise to return, and make it resolvable from the request
-        const promise = new _promise2.default((resolve, reject) => {
-            request.resolve = resolve;
         });
-
-        // Store the request such that it can later be resolved
-        this.requests[ID] = request;
-
-        // Retrieve the modules to resolve the request
-        if (_IPC2.default._isRenderer()) {
-            // Send a command to the main window to look for modules to resolve the request
-            _IPC2.default.send("Registry.request", request.requestData, 0);
+    }
+    static __request(request, type, synced) {
+        if (synced) {
+            if (_isMain2.default) {
+                // Directly resolve the request as we have access to all modules
+                return this.__getModules(request.data);
+            } else {
+                // Send a command to the main window to look for modules to resolve the request
+                return _IPC2.default.sendSync("Registry.request", request)[0];
+            }
         } else {
-            // Directly resolve the request as we have access to all modules
-            const modules = this.__getModules(request.data);
-            this.__resolveRequest(ID, modules);
-        }
+            // Retrieve the modules to resolve the request
+            return new _promise2.default((resolve, reject) => {
+                if (_isMain2.default) {
+                    // Directly resolve the request as we have access to all modules
+                    const modules = this.__getModules(request);
+                    this.__resolveRequest(type, modules).then(resolve);
+                } else {
+                    // Send a command to the main window to look for modules to resolve the request
+                    _IPC2.default.send("Registry.request", request, 0).then(responses => {
+                        const modules = responses[0];
 
-        // Return the Promise
-        return promise;
+                        this.__resolveRequest(type, modules).then(resolve);
+                    });
+                }
+            });
+        }
     }
 
     /**
@@ -184,28 +209,44 @@ class Registry {
         // Stores the registered modules themselves, indexed by path
         this.modules = {};
 
-        // Stores the requests that are currently awaiting to be answered
-        this.requests = { ID: 0 };
-
         // Set up the IPC listeners in the renderers and main process to allow renderers to request modules
-        if (_IPC2.default._isRenderer()) {
-            // Resolve the request when the main process returns the modules
-            _IPC2.default.on("Registry.returnRequest", event => {
-                const data = event.data;
-
-                this.__resolveRequest(data.requestID, data.modules);
-            });
-        } else {
+        if (_isMain2.default) {
             // Filter out possible modules in this window to handle the handle request
             _IPC2.default.on("Registry.request", event => {
-                const source = event.sourceID;
                 const request = event.data;
 
                 // Retrieve the priority mapping
                 const modules = this.__getModules(request);
 
                 // Return the mapping of modules and their priorities
-                _IPC2.default.send("Registry.returnRequest", { modules: modules, requestID: request.ID }, source);
+                return modules;
+                // IPC.send("Registry.returnRequest", {modules:modules, requestID:request.ID}, source);
+            });
+
+            // Stores lists of unique module instance request paths, indexed by request paths
+            this.moduleInstancePaths = {};
+
+            // Listen for module instances being registered
+            _IPC2.default.on("Registry.registerModuleInstance", event => {
+                const requestPath = new RequestPath(event.data.requestPath);
+                let paths = this.moduleInstancePaths[requestPath.toString()];
+                if (!paths) paths = this.moduleInstancePaths[requestPath.toString()] = {};
+
+                let IDS = (0, _values2.default)(paths).map(path => path.getModuleID().ID);
+                let ID = 0;
+                while (IDS.indexOf(ID) != -1) ID++;
+                requestPath.getModuleID().ID = ID;
+                this.moduleInstancePaths[requestPath.toString()] = requestPath;
+                return ID;
+            });
+
+            // Listen for module instances being deregistered
+            _IPC2.default.on("Registry.deregisterModuleInstance", event => {
+                const requestPath = new RequestPath(event.data.requestPath);
+                let paths = this.moduleInstancePaths[requestPath.toString()];
+                if (paths) {
+                    delete paths[requestPath.toString(true)];
+                }
             });
         }
     }
