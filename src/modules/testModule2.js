@@ -1,16 +1,7 @@
 import stuff from "LM:crap";
-export default async()=>{
-    const Test = await Registry.request("test");
-    const n = stuff;
+import somethingElse from "LM:stuffers";
 
-    class S extends Test{
-
-    }
-
-    return {
-        config: {
-
-        },
-        default: S
-    };
+export default ()=>{
+    // Use stuff for whatever
+    stuff();
 }
