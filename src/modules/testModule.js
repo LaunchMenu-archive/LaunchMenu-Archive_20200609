@@ -23,6 +23,9 @@ export default class TestModule extends Module{
         this.setSomething(data.something);
     }
 }
-Registry.register(TestModule, {type:"test", filter:request=>{
-    return true;
-}});
+export const config = {
+    type: "test",
+    filter: request=>{
+        return true;
+    }
+};

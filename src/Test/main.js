@@ -37,70 +37,71 @@ app.on('ready', function() {
 });
 
 
+// Module registry
+Registry._loadModule("testModule");
+
 IPC.once("loaded", (event)=>{
-	// Module registry
-	Registry.loadModule("testModule");
 
-	IPC.on("pong", event=>{
-		return 3;
-	})
-
-	// IPC testing
-	IPC.on("ping", (event)=>{
-		console.log("ping", event);
-		IPC.send("pong", {data:2}, 1).then(data=>{
-	        console.log("response", data);
-	    });
-		// IPC.send("module", TestModule, 1);
-	});
-	IPC.on("moduleInstanceTransfer", (event)=>{
-	    console.log(event);
-	});
-
-	// Channel testing
-	var channel = Channel.createReceiver("TestName", {
-		doSomething: event=>{
-			console.log("smth", event);
-		},
-		doSomethingElse: event=>{
-			console.log("smthElse", event);
-		}
-	});
-	channel.createSubChannel("getColor", {
-		onColor: event=>{
-			console.log("color", event);
-		},
-		doSomethingElse: function(event){
-			console.log("smthElse Overwritten", event, event.senderID);
-			Channel.createSender(event.senderID, "", this.getID()).then(channel=>{
-				console.log("establish connection");
-				channel.smth("stuff");
-			});
-		}
-	});
-
-    // GlobalData testing
-	GlobalData.create("test", {
-		someField: {
-			someData: 1,
-			someOtherData: true
-		},
-		someStuff: "message",
-		change: {
-			1: 5,
-			2: 5
-		}
-	}).then(globalData=>{
-		console.log(globalData, globalData.get("someField.someData"));
-		globalData.on("someField.update", event=>{
-			console.log(event);
-			globalData.change({
-				someStuff: {
-					crap: 3
-				}
-			});
-		});
-	});
-
-	return 4;
+	// IPC.on("pong", event=>{
+	// 	return 3;
+	// })
+    //
+	// // IPC testing
+	// IPC.on("ping", (event)=>{
+	// 	console.log("ping", event);
+	// 	IPC.send("pong", {data:2}, 1).then(data=>{
+	//         console.log("response", data);
+	//     });
+	// 	// IPC.send("module", TestModule, 1);
+	// });
+	// IPC.on("moduleInstanceTransfer", (event)=>{
+	//     console.log(event);
+	// });
+    //
+	// // Channel testing
+	// var channel = Channel.createReceiver("TestName", {
+	// 	doSomething: event=>{
+	// 		console.log("smth", event);
+	// 	},
+	// 	doSomethingElse: event=>{
+	// 		console.log("smthElse", event);
+	// 	}
+	// });
+	// channel.createSubChannel("getColor", {
+	// 	onColor: event=>{
+	// 		console.log("color", event);
+	// 	},
+	// 	doSomethingElse: function(event){
+	// 		console.log("smthElse Overwritten", event, event.senderID);
+	// 		Channel.createSender(event.senderID, "", this.getID()).then(channel=>{
+	// 			console.log("establish connection");
+	// 			channel.smth("stuff");
+	// 		});
+	// 	}
+	// });
+    //
+    // // GlobalData testing
+	// GlobalData.create("test", {
+	// 	someField: {
+	// 		someData: 1,
+	// 		someOtherData: true
+	// 	},
+	// 	someStuff: "message",
+	// 	change: {
+	// 		1: 5,
+	// 		2: 5
+	// 	}
+	// }).then(globalData=>{
+	// 	console.log(globalData, globalData.get("someField.someData"));
+	// 	globalData.on("someField.update", event=>{
+	// 		console.log(event);
+	// 		globalData.change({
+	// 			someStuff: {
+	// 				crap: 3
+	// 			}
+	// 		});
+	// 	});
+	// });
+    //
+	// return 4;
 });

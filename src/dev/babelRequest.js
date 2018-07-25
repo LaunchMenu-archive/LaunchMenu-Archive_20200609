@@ -1,14 +1,51 @@
-import { addSideEffect } from '@babel/helper-module-imports'
 export default function({types:t}){
     var requestStatement = null;
     return {
         visitor: {
-            Program(path){
+            Program(path, data){
                 // Reset when the plugin runs on a new file
                 requestStatement = null;
-            },
-            LVal(path){
-                // console.log(path.node);
+
+
+                // Require the registry class once
+                // Get the filename of the file we are currently transpiling
+                const filename = data.file.opts.filename;
+
+                // Don't require the registry in the registry itself, or this babel module
+                const registryPath = "core/registry/registry.js";
+                if(filename.match(/(core\/registry\/registry\.js$)|(dev\/babelRequest\.js$)/)) return;
+
+                // Get import path (relative from current location to registry)
+                const filePath = filename
+                                    .split("/")
+                                    .slice(1)
+                                    .map(n => "..")
+                                    .concat(["dist", "core", "registry", "registry"])
+                                    .join("/");
+
+                // Create a require statement for the registry
+                const requireDeclaration = t.VariableDeclaration(
+                    "var",
+                    [
+                        t.VariableDeclarator(
+                            t.Identifier("Registry"),
+                            t.MemberExpression(
+                                t.CallExpression(
+                                    t.Identifier("require"),
+                                    [t.StringLiteral(filePath)]
+                                ),
+                                t.Identifier("default")
+                            )
+                        )
+                    ]
+                );
+
+                // Set _blockHoist which will assure it is appended to the top of the document
+                requireDeclaration._blockHoist = 3;
+
+                // Add the requireDeclaration to the document
+                const firstNode = path.get("body")[0];
+                if(firstNode) firstNode.insertBefore(requireDeclaration);
             },
             CallExpression(path){
                 const node = path.node;
@@ -75,7 +112,7 @@ export default function({types:t}){
                         t.CallExpression(
                             t.MemberExpression(
                                 t.Identifier("Registry"),
-                                t.Identifier("request")
+                                t.Identifier("requestModule")
                             ),
                             [arg]
                         )
@@ -83,22 +120,6 @@ export default function({types:t}){
 
                     // Make it so any future requests add to this already existing request
                     requestStatement = path.parentPath.parentPath;
-
-                    // Require the registry class once
-                    requestStatement.insertBefore(
-                        t.VariableDeclaration(
-                            "var",
-                            [
-                                t.VariableDeclarator(
-                                    t.Identifier("Registry"),
-                                    t.CallExpression(
-                                        t.Identifier("require"),
-                                        [t.StringLiteral("registry")]
-                                    )
-                                )
-                            ]
-                        )
-                    );
                 }
             }
         }

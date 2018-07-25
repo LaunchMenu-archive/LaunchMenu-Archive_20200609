@@ -167,7 +167,7 @@ export default class ExtendedJSON{
                             var Registry = require("../registry/registry").default;
 
                             // Load the module from its path and return it
-                            return Registry.loadModule(m[1]);
+                            return Registry._loadModule(m[1]);
                         }
 
                         // If object is a module instance, retrieve its class, instatiate it, and load the data
@@ -176,7 +176,7 @@ export default class ExtendedJSON{
                             var Registry = require("../registry/registry").default;
 
                             // Load the module from its path
-                            var module = Registry.loadModule(m[1]);
+                            var module = Registry._loadModule(m[1]);
 
                             // Instanciate the module with the correct arguments, and call the deserializer
                             var data = value.value;

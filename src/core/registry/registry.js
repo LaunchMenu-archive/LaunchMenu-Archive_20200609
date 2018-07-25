@@ -1,7 +1,6 @@
 import Path from "path";
 import isMain from "../isMain";
 import IPC from "../communication/IPC";
-var globalModulePath;
 /**
  * A class to track all the modules, and handle module requests
  */
@@ -13,52 +12,98 @@ class Registry{
      */
     static requestHandle(data){
         if(!request.use) request.use = "all";
-        return this.__request(request, "handle");
+        return this.__request([request], "handle");
     }
     static requestModule(request){
-        if(!request.use) request.use = "one";
-        return this.__request(request, "module", true);
-    }
-    /**
-     * Registers a module in the registry such that it can be requested by other modules
-     * @param  {Class} Class The class of the module you want to register
-     * @param  {{type:String, filter:function(request)}} classListener An event you would like this module to act on
-     * @return {Undefined} The method returns no useful information
-     */
-    static register(Class, ...classListeners){
-        // Set the path of the module
-        Class.modulePath = globalModulePath;
+        var requests = Array.from(arguments);
 
-        // Register the module itself
-        this.modules[Class.modulePath] = {
-            class: Class,
-            listeners: classListeners
-        };
-
-        // Register all the listeners
-        classListeners.forEach(listener=>{
-            // Keep a connection with the module itself
-            listener.module = Class;
-
-            // Add to the list of listeners for this request type
-            const listeners = this.__getListeners(listener.type);
-            listeners.listeners.push(listener);
+        // Normalize the request format
+        var requests = requests.map(request=>{
+            if(typeof(request)=="string")
+                request = {type: request};
+            if(!request.use)
+                request.use = "one";
+            return request;
         });
+
+        // Retrieve the request modules
+        const requestsModules = this.__request(requests, "module", true);
+
+        // Format the response appropriately
+        if(requestsModules.length>1){
+            const response = {};
+
+            // Map the modules to their request types
+            for(let i=0; i<requestsModules.length; i++){
+                const requestType = requests[i].type;
+                response[requestType] = requestsModules[i];
+            }
+
+            return response;
+        }else{
+            // Directly return the modules from the only request
+            return requestsModules[0];
+        }
     }
+    // /**
+    //  * Registers a module in the registry such that it can be requested by other modules
+    //  * @param  {Class} Class The class of the module you want to register
+    //  * @param  {{type:String, filter:function(request)}} classListener An event you would like this module to act on
+    //  * @return {Undefined} The method returns no useful information
+    //  */
+    // static __register(Class, ...classListeners){
+    //     // Set the path of the module
+    //     Class.modulePath = globalModulePath;
+    //
+    //     // Register the module itself
+    //     this.modules[Class.modulePath] = {
+    //         class: Class,
+    //         listeners: classListeners
+    //     };
+    //
+    //     // Register all the listeners
+    //     classListeners.forEach(listener=>{
+    //         // Keep a connection with the module itself
+    //         listener.module = Class;
+    //
+    //         // Add to the list of listeners for this request type
+    //         const listeners = this.__getListeners(listener.type);
+    //         listeners.listeners.push(listener);
+    //     });
+    // }
 
     // Protected methods
-    static loadModule(path){
+    static _loadModule(path){
         if(!this.modules[path]){
-            globalModulePath = path;
-            require(this.__getModulesPath(path));
+            // Require module
+            const data = require(this.__getModulesPath(path));
+
+            // Verify all necessary data is passed
+            if(data){
+                const clas = data.default;
+                const config = data.config;
+                if(config){
+                    // Augment data with some variables that can be extracted
+                    clas.modulePath = path;
+                    config.module = clas;
+
+                    // Register the module itself
+                    this.modules[path] = data;
+
+                    // Add listener to the list of listeners for this request type
+                    const listeners = this.__getListeners(config.type);
+                    listeners.listeners.push(config);
+                }else{
+                    return data;
+                }
+            }
         }
-        return this.modules[path] && this.modules[path].class;
+        return this.modules[path];
     }
-    static loadAllModules(){
+    static _loadAllModules(){
         //TODO make a module loader
     }
 
-    // Protected methods
     static _registerModuleInstance(moduleInstance){
         return new Promise((resolve, reject)=>{
             const requestPath = moduleInstance.getPath();
@@ -132,42 +177,50 @@ class Registry{
             return priorities[0] && priorities[0].module;
         }
     }
-    static __resolveRequest(type, modules){
+    static __resolveRequest(type, requestsModules){
         return new Promise((resolve, reject)=>{
             // Resolve request by simply returning the module if it was a module request,
             //      or instanciate a module and return a channel on a handle request
             if(type=="module"){
-                resolve(modules);
+                resolve(requestsModules);
             }else if(type=="handle"){
                 //TODO make handle requests instantiate modules and return channels
-                modules.forEach(module=>{
+                // Go through requests
+                requestsModules.forEach(requestModules=>{
+                    // Go through modules for 1 request
+                    requestModules.forEach(module=>{
 
+                    });
                 });
             }
         })
     }
-    static __request(request, type, synced){
+    static __request(requests, type, synced){
         if(synced){
             if(isMain){
                 // Directly resolve the request as we have access to all modules
-                return this.__getModules(request.data);
+                return requests.map(request=>{
+                    return this.__getModules(request);
+                });
             }else{
                 // Send a command to the main window to look for modules to resolve the request
-                return IPC.sendSync("Registry.request", request)[0];
+                return IPC.sendSync("Registry.request", requests)[0];
             }
         }else{
             // Retrieve the modules to resolve the request
             return new Promise((resolve, reject)=>{
                 if(isMain){
                     // Directly resolve the request as we have access to all modules
-                    const modules = this.__getModules(request);
-                    this.__resolveRequest(type, modules).then(resolve);
+                    const requestsModules = requests.map(request=>{
+                        return this.__getModules(request);
+                    });
+                    this.__resolveRequest(type, requestsModules).then(resolve);
                 }else{
                     // Send a command to the main window to look for modules to resolve the request
-                    IPC.send("Registry.request", request, 0).then(responses=>{
-                        const modules = responses[0];
+                    IPC.send("Registry.request", requests, 0).then(responses=>{
+                        const requestsModules = responses[0];
 
-                        this.__resolveRequest(type, modules).then(resolve);
+                        this.__resolveRequest(type, requestsModules).then(resolve);
                     });
                 }
             });
@@ -189,13 +242,15 @@ class Registry{
         if(isMain){
             // Filter out possible modules in this window to handle the handle request
             IPC.on("Registry.request", event=>{
-                const request = event.data;
+                const requests = event.data;
 
-                // Retrieve the priority mapping
-                const modules = this.__getModules(request);
+                // Retrieve the priority mapping for every request
+                const requestsModules = requests.map(request=>{
+                    return this.__getModules(request);
+                });
 
                 // Return the mapping of modules and their priorities
-                return modules;
+                return requestsModules;
                 // IPC.send("Registry.returnRequest", {modules:modules, requestID:request.ID}, source);
             });
 
