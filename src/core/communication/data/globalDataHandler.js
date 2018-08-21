@@ -1,7 +1,7 @@
 import isMain from "../../isMain";
 import IPC from "../IPC";
 
-class GlobalData{
+export class GlobalData{
     constructor(ID){
         this.ID = ID;
         this.dataListener = event=>{
@@ -108,11 +108,11 @@ class GlobalDataHandler{
             return globalData;
         });
     }
-    static __changeField(ID, currentData, newData, path){
+    static _changeField(ID, currentData, newData, path){
         if(currentData && currentData.__proto__==Object.prototype){
             if(newData && newData.__proto__==Object.prototype){
                 for(let key in newData)
-                    currentData[key] = this.__changeField(ID, currentData[key], newData[key], path?path+"."+key:key);
+                    currentData[key] = this._changeField(ID, currentData[key], newData[key], path?path+"."+key:key);
                 return currentData;
             }else{
                 if(newData===undefined){
@@ -141,7 +141,7 @@ class GlobalDataHandler{
                     value: {}
                 });
                 for(let key in newData)
-                    this.__changeField(ID, undefined, newData[key], path?path+"."+key:key);
+                    this._changeField(ID, undefined, newData[key], path?path+"."+key:key);
             }else if(currentData===undefined){
                 IPC.send("GlobalData.notifyChange."+ID, {
                     type: "create",
@@ -164,9 +164,9 @@ class GlobalDataHandler{
 
             IPC.on("GlobalData.change", event=>{
                 const data = event.data;
-                let instance = this.globalDataInstances[data.ID];
+                const instance = this.globalDataInstances[data.ID];
                 if(instance)
-                    this.__changeField(data.ID, instance, data.data, "");
+                    return this._changeField(data.ID, instance, data.data, "");
                 return false;
             });
             IPC.on("GlobalData.retrieve", event=>{

@@ -6,39 +6,77 @@ import IPC from "../core/communication/IPC";
 import Registry from "../core/registry/registry";
 import Channel from "../core/communication/channel";
 import RequestPath from "../core/registry/requestPath";
-import GlobalData from "../core/communication/data/globalData";
+import GlobalDataHandler from "../core/communication/data/globalDataHandler";
+import SettingsHandler from "../core/communication/data/settingsHandler";
+import WindowHandler from "../core/window/windowHandler";
 
 // var {app, BrowserWindow} = require('electron');
-var mainWindow;
-app.on('window-all-closed', function() {
-  	if (process.platform != 'darwin') {
-    	app.quit();
-  	}
-});
-app.on('ready', function() {
-	mainWindow = new BrowserWindow({width: 1360, height: 800});
-	// mainWindow.loadURL(url.format({
-	//   pathname: "www.google.com",
-	//   protocol: 'https:',
-	//   slashes: true
-	// }));
-	mainWindow.loadURL(url.format({
-		pathname: path.join(process.cwd(), "dist", "Test", "index.html"),
-		protocol: 'file:',
-		slashes: true
-	}))
-	mainWindow.openDevTools();
-	mainWindow.on('closed', function() {
-		mainWindow = null;
-	});
+// var mainWindow;
+// app.on('window-all-closed', function() {
+//   	if (process.platform != 'darwin') {
+//     	app.quit();
+//   	}
+// });
+// app.on('ready', function() {
+// 	mainWindow = new BrowserWindow({width: 1360, height: 800});
+// 	// mainWindow.loadURL(url.format({
+// 	//   pathname: "www.google.com",
+// 	//   protocol: 'https:',
+// 	//   slashes: true
+// 	// }));
+// 	mainWindow.loadURL(url.format({
+// 		pathname: path.join(process.cwd(), "dist", "Test", "index.html"),
+// 		protocol: 'file:',
+// 		slashes: true
+// 	}))
+// 	mainWindow.openDevTools();
+// 	mainWindow.on('closed', function() {
+// 		mainWindow = null;
+// 	});
+//
+// 	// Register window
+// 	IPC._registerWindow(mainWindow);
+// });
 
-	// Register window
-	IPC._registerWindow(mainWindow);
-});
 
 
 // Module registry
-Registry._loadModule("testModule");
+Registry._loadModule("alert");
+Registry._loadModule("multiAlert");
+Registry._loadModule("testModule2");
+const TestModule2 = Registry.requestModule({type:"test2"});
+const testModule2 = new TestModule2();
+
+
+// Open a window
+app.on('ready', function(){
+
+
+    testModule2.requestHandle({
+        type: "multiAlert"
+    }).then(channel=>{
+        channel.alert("poooopy pants")
+            .then(()=>{
+                return channel.alert("Nuts");
+            }).then(()=>{
+                return channel.close();
+            });
+    });
+
+
+
+    // WindowHandler.open(1).then(data=>{
+    //     console.log("Window opened", data);
+    //     Registry.requestHandle({
+    //         type: "test",
+    //         source: testModule2,
+    //     }).then(result=>{
+    //         console.log(result);
+    //     });
+    // }).catch(err=>{
+    //     console.error(err);
+    // });
+});
 
 IPC.once("loaded", (event)=>{
 

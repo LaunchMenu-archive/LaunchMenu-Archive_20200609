@@ -85,8 +85,8 @@ class IPC{
      * @param  {BrowserWindow} window The window to register
      * @return {Undefined} The method returns no useful information
      */
-    static _registerWindow(window){
-        this.windows[window.id] = window;
+    static _registerWindow(window, windowID){
+        this.windows[windowID] = window;
     }
     /**
      * Deregister a window for when it is destroyed, such that it is no longer listed as a valid window
@@ -103,21 +103,31 @@ class IPC{
      * Emit an event to all the registered listeners
      * @param  {String} type  The event type to invoke
      * @param  {Object} event The event data to pass to the listeners
-     * @return {Undefined} The method returns no useful information
+     * @param  {Boolean} sync Whether to act synchronously and only allow sync returns
+     * @return {Promise} The method returns a promise that will resolve in all the returned values from listeners
      */
-    static __emitEvent(type, event){
+    static __emitEvent(type, event, sync){
         const listeners = this.listeners[type];
         const responses = [];
+        const promises = [];
 
         // Emit the event itself
         if(listeners)
             listeners.forEach(listener=>{
-                var response = listener.call(this, event);
-                responses.push(response);
+                const response = listener.call(this, event);
+                if(response instanceof Promise){
+                    promises.push(response);
+                }else{
+                    responses.push(response);
+                }
             });
 
         // Return the responses of the event
-        return responses;
+        if(sync) return responses
+
+        return Promise.all(promises).then(promiseResponses=>{
+            return responses.concat(promiseResponses);
+        });
     }
     /**
      * Send data to another window or the main script
@@ -175,18 +185,19 @@ class IPC{
             dest.forEach(id=>{
                 if(id==0){ // Target the main process
                     // Emit the event if the main process is a destination of the event
-                    const responses = this.__emitEvent(type, {
+                    const getResponses = this.__emitEvent(type, {
                         sourceID: source,
                         data: data
                     });
 
                     // Return responses
-                    this.__sendResponse(source, {
-                        responseID: respID,
-                        responseOriginCount: destCount,
-                        responses: responses
+                    getResponses.then(responses => {
+                        this.__sendResponse(source, {
+                            responseID: respID,
+                            responseOriginCount: destCount,
+                            responses: responses
+                        });
                     });
-
                 }else{ // Target a window
                     const window = this.windows[Number(id)];
                     if(window){
@@ -221,7 +232,7 @@ class IPC{
             return this.__emitEvent(type, {
                 sourceID: sourceID,
                 data: data
-            });
+            }, true);
         }else{
             // Send event to the main process and return the data
             const response = ipcRenderer.sendSync("IPC.syncCall", {type:type, data:ExtendedJSON.encode(data)});
@@ -306,6 +317,7 @@ class IPC{
 
             // Return any responses to the source process/renderer when recieved
             ipcMain.on("IPC.forwardResponse", (event, arg)=>{
+                arg.responses = ExtendedJSON.decode(arg.responses); // __sendResponse expects non encodedData
                 this.__sendResponse(arg.sourceID, arg);
             });
 
@@ -320,16 +332,18 @@ class IPC{
             // Emit the event to all listeners whenever it is recieved
             ipcRenderer.on("IPC.recieve", (event, arg)=>{
                 // Emit the event when recieved
-                const responses = this.__emitEvent(arg.type, {
+                const getResponses = this.__emitEvent(arg.type, {
                     sourceID: arg.sourceID,
                     data: ExtendedJSON.decode(arg.data)
                 });
 
                 // Return responses
-                this.__sendResponse(arg.sourceID, {
-                    responseID: arg.responseID,
-                    responseOriginCount: arg.responseOriginCount,
-                    responses: responses
+                getResponses.then(responses=>{
+                    this.__sendResponse(arg.sourceID, {
+                        responseID: arg.responseID,
+                        responseOriginCount: arg.responseOriginCount,
+                        responses: responses
+                    });
                 });
             });
 

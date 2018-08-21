@@ -1,5 +1,7 @@
 "use strict";
 
+var Registry = require("../../dist/core/registry/registry").default;
+
 require("source-map-support/register");
 
 var _react = require("react");
@@ -18,107 +20,113 @@ var _channel = require("../core/communication/channel");
 
 var _channel2 = _interopRequireDefault(_channel);
 
-var _ExtendedJSON = require("../core/communication/ExtendedJSON");
-
-var _ExtendedJSON2 = _interopRequireDefault(_ExtendedJSON);
-
 var _IPC = require("../core/communication/IPC");
 
 var _IPC2 = _interopRequireDefault(_IPC);
 
-var _registry = require("../core/registry/registry");
+var _LMTest = Registry.requestModule("test");
 
-var _registry2 = _interopRequireDefault(_registry);
-
-var _globalData = require("../core/communication/data/globalData");
-
-var _globalData2 = _interopRequireDefault(_globalData);
+var _LMTest2 = _interopRequireDefault(_LMTest);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 (0, _importTest2.default)();
 
 var el = _react2.default.createElement(
-    "div",
-    { className: "test" },
-    "Click me (though nothing will happen)"
+  "div",
+  { className: "test" },
+  "Click me (though nothing will happen)"
 );
-console.log(document.getElementById('root'));
 _reactDom2.default.render(el, document.getElementById('root'));
-
-// ExtendedJSON testing
-
-var obj = {
-    test: 5,
-    stuff: "test",
-    obj: {
-        value: 3
-    }
-};
-obj.obj.n = obj.obj;
-console.log(_ExtendedJSON2.default.decode(_ExtendedJSON2.default.encode(obj)), obj);
 
 // IPC testing
 
 _IPC2.default.sendSync("loaded", null);
 
-// IPC.send("ping", {data:1});
-_IPC2.default.on("pong", event => {
-    console.log("pong", event);
-    return 4;
-});
-_IPC2.default.on("ping", event => {
-    console.log("ping", event);
-});
-_IPC2.default.send("pong", null).then(data => console.log("pong response", data));
-
 // Module registry test
+// import Registry from "../core/registry/registry";
+// const {test:something, crap:somethingElse} = Registry.requestModule("test", "crap");
 
-const _module = _registry2.default.requestModule({ type: "test" });
+console.log(_LMTest2.default);
 
-// Module instance transfer test
-console.log(_module);
-var instance = new _module("itsName");
-instance.setSomething("someValue");
+const something = new _LMTest2.default();
 
-_IPC2.default.send("moduleInstanceTransfer", instance, 0);
+// import SettingsHandler from "../core/communication/data/settingsHandler";
+// SettingsHandler.create(something, {stuff:1}).then(settings=>{
+//     settings.change({
+//         crap: 3
+//     }).then(()=>{
+//         settings.save();
+//     })
+// });
 
-// Channel test
-_channel2.default.createSender("TestName", "getColor", "crap").then(channel => {
-    console.log("set up connection");
-    channel.doSomething("cheese");
-    channel.doSomethingElse("crap");
-    channel.onColor("purple");
-});
-var channel = _channel2.default.createReceiver("crap", {
-    smth: event => {
-        console.log("smth", event);
-    }
-});
-
-// GlobalData testing
-
-_globalData2.default.create("test", {}).then(globalData => {
-    console.log(globalData, globalData.get());
-    globalData.on("someStuff.update", event => {
-        console.log(event);
-    });
-    globalData.change({
-        someField: {
-            someOtherData: false
-        }
-    });
-    globalData.on("change.update", event => {
-        console.log(event);
-    });
-    globalData.change({
-        change: {
-            1: "test",
-            2: 4
-        }
-    });
-});
-
-// Error message test with source mapping:
-console.log(somethingThatDoesntExist.poop());
+//
+// // ExtendedJSON testing
+// import ExtendedJSON from "../core/communication/ExtendedJSON";
+// var obj = {
+//     test: 5,
+//     stuff: "test",
+//     obj: {
+//         value: 3
+//     },
+// };
+// obj.obj.n = obj.obj;
+// console.log(ExtendedJSON.decode(ExtendedJSON.encode(obj)), obj);
+// // IPC.send("ping", {data:1});
+// IPC.on("pong", (event)=>{
+//     console.log("pong", event);
+//     return 4;
+// });
+// IPC.on("ping", (event)=>{
+//     console.log("ping", event);
+// });
+// IPC.send("pong", null).then(data=>console.log("pong response", data));
+//
+// // Module instance transfer test
+// console.log(module);
+// var instance = new module("itsName");
+// instance.setSomething("someValue");
+//
+// IPC.send("moduleInstanceTransfer", instance, 0);
+//
+// // Channel test
+// Channel.createSender("TestName", "getColor", "crap").then(channel=>{
+//     console.log("set up connection");
+//     channel.doSomething("cheese");
+//     channel.doSomethingElse("crap");
+//     channel.onColor("purple");
+// });
+// var channel = Channel.createReceiver("crap", {
+//     smth: event=>{
+//         console.log("smth", event);
+//     }
+// });
+//
+// // GlobalData testing
+// import GlobalData from "../core/communication/data/globalData";
+// GlobalData.create("test", {
+//
+// }).then(globalData=>{
+//     console.log(globalData, globalData.get());
+//     globalData.on("someStuff.update", event=>{
+//         console.log(event);
+//     });
+//     globalData.change({
+//         someField: {
+//             someOtherData: false
+//         }
+//     });
+//     globalData.on("change.update", event=>{
+//         console.log(event);
+//     });
+//     globalData.change({
+//         change: {
+//             1: "test",
+//             2: 4
+//         }
+//     });
+// });
+//
+// // Error message test with source mapping:
+// console.log(somethingThatDoesntExist.poop());
 //# sourceMappingURL=index.js.map

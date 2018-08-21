@@ -18,8 +18,19 @@ IPC.sendSync("loaded", null);
 // Module registry test
 // import Registry from "../core/registry/registry";
 // const {test:something, crap:somethingElse} = Registry.requestModule("test", "crap");
-import something from "LM:test";
-console.log(something);
+import Something from "LM:test";
+console.log(Something);
+
+const something = new Something();
+
+// import SettingsHandler from "../core/communication/data/settingsHandler";
+// SettingsHandler.create(something, {stuff:1}).then(settings=>{
+//     settings.change({
+//         crap: 3
+//     }).then(()=>{
+//         settings.save();
+//     })
+// });
 
 //
 // // ExtendedJSON testing

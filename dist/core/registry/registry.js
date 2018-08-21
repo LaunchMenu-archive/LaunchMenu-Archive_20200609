@@ -12,6 +12,10 @@ var _promise = require("babel-runtime/core-js/promise");
 
 var _promise2 = _interopRequireDefault(_promise);
 
+var _from = require("babel-runtime/core-js/array/from");
+
+var _from2 = _interopRequireDefault(_from);
+
 require("source-map-support/register");
 
 var _path = require("path");
@@ -22,70 +26,137 @@ var _isMain = require("../isMain");
 
 var _isMain2 = _interopRequireDefault(_isMain);
 
+var _module = require("./module");
+
+var _module2 = _interopRequireDefault(_module);
+
+var _requestPath = require("./requestPath");
+
+var _requestPath2 = _interopRequireDefault(_requestPath);
+
+var _settingsHandler = require("../communication/data/settingsHandler");
+
+var _settingsHandler2 = _interopRequireDefault(_settingsHandler);
+
+var _windowHandler = require("../window/windowHandler");
+
+var _windowHandler2 = _interopRequireDefault(_windowHandler);
+
 var _IPC = require("../communication/IPC");
 
 var _IPC2 = _interopRequireDefault(_IPC);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var globalModulePath;
+const defaultModuleData = {
+    location: {
+        window: 1,
+        section: 0
+    }
+};
+
 /**
  * A class to track all the modules, and handle module requests
  */
 class Registry {
     /**
      * Request modules to handle the passed data and establish a connection with these modules
-     * @param  {{type:String, execute:String|function, data:Object, source:Module}} data The information on how to handle the data
+     * @param  {{type:String, execute:String|function, data:Object, source:Module}} request The information on how to handle the data
      * @return {Promise} The Promise that shall return the channels created to communicate with the modules
      */
-    static requestHandle(data) {
-        if (!request.use) request.use = "all";
-        return this.__request(request, "handle");
+    static requestHandle(request) {
+        if (!request.use || typeof request.use == "string" || !request.use.match(/^(one|all)$/g)) request.use = "one";
+        if (request.source instanceof _module2.default) request.source = request.source.getPath().toString(true);
+        return this.__request([request], "handle");
     }
     static requestModule(request) {
-        if (!request.use) request.use = "one";
-        return this.__request(request, "module", true);
-    }
-    /**
-     * Registers a module in the registry such that it can be requested by other modules
-     * @param  {Class} Class The class of the module you want to register
-     * @param  {{type:String, filter:function(request)}} classListener An event you would like this module to act on
-     * @return {Undefined} The method returns no useful information
-     */
-    static register(Class, ...classListeners) {
-        // Set the path of the module
-        Class.modulePath = globalModulePath;
+        var requests = (0, _from2.default)(arguments);
 
-        // Register the module itself
-        this.modules[Class.modulePath] = {
-            class: Class,
-            listeners: classListeners
-        };
-
-        // Register all the listeners
-        classListeners.forEach(listener => {
-            // Keep a connection with the module itself
-            listener.module = Class;
-
-            // Add to the list of listeners for this request type
-            const listeners = this.__getListeners(listener.type);
-            listeners.listeners.push(listener);
+        // Normalize the request format
+        var requests = requests.map(request => {
+            if (typeof request == "string") request = { type: request };
+            if (!request.use || typeof request.use == "string" || !request.use.match(/^(one|all)$/g)) request.use = "one";
+            return request;
         });
-    }
 
-    // Protected methods
-    static loadModule(path) {
-        if (!this.modules[path]) {
-            globalModulePath = path;
-            require(this.__getModulesPath(path));
+        // Retrieve the request modules
+        const requestsModules = this.__request(requests, "module", true);
+
+        // Format the response appropriately
+        if (requestsModules.length > 1) {
+            const response = {};
+
+            // Map the modules to their request types
+            for (let i = 0; i < requestsModules.length; i++) {
+                const requestType = requests[i].type;
+                response[requestType] = requestsModules[i];
+            }
+
+            return response;
+        } else {
+            // Directly return the modules from the only request
+            return requestsModules[0];
         }
-        return this.modules[path] && this.modules[path].class;
     }
-    static loadAllModules() {}
-    //TODO make a module loader
-
+    // /**
+    //  * Registers a module in the registry such that it can be requested by other modules
+    //  * @param  {Class} Class The class of the module you want to register
+    //  * @param  {{type:String, filter:function(request)}} classListener An event you would like this module to act on
+    //  * @return {Undefined} The method returns no useful information
+    //  */
+    // static __register(Class, ...classListeners){
+    //     // Set the path of the module
+    //     Class.modulePath = globalModulePath;
+    //
+    //     // Register the module itself
+    //     this.modules[Class.modulePath] = {
+    //         class: Class,
+    //         listeners: classListeners
+    //     };
+    //
+    //     // Register all the listeners
+    //     classListeners.forEach(listener=>{
+    //         // Keep a connection with the module itself
+    //         listener.module = Class;
+    //
+    //         // Add to the list of listeners for this request type
+    //         const listeners = this.__getListeners(listener.type);
+    //         listeners.listeners.push(listener);
+    //     });
+    // }
 
     // Protected methods
+    static _loadModule(path) {
+        if (!this.modules[path]) {
+            // Require module
+            const data = require(this.__getModulesPath(path));
+
+            // Verify all necessary data is passed
+            if (data) {
+                const clas = data.default;
+                const config = data.config;
+                if (config) {
+                    // Augment data with some variables that can be extracted
+                    clas.modulePath = path;
+                    config.module = clas;
+
+                    // Register the module itself
+                    this.modules[path] = data;
+
+                    // Add listener to the list of listeners for this request type
+                    const listeners = this.__getListeners(config.type);
+                    listeners.listeners.push(config);
+                } else {
+                    return data;
+                }
+            }
+        }
+        return this.modules[path];
+    }
+    static _loadAllModules() {
+        //TODO make a module loader
+    }
+
     static _registerModuleInstance(moduleInstance) {
         return new _promise2.default((resolve, reject) => {
             const requestPath = moduleInstance.getPath();
@@ -158,40 +229,82 @@ class Registry {
             return priorities[0] && priorities[0].module;
         }
     }
-    static __resolveRequest(type, modules) {
+    static __resolveRequest(type, requests, requestsModules) {
         return new _promise2.default((resolve, reject) => {
             // Resolve request by simply returning the module if it was a module request,
             //      or instanciate a module and return a channel on a handle request
             if (type == "module") {
-                resolve(modules);
+                resolve(requestsModules);
             } else if (type == "handle") {
-                //TODO make handle requests instantiate modules and return channels
-                modules.forEach(module => {});
+                // The handle type only permits 1 request to exist
+                let requestModules = requestsModules[0];
+                const request = requests[0];
+
+                const instantiatePromises = [];
+
+                if (!(requestModules instanceof Array)) requestModules = [requestModules];
+
+                // Go through modules for 1 request
+                requestModules.forEach(module => {
+                    try {
+                        // Create the proper request path
+                        let source;
+                        if (request.source) {
+                            source = new _requestPath2.default(request.source).augmentPath(module);
+                        } else {
+                            source = new _requestPath2.default(module);
+                        }
+
+                        // Attempt to retrieve the correct startup settings
+                        let moduleData = _settingsHandler2.default._getModuleFile(source);
+                        if (!moduleData) moduleData = _settingsHandler2.default._getModuleFile(new _requestPath2.default(module));
+                        if (!moduleData) moduleData = defaultModuleData;
+
+                        // Open the window that the module should appear in
+                        instantiatePromises.push(_windowHandler2.default.openModuleInstance(moduleData, request, module.toString()));
+                    } catch (e) {
+                        console.error(`Something went wrong while trying to instantiate ${module}: `, e);
+                    }
+                });
+
+                // Return all the created channels once ready
+                _promise2.default.all(instantiatePromises).then(channels => {
+                    if (request.use == "one") {
+                        resolve(channels[0]);
+                    } else {
+                        resolve(channels.filter(channel => channel) // Remove failed instanciations
+                        );
+                    }
+                });
             }
         });
     }
-    static __request(request, type, synced) {
+    static __request(requests, type, synced) {
         if (synced) {
             if (_isMain2.default) {
                 // Directly resolve the request as we have access to all modules
-                return this.__getModules(request.data);
+                return requests.map(request => {
+                    return this.__getModules(request);
+                });
             } else {
                 // Send a command to the main window to look for modules to resolve the request
-                return _IPC2.default.sendSync("Registry.request", request)[0];
+                return _IPC2.default.sendSync("Registry.request", requests)[0];
             }
         } else {
             // Retrieve the modules to resolve the request
             return new _promise2.default((resolve, reject) => {
                 if (_isMain2.default) {
                     // Directly resolve the request as we have access to all modules
-                    const modules = this.__getModules(request);
-                    this.__resolveRequest(type, modules).then(resolve);
+                    const requestsModules = requests.map(request => {
+                        return this.__getModules(request);
+                    });
+                    this.__resolveRequest(type, requests, requestsModules).then(resolve);
                 } else {
                     // Send a command to the main window to look for modules to resolve the request
-                    _IPC2.default.send("Registry.request", request, 0).then(responses => {
-                        const modules = responses[0];
+                    _IPC2.default.send("Registry.request", requests, 0).then(responses => {
+                        const requestsModules = responses[0];
 
-                        this.__resolveRequest(type, modules).then(resolve);
+                        this.__resolveRequest(type, requests, requestsModules).then(resolve);
                     });
                 }
             });
@@ -213,14 +326,15 @@ class Registry {
         if (_isMain2.default) {
             // Filter out possible modules in this window to handle the handle request
             _IPC2.default.on("Registry.request", event => {
-                const request = event.data;
+                const requests = event.data;
 
-                // Retrieve the priority mapping
-                const modules = this.__getModules(request);
+                // Retrieve the priority mapping for every request
+                const requestsModules = requests.map(request => {
+                    return this.__getModules(request);
+                });
 
                 // Return the mapping of modules and their priorities
-                return modules;
-                // IPC.send("Registry.returnRequest", {modules:modules, requestID:request.ID}, source);
+                return requestsModules;
             });
 
             // Stores lists of unique module instance request paths, indexed by request paths
@@ -228,25 +342,24 @@ class Registry {
 
             // Listen for module instances being registered
             _IPC2.default.on("Registry.registerModuleInstance", event => {
-                const requestPath = new RequestPath(event.data.requestPath);
+                const requestPath = new _requestPath2.default(event.data.requestPath);
                 let paths = this.moduleInstancePaths[requestPath.toString()];
                 if (!paths) paths = this.moduleInstancePaths[requestPath.toString()] = {};
 
                 let IDS = (0, _values2.default)(paths).map(path => path.getModuleID().ID);
                 let ID = 0;
                 while (IDS.indexOf(ID) != -1) ID++;
+
                 requestPath.getModuleID().ID = ID;
-                this.moduleInstancePaths[requestPath.toString()] = requestPath;
+                this.moduleInstancePaths[requestPath.toString()][ID] = requestPath;
                 return ID;
             });
 
             // Listen for module instances being deregistered
             _IPC2.default.on("Registry.deregisterModuleInstance", event => {
-                const requestPath = new RequestPath(event.data.requestPath);
+                const requestPath = new _requestPath2.default(event.data.requestPath);
                 let paths = this.moduleInstancePaths[requestPath.toString()];
-                if (paths) {
-                    delete paths[requestPath.toString(true)];
-                }
+                if (paths) delete paths[requestPath.toString(true)];
             });
         }
     }

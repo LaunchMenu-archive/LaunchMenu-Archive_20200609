@@ -1,8 +1,33 @@
-import stuff, {test as stuffers} from "LM:crap";
-import somethingElse from "LM:stuffers";
+import Registry from "../core/registry/registry";
+import Module from "../core/registry/module";
+import {serializeSymbol, deserializeSymbol} from "../core/communication/extendedJSON";
 
-export default ()=>{
-    // Use stuff for whatever
-    stuff();
-    stuffers();
+export default class TestModule2 extends Module{
+    constructor(request, name){
+        super(request, true);
+        this.name = name;
+    }
+    setSomething(something){
+        console.log(`something is now ${something}`);
+        this.something = something;
+        return 3;
+    }
+    getSomething(){
+        return this.something;
+    }
+    [serializeSymbol](){
+        return {
+            constArgs: [this.name],
+            something: this.something
+        };
+    }
+    [deserializeSymbol](data){
+        this.setSomething(data.something);
+    }
 }
+export const config = {
+    type: "test2",
+    filter: request=>{
+        return true;
+    }
+};

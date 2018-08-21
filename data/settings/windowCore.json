@@ -1,0 +1,30 @@
+{
+    "windows": {
+        "1": {
+            "width": 800,
+            "height": 600,
+            "sections": {
+                "0": {
+                    "width": 100,
+                    "height": 100,
+                    "x": 0,
+                    "y": 0,
+                    "module": "none"
+                }
+            }
+        },
+        "2": {
+            "width": 1200,
+            "height": 600,
+            "sections": {
+                "0": {
+                    "width": 100,
+                    "height": 100,
+                    "x": 0,
+                    "y": 0,
+                    "module": "none"
+                }
+            }
+        }
+    }
+}

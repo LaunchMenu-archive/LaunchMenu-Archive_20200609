@@ -1,9 +1,9 @@
 import Module from "../registry/module";
-var pathSymbol = Symbol("path");
-var parentSymbol = Symbol("parent");
-var cleanSymbol = Symbol("clean");
-var serializeSymbol = Symbol("serialize");
-var deserializeSymbol = Symbol("deserialize");
+const pathSymbol = Symbol("path");
+const parentSymbol = Symbol("parent");
+const cleanSymbol = Symbol("clean");
+const serializeSymbol = Symbol("serialize");
+const deserializeSymbol = Symbol("deserialize");
 
 export {serializeSymbol, deserializeSymbol};
 /**
@@ -25,7 +25,7 @@ export default class ExtendedJSON{
          * @param  {String} path   The path within the parent object to reach this object so far
          * @return {Object}        The encoded version of the input object
          */
-        var encodeValue = function(object, path){
+        const encodeValue = function(object, path){
             try{
                 if(object instanceof Object){ // Encode an object of data into the extended format
                     // If object is null, return null object in the extended format
@@ -38,8 +38,8 @@ export default class ExtendedJSON{
                     // If object has already been encoded, return a path instead (handles recursive structures)
                     if(object[pathSymbol]!=null){
                         // Get the current path and the reference path in array form
-                        var referencePathDirs = object[pathSymbol].split("/");
-                        var currentPathDirs = path.split("/");
+                        const referencePathDirs = object[pathSymbol].split("/");
+                        const currentPathDirs = path.split("/");
 
                         // Remove all the common nodes
                         while(referencePathDirs[0]==currentPathDirs[0]){
@@ -48,7 +48,7 @@ export default class ExtendedJSON{
                         }
 
                         // Make the path go back to last common node
-                        for(var i in currentPathDirs)
+                        for(let i in currentPathDirs)
                         	referencePathDirs.unshift("..");
 
                         // Return the referencePath as a string
@@ -65,12 +65,12 @@ export default class ExtendedJSON{
                         object[pathSymbol] = path;
 
                         // Go through all children and append their values to this value
-                        var value = {};
-                        for(var key in object)
+                        const value = {};
+                        for(let key in object)
                             value[key] = encodeValue(object[key], path+"/"+key);
 
                         // Return either a plain js object type, or an array type
-                        var ret = {
+                        const ret = {
                             type: "object",
                             value: value
                         };
@@ -80,8 +80,8 @@ export default class ExtendedJSON{
 
                     // If object is a module and serializable, serialize it
                     if(object instanceof Module && object[serializeSymbol] && object[deserializeSymbol]){
-                        var module = object.getClass().modulePath;
-                        var data = object[serializeSymbol]();
+                        const module = object.getClass().modulePath;
+                        const data = object[serializeSymbol]();
                         return {
                             type: "object",
                             subType: "moduleInstance:"+module,
@@ -103,7 +103,7 @@ export default class ExtendedJSON{
                         value: undefined
                     };
                 }else{ // Encode a primitive value in the extended format
-                    var type = typeof(object);
+                    const type = typeof(object);
                     return {
                         type:type,
                         value:object
@@ -116,7 +116,7 @@ export default class ExtendedJSON{
         }
 
         // Encode data
-        var encodedObject = encodeValue(object, "");
+        const encodedObject = encodeValue(object, "");
 
         // Remove data added to the original object during the process
         this.__cleanObject(object, pathSymbol);
@@ -136,19 +136,19 @@ export default class ExtendedJSON{
          * @param  {Object} parent The object that the value will be stored in (used for object reference paths)
          * @return {Object} The resulting value after decoding the input value
          */
-        var decodeValue = function(value, parent){
+        const decodeValue = function(value, parent){
             try{
                 if(value.type=="object"){ // Decode a value of the type Object
                     // If object is of a special type, decode it
                     if(value.subType){
                         // If object is of type path (internal reference), retrieve the object
                         if(value.subType=="path"){
-                            var path = value.value.split("/");
+                            const path = value.value.split("/");
                             path.shift(); // The first
 
                             // Retrieve th object by going through the path
-                            var obj = parent;
-                            var key;
+                            let obj = parent;
+                            let key;
                             while((key = path.shift()) && obj){
                                 if(key=="..") // Step up in the object
                                     obj = obj[parentSymbol];
@@ -160,27 +160,32 @@ export default class ExtendedJSON{
                             return obj;
                         }
 
-                        var m;
+                        let m;
                         // If object is a module class, retrieve said class
                         if(m = value.subType.match(/module\:(.*)/)){
-                            // Retrieve the Registry  at runtime, as the registry also uses this module (cross link)
-                            var Registry = require("../registry/registry").default;
+                            // Retrieve the Registry at runtime, as the registry also uses this module (cross link)
+                            const Registry = require("../registry/registry").default;
+
+                            // Load the module from its path
+                            const moduleData = Registry._loadModule(m[1]);
+                            const module = moduleData.default;
 
                             // Load the module from its path and return it
-                            return Registry._loadModule(m[1]);
+                            return module;
                         }
 
                         // If object is a module instance, retrieve its class, instatiate it, and load the data
                         if(m = value.subType.match(/moduleInstance\:(.*)/)){
                             // Retrieve the Registry  at runtime, as the registry also uses this module (cross link)
-                            var Registry = require("../registry/registry").default;
+                            const Registry = require("../registry/registry").default;
 
                             // Load the module from its path
-                            var module = Registry._loadModule(m[1]);
+                            const moduleData = Registry._loadModule(m[1]);
+                            const module = moduleData.default;
 
                             // Instanciate the module with the correct arguments, and call the deserializer
-                            var data = value.value;
-                            var instance = new (module.bind.apply(module, [module].concat(data.constArgs||["crap"])))();
+                            const data = value.value;
+                            const instance = new (module.bind.apply(module, [module].concat(data.constArgs||["crap"])))();
                             instance[deserializeSymbol](data);
 
                             // Return the instance
@@ -194,10 +199,10 @@ export default class ExtendedJSON{
                     }
 
                     // Decode plain objects and arrays
-                    var val = value.subType=="array"?[]:{};
+                    const val = value.subType=="array"?[]:{};
                     // Store the parent temporarely for relative path traversal
                     val[parentSymbol] = parent;
-                    for(var key in value.value)  // Fill object or array with child values
+                    for(let key in value.value)  // Fill object or array with child values
                         val[key] = decodeValue(value.value[key], val);
 
                     // Get rid of the temporary parent data
@@ -268,7 +273,7 @@ export default class ExtendedJSON{
             if(prop in object) delete object[prop];
 
             // If no path is present, recurse on its children
-            for(var key in object)
+            for(let key in object)
                 this.__cleanObject(object[key], prop);
 
             // Remove the cleanSymbol which prevent recursion

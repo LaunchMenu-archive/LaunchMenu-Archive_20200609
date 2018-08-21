@@ -1,0 +1,6 @@
+short-term:
+    -test if the subIDS of mudles work properly
+
+    -make modules useable without registration
+    -make a module able to answer more requests
+    -allow modules to run in a negative window number to run in a windowless thread

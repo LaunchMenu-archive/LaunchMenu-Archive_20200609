@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.ChannelReciever = exports.ChannelSender = undefined;
+exports.ChannelReceiver = exports.ChannelSender = undefined;
 
 var _keys = require("babel-runtime/core-js/object/keys");
 
@@ -16,6 +16,8 @@ var _from2 = _interopRequireDefault(_from);
 var _promise = require("babel-runtime/core-js/promise");
 
 var _promise2 = _interopRequireDefault(_promise);
+
+var Registry = require("../../../dist/core/registry/registry").default;
 
 require("source-map-support/register");
 
@@ -36,9 +38,11 @@ class ChannelSender {
      * @param {String} senderID     An ID that the reciever of this channel can respond to (can be left out)
      */
     constructor(ID, subChannelID, senderID) {
-        this.ID = ID;
-        this.subChannelID = subChannelID;
-        this.senderID = senderID;
+        this.__data = {
+            ID: ID,
+            subChannelID: subChannelID,
+            senderID: senderID
+        };
 
         // Listen for the available message types being send
         this.__setupChannelMessageTypeListener();
@@ -56,32 +60,30 @@ class ChannelSender {
         if (!types) {
             // The call is initiating the setup
             // Check if the channel hasn't been set up already
-            if (this.initialised) {
-                return new _promise2.default((resolve, reject) => {
-                    resolve(this);
-                });
+            if (this.__data.initialised) {
+                return new _promise2.default.resolve(this);
             } else {
                 // Broadcast a request for all message types of this channel
-                _IPC2.default.send("channel.requestMessageTypes:" + this.ID);
+                _IPC2.default.send("channel.requestMessageTypes:" + this.__data.ID);
                 return new _promise2.default((resolve, reject) => {
-                    this.finishSetup = resolve;
+                    this.__data.finishSetup = resolve;
                 });
             }
         } else {
             // Call is actually setting up the data
             // Gatyher the relevant message types
             let messageTypes = types.globalListeners;
-            const subChannelMessageTypes = types.subChannelListeners[this.subChannelID];
+            const subChannelMessageTypes = types.subChannelListeners[this.__data.subChannelID];
             if (subChannelMessageTypes) messageTypes = messageTypes.concat(subChannelMessageTypes);
 
             // Setup the methods
             for (let key of messageTypes) this[key] = function () {
-                this.__sendMessage(key, (0, _from2.default)(arguments));
+                return this.__sendMessage(key, (0, _from2.default)(arguments));
             };
 
             // Notify that the channel is ready
-            this.initialised = true;
-            if (this.finishSetup) this.finishSetup(this);
+            this.__data.initialised = true;
+            if (this.__data.finishSetup) this.__data.finishSetup(this);
         }
     }
     /**
@@ -89,14 +91,14 @@ class ChannelSender {
      * @return {String} The channel ID
      */
     _getID() {
-        return this.ID;
+        return this.__data.ID;
     }
     /**
      * Get the subchannel ID
      * @return {String} The subchannel ID
      */
     _getSubChannelID() {
-        return this.subChannelID;
+        return this.__data.subChannelID;
     }
 
     // Private methods
@@ -105,11 +107,11 @@ class ChannelSender {
      * @return {Undefined} The method returns no useful information
      */
     __setupChannelMessageTypeListener() {
-        _IPC2.default.once("channel.sendMessageTypes:" + this.ID, event => {
+        _IPC2.default.once("channel.sendMessageTypes:" + this.__data.ID, event => {
             // Check if all the subchannel methods have already been defined
-            if (!this.subChannelID || event.data.subChannelListeners[this.subChannelID]) {
+            if (!this.__data.subChannelID || event.data.subChannelListeners[this.__data.subChannelID]) {
                 // Store the location to send the messages to
-                this.destProcessID = event.sourceID;
+                this.__data.destProcessID = event.sourceID;
 
                 // Setup the methods of this object
                 this._setupMethods(event.data);
@@ -127,19 +129,19 @@ class ChannelSender {
      */
     __sendMessage(message, args) {
         // Send the message and relevant data to the process/window that contains the channel receiver
-        _IPC2.default.send("channel.message:" + this.ID, {
+        return _IPC2.default.send("channel.message:" + this.__data.ID, {
             message: message,
-            subChannelID: this.subChannelID,
-            senderID: this.senderID,
+            subChannelID: this.__data.subChannelID,
+            senderID: this.__data.senderID,
             data: args
-        }, this.destProcessID);
+        }, this.__data.destProcessID);
     }
 }
 
 /**
  * A class to listen for certain messages sent on a channel
  */
-class ChannelReciever {
+class ChannelReceiver {
     /**
      * Create a new channel reciever, allowing to recieve messages from the channel
      * @param {String} ID           The unique identifier for the channel
@@ -152,27 +154,30 @@ class ChannelReciever {
         this.globalListeners = listeners;
         this.subChannelListeners = {};
 
-        // Forward IPC messages
-        _IPC2.default.on("channel.message:" + ID, event => {
-            let data = event.data;
+        this.IPClisteners = {
+            // Forward IPC messages
+            message: event => {
+                let data = event.data;
 
-            // Extract the data to build the event to emit in this channel
-            const sender = data.senderID;
-            const subChannelID = data.subChannelID;
-            const message = data.message;
-            data = data.data;
+                // Extract the data to build the event to emit in this channel
+                const sender = data.senderID;
+                const subChannelID = data.subChannelID;
+                const message = data.message;
+                data = data.data;
 
-            // Emit the event
-            this.__emitEvent(message, {
-                senderID: sender,
-                data: data
-            }, subChannelID);
-        });
-
-        // Send available message types on request
-        _IPC2.default.on("channel.requestMessageTypes:" + ID, event => {
-            this.__broadCastMessageTypes(event.sourceID);
-        });
+                // Emit the event
+                return this.__emitEvent(message, {
+                    senderID: sender,
+                    data: data
+                }, subChannelID);
+            },
+            // Send available message types on request
+            requestMessageTypes: event => {
+                this.__broadCastMessageTypes(event.sourceID);
+            }
+        };
+        _IPC2.default.on("channel.message:" + ID, this.IPClisteners.message);
+        _IPC2.default.on("channel.requestMessageTypes:" + ID, this.IPClisteners.requestMessageTypes);
 
         // Send available message types to all processes/renderers
         this.__broadCastMessageTypes("*");
@@ -203,6 +208,15 @@ class ChannelReciever {
         return this.ID;
     }
 
+    /**
+     * Dispose of all data
+     * @return {Undefined} The method returns no useful information
+     */
+    close() {
+        _IPC2.default.off("channel.message:" + this.ID, this.IPClisteners.message);
+        _IPC2.default.off("channel.requestMessageTypes:" + this.ID, this.IPClisteners.requestMessageTypes);
+    }
+
     // Private methods
     /**
      * Emit an event to the registered listener
@@ -218,17 +232,14 @@ class ChannelReciever {
             const listener = subChannel && subChannel[message];
 
             // If listeners exist, call them and don't invoke any global listeners
-            if (listener) {
-                listener.call(this, event);
-                return;
-            }
+            if (listener) return listener.call(this, event);
         }
 
         // Retrieve listeners
         const listener = this.globalListeners[message];
 
         // If listeners exist, call them
-        if (listener) listener.call(this, event);
+        if (listener) return listener.call(this, event);
     }
     /**
      * Broadcast all available message types to the specified renderers/processes
@@ -252,7 +263,7 @@ class ChannelReciever {
     }
 }
 exports.ChannelSender = ChannelSender;
-exports.ChannelReciever = ChannelReciever;
+exports.ChannelReceiver = ChannelReceiver;
 /**
  * The public class to create channel senders and recievers, as the creation of a channel sender is asynchronous
  */
@@ -273,7 +284,7 @@ class Channel {
      * @param {Object} listeners    An object of functions to act on messages indexed by message type
      */
     static createReceiver(ID, listeners) {
-        return new ChannelReciever(ID, listeners);
+        return _promise2.default.resolve(new ChannelReceiver(ID, listeners));
     }
 }
 exports.default = Channel;

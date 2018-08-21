@@ -13,6 +13,8 @@ var _symbol = require("babel-runtime/core-js/symbol");
 
 var _symbol2 = _interopRequireDefault(_symbol);
 
+var Registry = require("../../../dist/core/registry/registry").default;
+
 require("source-map-support/register");
 
 var _module = require("../registry/module");
@@ -21,11 +23,11 @@ var _module2 = _interopRequireDefault(_module);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var pathSymbol = (0, _symbol2.default)("path");
-var parentSymbol = (0, _symbol2.default)("parent");
-var cleanSymbol = (0, _symbol2.default)("clean");
-var serializeSymbol = (0, _symbol2.default)("serialize");
-var deserializeSymbol = (0, _symbol2.default)("deserialize");
+const pathSymbol = (0, _symbol2.default)("path");
+const parentSymbol = (0, _symbol2.default)("parent");
+const cleanSymbol = (0, _symbol2.default)("clean");
+const serializeSymbol = (0, _symbol2.default)("serialize");
+const deserializeSymbol = (0, _symbol2.default)("deserialize");
 
 exports.serializeSymbol = serializeSymbol;
 exports.deserializeSymbol = deserializeSymbol;
@@ -49,7 +51,7 @@ class ExtendedJSON {
          * @param  {String} path   The path within the parent object to reach this object so far
          * @return {Object}        The encoded version of the input object
          */
-        var encodeValue = function (object, path) {
+        const encodeValue = function (object, path) {
             try {
                 if (object instanceof Object) {
                     // Encode an object of data into the extended format
@@ -62,8 +64,8 @@ class ExtendedJSON {
                     // If object has already been encoded, return a path instead (handles recursive structures)
                     if (object[pathSymbol] != null) {
                         // Get the current path and the reference path in array form
-                        var referencePathDirs = object[pathSymbol].split("/");
-                        var currentPathDirs = path.split("/");
+                        const referencePathDirs = object[pathSymbol].split("/");
+                        const currentPathDirs = path.split("/");
 
                         // Remove all the common nodes
                         while (referencePathDirs[0] == currentPathDirs[0]) {
@@ -72,7 +74,7 @@ class ExtendedJSON {
                         }
 
                         // Make the path go back to last common node
-                        for (var i in currentPathDirs) referencePathDirs.unshift("..");
+                        for (let i in currentPathDirs) referencePathDirs.unshift("..");
 
                         // Return the referencePath as a string
                         return {
@@ -88,11 +90,11 @@ class ExtendedJSON {
                         object[pathSymbol] = path;
 
                         // Go through all children and append their values to this value
-                        var value = {};
-                        for (var key in object) value[key] = encodeValue(object[key], path + "/" + key);
+                        const value = {};
+                        for (let key in object) value[key] = encodeValue(object[key], path + "/" + key);
 
                         // Return either a plain js object type, or an array type
-                        var ret = {
+                        const ret = {
                             type: "object",
                             value: value
                         };
@@ -102,8 +104,8 @@ class ExtendedJSON {
 
                     // If object is a module and serializable, serialize it
                     if (object instanceof _module2.default && object[serializeSymbol] && object[deserializeSymbol]) {
-                        var module = object.getClass().modulePath;
-                        var data = object[serializeSymbol]();
+                        const module = object.getClass().modulePath;
+                        const data = object[serializeSymbol]();
                         return {
                             type: "object",
                             subType: "moduleInstance:" + module,
@@ -125,7 +127,7 @@ class ExtendedJSON {
                     };
                 } else {
                     // Encode a primitive value in the extended format
-                    var type = typeof object;
+                    const type = typeof object;
                     return {
                         type: type,
                         value: object
@@ -138,7 +140,7 @@ class ExtendedJSON {
         };
 
         // Encode data
-        var encodedObject = encodeValue(object, "");
+        const encodedObject = encodeValue(object, "");
 
         // Remove data added to the original object during the process
         this.__cleanObject(object, pathSymbol);
@@ -158,7 +160,7 @@ class ExtendedJSON {
          * @param  {Object} parent The object that the value will be stored in (used for object reference paths)
          * @return {Object} The resulting value after decoding the input value
          */
-        var decodeValue = function (value, parent) {
+        const decodeValue = function (value, parent) {
             try {
                 if (value.type == "object") {
                     // Decode a value of the type Object
@@ -166,12 +168,12 @@ class ExtendedJSON {
                     if (value.subType) {
                         // If object is of type path (internal reference), retrieve the object
                         if (value.subType == "path") {
-                            var path = value.value.split("/");
+                            const path = value.value.split("/");
                             path.shift(); // The first
 
                             // Retrieve th object by going through the path
-                            var obj = parent;
-                            var key;
+                            let obj = parent;
+                            let key;
                             while ((key = path.shift()) && obj) {
                                 if (key == "..") // Step up in the object
                                     obj = obj[parentSymbol];else // Step down to a child in the object
@@ -182,27 +184,32 @@ class ExtendedJSON {
                             return obj;
                         }
 
-                        var m;
+                        let m;
                         // If object is a module class, retrieve said class
                         if (m = value.subType.match(/module\:(.*)/)) {
-                            // Retrieve the Registry  at runtime, as the registry also uses this module (cross link)
-                            var Registry = require("../registry/registry").default;
+                            // Retrieve the Registry at runtime, as the registry also uses this module (cross link)
+                            const Registry = require("../registry/registry").default;
+
+                            // Load the module from its path
+                            const moduleData = Registry._loadModule(m[1]);
+                            const module = moduleData.default;
 
                             // Load the module from its path and return it
-                            return Registry.loadModule(m[1]);
+                            return module;
                         }
 
                         // If object is a module instance, retrieve its class, instatiate it, and load the data
                         if (m = value.subType.match(/moduleInstance\:(.*)/)) {
                             // Retrieve the Registry  at runtime, as the registry also uses this module (cross link)
-                            var Registry = require("../registry/registry").default;
+                            const Registry = require("../registry/registry").default;
 
                             // Load the module from its path
-                            var module = Registry.loadModule(m[1]);
+                            const moduleData = Registry._loadModule(m[1]);
+                            const module = moduleData.default;
 
                             // Instanciate the module with the correct arguments, and call the deserializer
-                            var data = value.value;
-                            var instance = new (module.bind.apply(module, [module].concat(data.constArgs || ["crap"])))();
+                            const data = value.value;
+                            const instance = new (module.bind.apply(module, [module].concat(data.constArgs || ["crap"])))();
                             instance[deserializeSymbol](data);
 
                             // Return the instance
@@ -216,10 +223,10 @@ class ExtendedJSON {
                     }
 
                     // Decode plain objects and arrays
-                    var val = value.subType == "array" ? [] : {};
+                    const val = value.subType == "array" ? [] : {};
                     // Store the parent temporarely for relative path traversal
                     val[parentSymbol] = parent;
-                    for (var key in value.value) // Fill object or array with child values
+                    for (let key in value.value) // Fill object or array with child values
                     val[key] = decodeValue(value.value[key], val);
 
                     // Get rid of the temporary parent data
@@ -291,7 +298,7 @@ class ExtendedJSON {
             if (prop in object) delete object[prop];
 
             // If no path is present, recurse on its children
-            for (var key in object) this.__cleanObject(object[key], prop);
+            for (let key in object) this.__cleanObject(object[key], prop);
 
             // Remove the cleanSymbol which prevent recursion
             delete object[cleanSymbol];

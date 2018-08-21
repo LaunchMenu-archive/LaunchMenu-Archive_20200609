@@ -1,17 +1,32 @@
 import Path from "path";
 import isMain from "../isMain";
+import Module from "./module";
+import RequestPath from "./requestPath";
+import SettingsHandler from "../communication/data/settingsHandler";
+import WindowHandler from "../window/windowHandler";
 import IPC from "../communication/IPC";
+
+const defaultModuleData = {
+    location: {
+        window: 1,
+        section: 0
+    }
+};
+
 /**
  * A class to track all the modules, and handle module requests
  */
 class Registry{
     /**
      * Request modules to handle the passed data and establish a connection with these modules
-     * @param  {{type:String, execute:String|function, data:Object, source:Module}} data The information on how to handle the data
+     * @param  {{type:String, execute:String|function, data:Object, source:Module}} request The information on how to handle the data
      * @return {Promise} The Promise that shall return the channels created to communicate with the modules
      */
-    static requestHandle(data){
-        if(!request.use) request.use = "all";
+    static requestHandle(request){
+        if(!request.use || (typeof(request.use)=="string" || !request.use.match(/^(one|all)$/g)))
+            request.use = "one";
+        if(request.source instanceof Module)
+            request.source = request.source.getPath().toString(true);
         return this.__request([request], "handle");
     }
     static requestModule(request){
@@ -21,7 +36,7 @@ class Registry{
         var requests = requests.map(request=>{
             if(typeof(request)=="string")
                 request = {type: request};
-            if(!request.use)
+            if(!request.use || (typeof(request.use)=="string" || !request.use.match(/^(one|all)$/g)))
                 request.use = "one";
             return request;
         });
@@ -177,20 +192,62 @@ class Registry{
             return priorities[0] && priorities[0].module;
         }
     }
-    static __resolveRequest(type, requestsModules){
+    static __resolveRequest(type, requests, requestsModules){
         return new Promise((resolve, reject)=>{
             // Resolve request by simply returning the module if it was a module request,
             //      or instanciate a module and return a channel on a handle request
             if(type=="module"){
                 resolve(requestsModules);
-            }else if(type=="handle"){
-                //TODO make handle requests instantiate modules and return channels
-                // Go through requests
-                requestsModules.forEach(requestModules=>{
-                    // Go through modules for 1 request
-                    requestModules.forEach(module=>{
+            }else if(type=="handle"){ // The handle type only permits 1 request to exist
+                let requestModules = requestsModules[0];
+                const request = requests[0];
 
-                    });
+                const instantiatePromises = [];
+
+                if(!(requestModules instanceof Array))
+                    requestModules = [requestModules];
+
+                // Go through modules for 1 request
+                requestModules.forEach(module=>{
+                    try{
+                        // Create the proper request path
+                        let source;
+                        if(request.source){
+                            source = new RequestPath(request.source).augmentPath(module);
+                        }else{
+                            source = new RequestPath(module);
+                        }
+
+                        // Attempt to retrieve the correct startup settings
+                        let moduleData = SettingsHandler._getModuleFile(source);
+                        if(!moduleData)
+                            moduleData = SettingsHandler._getModuleFile(new RequestPath(module));
+                        if(!moduleData)
+                            moduleData = defaultModuleData;
+
+                        // Open the window that the module should appear in
+                        instantiatePromises.push(
+                            WindowHandler.openModuleInstance(
+                                moduleData,
+                                request,
+                                module.toString()
+                            )
+                        );
+                    }catch(e){
+                        console.error(`Something went wrong while trying to instantiate ${module}: `, e);
+                    }
+                });
+
+
+                // Return all the created channels once ready
+                Promise.all(instantiatePromises).then(channels=>{
+                    if(request.use=="one"){
+                        resolve(channels[0]);
+                    }else{
+                        resolve(
+                            channels.filter(channel=>channel) // Remove failed instanciations
+                        );
+                    }
                 });
             }
         })
@@ -214,13 +271,13 @@ class Registry{
                     const requestsModules = requests.map(request=>{
                         return this.__getModules(request);
                     });
-                    this.__resolveRequest(type, requestsModules).then(resolve);
+                    this.__resolveRequest(type, requests, requestsModules).then(resolve);
                 }else{
                     // Send a command to the main window to look for modules to resolve the request
                     IPC.send("Registry.request", requests, 0).then(responses=>{
                         const requestsModules = responses[0];
 
-                        this.__resolveRequest(type, requestsModules).then(resolve);
+                        this.__resolveRequest(type, requests, requestsModules).then(resolve);
                     });
                 }
             });
@@ -251,7 +308,6 @@ class Registry{
 
                 // Return the mapping of modules and their priorities
                 return requestsModules;
-                // IPC.send("Registry.returnRequest", {modules:modules, requestID:request.ID}, source);
             });
 
 
@@ -263,13 +319,14 @@ class Registry{
                 const requestPath = new RequestPath(event.data.requestPath);
                 let paths = this.moduleInstancePaths[requestPath.toString()];
                 if(!paths)
-                paths = this.moduleInstancePaths[requestPath.toString()] = {};
+                    paths = this.moduleInstancePaths[requestPath.toString()] = {};
 
                 let IDS = Object.values(paths).map(path=>path.getModuleID().ID);
                 let ID = 0;
                 while(IDS.indexOf(ID)!=-1) ID++;
+
                 requestPath.getModuleID().ID = ID;
-                this.moduleInstancePaths[requestPath.toString()] = requestPath;
+                this.moduleInstancePaths[requestPath.toString()][ID] = requestPath;
                 return ID;
             });
 
@@ -277,9 +334,8 @@ class Registry{
             IPC.on("Registry.deregisterModuleInstance", event=>{
                 const requestPath = new RequestPath(event.data.requestPath);
                 let paths = this.moduleInstancePaths[requestPath.toString()];
-                if(paths){
+                if(paths)
                     delete paths[requestPath.toString(true)];
-                }
             });
         }
     }

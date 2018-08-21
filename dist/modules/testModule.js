@@ -3,6 +3,9 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.config = undefined;
+
+var Registry = require("../../dist/core/registry/registry").default;
 
 require("source-map-support/register");
 
@@ -19,28 +22,27 @@ var _extendedJSON = require("../core/communication/extendedJSON");
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 class TestModule extends _module2.default {
-    constructor(name) {
-        super(undefined, true);
+    constructor(request, name) {
+        super(request, true);
         this.name = name;
     }
     setSomething(something) {
         this.something = something;
+        console.log(`something is now ${something}`);
+        return 6;
+    }
+    alert(text) {
+        window.alert(text);
     }
     getSomething() {
         return this.something;
     }
-    [_extendedJSON.serializeSymbol]() {
-        return {
-            constArgs: [this.name],
-            something: this.something
-        };
-    }
-    [_extendedJSON.deserializeSymbol](data) {
-        this.setSomething(data.something);
-    }
 }
 exports.default = TestModule;
-_registry2.default.register(TestModule, { type: "test", filter: request => {
+const config = exports.config = {
+    type: "alert",
+    filter: request => {
         return true;
-    } });
+    }
+};
 //# sourceMappingURL=testModule.js.map
