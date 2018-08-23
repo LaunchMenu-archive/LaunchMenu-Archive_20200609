@@ -1,4 +1,4 @@
-import {app as app, BrowserWindow as BrowserWindow} from "electron";
+import {app, BrowserWindow, ipcMain, ipcRenderer} from "electron";
 import Url from "url";
 import Path from "path";
 import SettingsHandler from '../communication/data/settingsHandler';
@@ -10,16 +10,21 @@ import isMain from "../isMain";
 
 
 let windowSettings;
-const settingsLoaded = SettingsHandler._create("windowCore", {
-    windows: {},
-}).then(settings=>{
-    windowSettings = settings;
-});
+let settingsPromise;
+function settingsLoaded(){
+    if(!settingsPromise)
+        settingsPromise = SettingsHandler._create("windowCore", {
+            windows: {},
+        }, 0).then(settings=>{
+            windowSettings = settings;
+        });
+    return settingsPromise;
+}
 
 export default class WindowHandler{
-    static __open(windowID){
+    static async __open(windowID){
         if(windowID<1){
-            return Promise.reject(Error("Window IDs must start from 0"));
+            throw Error("Window IDs must start from 0");
         }
 
         if(!isMain){
@@ -28,157 +33,170 @@ export default class WindowHandler{
             });
         }else{
             if(this.openedWindows[windowID])
-                return Promise.resolve();
+                return;
 
-            return settingsLoaded.then(()=>{
-                return new Promise((res, rej)=>{
-                    const settings = windowSettings.get(`windows.${windowID}`);
-                    if(settings){
-                        res(settings);
-                    }else{
-                        windowSettings.change({
-                            windows: {
-                                [windowID]: {
-                                    width: 800,
-                                    height: 600,
-                                    sections: {
-                                        0: {
-                                            width: 100,
-                                            height: 100,
-                                            x: 0,
-                                            y: 0,
-                                            module: "none"
-                                        }
+            if(this.openingWindows[windowID])
+                return this.openingWindows[windowID];
+
+            return this.openingWindows[windowID] = settingsLoaded().then(async ()=>{
+                let settings = windowSettings.get(`windows.${windowID}`);
+                if(!settings){
+                    await windowSettings.change({
+                        windows: {
+                            [windowID]: {
+                                width: 800,
+                                height: 600,
+                                sections: {
+                                    0: {
+                                        width: 100,
+                                        height: 100,
+                                        x: 0,
+                                        y: 0,
+                                        module: "none"
                                     }
                                 }
                             }
-                        }).then(result=>{
-                            res(windowSettings.get(`windows.${windowID}`));
-                        });
-                    }
-                }).then(settings=>{
-                    return new Promise((res, rej)=>{
-                        try{
-                            const window = new BrowserWindow({
-                                width: settings.width,
-                                height: settings.height
-                            });
-                            window.loadURL(Url.format({
-                                pathname: Path.join(__dirname, "windowIndex.html"),
-                                protocol: 'file:',
-                                slashes: true
-                            }));
-
-                            window.openDevTools();
-                            this.openedWindows[windowID] = window;
-                            IPC._registerWindow(window, windowID);
-
-                            window.webContents.on("did-finish-load", ()=>{
-                                const finishedSetup = IPC.send("WindowHandler.assignID", {ID: windowID}, windowID);
-                                finishedSetup.then(()=>{
-                                    res();
-                                });
-                            });
-                        }catch(error){
-                            rej({
-                                message: "The window data seems to have been corrupted ",
-                                error: error
-                            });
                         }
                     });
+                    settings = windowSettings.get(`windows.${windowID}`);
+                }
+
+                const window = new BrowserWindow({
+                    width: settings.width,
+                    height: settings.height
                 });
+                window.loadURL(Url.format({
+                    pathname: Path.join(__dirname, "windowIndex.html"),
+                    protocol: 'file:',
+                    slashes: true
+                }));
+
+                window.openDevTools();
+
+                await new Promise((resolve, reject)=>{
+                    window.webContents.on("did-finish-load", ()=>{
+                        resolve();
+                    });
+                });
+
+                // Assign an ID to the window (LM IPC uses this, so we need to use lower level IPC until compelted)
+                await new Promise((resolve, reject)=>{
+                    const waitForAssignment = (event, args)=>{
+                        if(args.ID==windowID){
+                            ipcMain.removeListener("WindowHandler.assignedID", waitForAssignment);
+                            resolve();
+                        }
+                    }
+                    ipcMain.on("WindowHandler.assignedID", waitForAssignment);
+
+                    // Send the ID assignment to complete initialisation
+                    window.webContents.send("WindowHandler.assignID", {
+                        ID: windowID
+                    });
+                });
+
+                IPC._registerWindow(window, windowID);
+                await IPC.send("WindowHandler.initialise", {}, windowID);
+
+                this.openedWindows[windowID] = window;
+                delete this.openingWindows[windowID];
             });
         }
     }
-    static __close(windowID){
+    static async _close(windowID){
+        if(!windowID) windowID = this.ID;
         if(windowID<1){
-            return Promise.reject(Error("Window IDs must start from 0"));
-        }else if(!this.openedWindows[windowID]){
-            return Promise.reject(Error("Window must be opened in order to close"));
+            throw Error("Window IDs must start from 0");
         }else{
-            const window = this.openedWindows[windowID];
-            IPC._deregisterWindow(window, windowID);
-            window.close();
-            this.openedWindows[windowID] = null;
+            if(!isMain){
+                return IPC.send("WindowHandler.close", {
+                    ID: windowID
+                });
+            }else{
+                if(!this.openedWindows[windowID])
+                    throw Error("Window must be opened in order to close");
+
+                const window = this.openedWindows[windowID];
+                this.openedWindows[windowID] = null;
+                IPC._deregisterWindow(windowID);
+
+                // Give stuff some time to properly finish
+                // TODO do more research as to why it crashes on immediate close
+                window.hide();
+                setTimeout(()=>{
+                    window.close();
+                }, 10);
+            }
         }
     }
-    static openModuleInstance(moduleData, request, modulePath){
+    static async openModuleInstance(moduleData, request, modulePath){
         const windowID = moduleData.location.window;
         const sectionID = moduleData.location.section;
-        return this.__open(windowID).then(()=>{
-            return IPC.send("WindowHandler.openModule", {
-                request: request,
-                modulePath: modulePath,
-                moduleData: moduleData
-            }, windowID).then(responses=>{
-                if(responses[0]){
-                    return Channel.createSender(responses[0], undefined, request.source);
-                }else{
-                    return false;
-                }
-            });
-        });
-    }
+        await this.__open(windowID);
+        const requestPath = (await IPC.send("WindowHandler.openModule", {
+            request: request,
+            modulePath: modulePath,
+            moduleData: moduleData
+        }, windowID))[0];
 
-    static _registerModuleInstance(module){
-        this.openedModules.push(module);
-    }
-    static _deregisterModuleInstance(module){
-        const index = this.openedModules.indexOf(module);
-        if(index!==-1) this.openedModules.splice(index, 1);
-        if(this.openedModules.length==0){
-            IPC.send("WindowHandler.close");
+        if(requestPath){
+            return Channel.createSender(requestPath, undefined, request.source);
+        }else{
+            // Try again
+            await openModuleInstance.apply(this, arguments);
         }
     }
 
+
     static __setup(){
-        this.openedModules = [];
         if(isMain){
+            this.ID = 0;
             IPC.on("WindowHandler.open", event=>{
                 const data = event.data;
                 const ID = data.ID;
                 return this.__open(ID);
             });
             IPC.on("WindowHandler.close", event=>{
-                this.__close(event.sourceID);
+                const data = event.data;
+                const ID = data.ID;
+                this._close(ID!=null? ID: event.sourceID);
             });
 
             this.openedWindows = {};
+            this.openingWindows = {};
+            this.closingWindows = {};
         }else{ // Methods for setup within the window
-            IPC.on("WindowHandler.openModule", event=>{
+            IPC.on("WindowHandler.openModule", async (event)=>{
                 const data = event.data;
                 try{
                     const moduleExport = Registry._loadModule(data.modulePath);
                     const ModuleClass = moduleExport.default;
-                    return new Promise((res, rej)=>{
-                        const module = new ModuleClass(data.request);
-                        module.onInit(()=>{
-                            res(module.getPath().toString(true));
-                        });
-                    });
+                    const module = new ModuleClass(data.request);
+                    await module.onInit();
+                    return module.getPath().toString(true);
                 }catch(e){
                     console.error(`Something went wrong while trying to instantiate ${data.modulePath}`, e);
                     return false;
                 }
             });
 
-            IPC.on("WindowHandler.assignID", event=>{
-                const data = event.data;
-                const windowID = data.ID;
-                window.ID = windowID;
+            ipcRenderer.once("WindowHandler.assignID", async (event, args)=>{
+                const windowID = args.ID;
+                window.ID = IPC.ID = this.ID = windowID;
 
-                return SettingsHandler._create("windowCore").then(windowSettings=>{
-                    const settings = windowSettings.get(`windows.${windowID}`);
-                    window.settings = settings;
-                    console.log(settings);
+                // Notify the main process that the ID was assigned
+                ipcRenderer.send("WindowHandler.assignedID", {ID:windowID});
+            });
+            IPC.once("WindowHandler.initialise", async (event)=>{
+                const windowID = this.ID;
 
-                    // TODO setup GUI sections and load the modules
-                    return new Promise((res, rej)=>{
+                // Load the window settings
+                const windowSettings = await SettingsHandler._create("windowCore");
+                const settings = windowSettings.get(`windows.${windowID}`);
+                window.settings = settings;
 
-                        // Indicate the setup has completed
-                        res();
-                    });
-                });
+                // TODO setup GUI sections and load the modules
+                console.log(settings);
             });
         }
     }

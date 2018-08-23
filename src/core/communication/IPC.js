@@ -90,12 +90,11 @@ class IPC{
     }
     /**
      * Deregister a window for when it is destroyed, such that it is no longer listed as a valid window
-     * @param  {BrowserWindow} window The window to deregister
+     * @param  {windowID} windowID The ID of the window to deregister
      * @return {Undefined} The method returns no useful information
      */
-    static _deregisterWindow(window){
-        const index = this.windows.indexOf(window);
-        if(index!=-1) delete this.windows[index];
+    static _deregisterWindow(windowID){
+        delete this.windows[windowID];
     }
 
     // Private methods
@@ -165,9 +164,7 @@ class IPC{
             // Format the destination
             if(dest=="*"){
                 // If we want to target all windows (and the main thread), create a list of all destinations
-                dest = [];
-                for(let i in windows)
-                dest.push(i);
+                dest = Object.keys(windows);
             }else if(!(dest instanceof Array)){
                 // If only a single destination is provided, still make sure it is an array
                 dest = [dest];
@@ -175,8 +172,8 @@ class IPC{
                 // Remove all invalid window ids
                 for(let i=dest.length-1; i>=0; i--){
                     let id = dest[i];
-                    if(!this.windows[Number(id)])
-                    dest.splice(i, 1);
+                    if(!windows[Number(id)])
+                        dest.splice(i, 1);
                 }
             }
 
@@ -199,7 +196,7 @@ class IPC{
                         });
                     });
                 }else{ // Target a window
-                    const window = this.windows[Number(id)];
+                    const window = windows[Number(id)];
                     if(window){
                         window.webContents.send("IPC.recieve", {
                             type: type,
@@ -302,7 +299,7 @@ class IPC{
      * @return {Undefined} The method returns no useful information
      */
     static __setup(){
-        this.windows = [this];           // The available windows to forward the events to
+        this.windows = {0:this};         // The available windows to forward the events to
         this.listeners = {};             // The event listeners in this process/renderer
         this.responseListeners = {ID:0}; // The response listeners in this process/renderer
 
@@ -327,9 +324,9 @@ class IPC{
                 event.returnValue = ExtendedJSON.encode(response);
             });
         }else{  // Is a renderer thread
-            this.ID = require('electron').remote.getCurrentWindow().id; // (Starts from 1)
+            // this.ID gets set in windowHandler once finished loading
 
-            // Emit the event to all listeners whenever it is recieved
+            // Emit the IPC event to all listeners whenever it is recieved
             ipcRenderer.on("IPC.recieve", (event, arg)=>{
                 // Emit the event when recieved
                 const getResponses = this.__emitEvent(arg.type, {

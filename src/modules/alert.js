@@ -2,10 +2,15 @@ import Module from "../core/registry/module";
 
 export default class Alert extends Module{
     constructor(request){
-        super(request, false);
+        super(request);
+        console.log(this);
     }
-    alert(text){
+    $alert(event, text){
         window.alert(text);
+        // console.info(text);
+        // return new Promise(resolve=>{
+        //     setTimeout(resolve, 2000);
+        // })
     }
 }
 export const config = {

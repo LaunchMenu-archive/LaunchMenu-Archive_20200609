@@ -4,6 +4,9 @@ import IPC from "../IPC";
 import Path from "path";
 import FS from "fs";
 
+function escapePath(path){
+    return path.replace(/\>/g, "").replace(/\\\//g, "_");
+}
 const dataDir = Path.resolve(__dirname, "../../../../data/settings");
 const prefix = "Settings:";
 export class Settings extends GlobalData{
@@ -34,17 +37,17 @@ class SettingsHandler{
         const ID = prefix+path;
         return this._create(ID, defaultData, path);
     }
-    static _create(ID, defaultData, fileName){
+    static async _create(ID, defaultData, fileName){
         if(!fileName) fileName = ID;
-        return IPC.send("Settings.retrieve", {
+        const data = (async IPC.send("Settings.retrieve", {
             ID: ID,
             fileName: fileName,
             defaultData: defaultData
-        }, 0).then(responses=>{
-            const settings = new Settings(ID, prefix);
-            settings._setData(responses[0]);
-            return settings;
-        });
+        }, 0))[0];
+
+        const settings = new Settings(ID, prefix);
+        settings._setData(data);
+        return settings;
     }
 
     // Some file manipulation methods
@@ -62,10 +65,10 @@ class SettingsHandler{
         return FS.writeFileSync(path, JSON.stringify(data, null, 4));
     }
     static __getPath(fileName){
-        return Path.join(dataDir, fileName)+".json";
+        return Path.join(dataDir, escapePath(fileName))+".json";
     }
     static _getModuleFile(requestPath){
-        return this.__getFile(Path.join(dataDir, requestPath.toString())+".json");
+        return this.__getFile(Path.join(dataDir, escapePath(requestPath.toString()))+".json");
     }
 
     // All the listeners that are required in the main process

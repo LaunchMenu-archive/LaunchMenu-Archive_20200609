@@ -97,16 +97,15 @@ export class GlobalData{
     }
 }
 class GlobalDataHandler{
-    static create(ID, defaultData){
-        return IPC.send("GlobalData.retrieve", {
+    static async create(ID, defaultData){
+        const data = (await IPC.send("GlobalData.retrieve", {
             ID: ID,
             defaultData: defaultData
-        }, 0).then(responses=>{
-            console.log(responses);
-            const globalData = new GlobalData(ID);
-            globalData._setData(responses[0]);
-            return globalData;
-        });
+        }, 0))[0];
+
+        const globalData = new GlobalData(ID);
+        globalData._setData(data);
+        return globalData;
     }
     static _changeField(ID, currentData, newData, path){
         if(currentData && currentData.__proto__==Object.prototype){

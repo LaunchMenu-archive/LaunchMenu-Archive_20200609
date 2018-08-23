@@ -45,20 +45,37 @@ Registry._loadModule("alert");
 Registry._loadModule("multiAlert");
 Registry._loadModule("testModule2");
 const TestModule2 = Registry.requestModule({type:"test2"});
-const testModule2 = new TestModule2();
+const testModule2instance = new TestModule2();
+const testModule2instance2 = new TestModule2();
 
 
 // Open a window
 app.on('ready', function(){
 
 
-    testModule2.requestHandle({
+    testModule2instance.requestHandle({
         type: "multiAlert"
     }).then(channel=>{
         channel.alert("poooopy pants")
             .then(()=>{
                 return channel.alert("Nuts");
             }).then(()=>{
+                return channel.close();
+            });
+    });
+    testModule2instance2.requestHandle({
+        type: "multiAlert"
+    }).then(channel=>{
+        channel.alert("testing")
+            .then(()=>{
+                return channel.close();
+            });
+    });
+    testModule2instance2.requestHandle({
+        type: "alert"
+    }).then(channel=>{
+        channel.alert("single alert")
+            .then(()=>{
                 return channel.close();
             });
     });

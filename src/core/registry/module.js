@@ -2,6 +2,7 @@ import Channel from "../communication/channel";
 import Registry from "./registry";
 import WindowHandler from "../window/windowHandler";
 import RequestPath from "./requestPath";
+import BooleanProcess from "../utils/booleanProcess";
 
 export default class Module{
     constructor(request, canBeDirectlyInstantiated){
@@ -10,17 +11,24 @@ export default class Module{
             registerPromiseResolve = resolve;
         });
         this.core = {
-            registered: false,
-            registerPromise: registerPromise,
-            registerPromiseResolve: registerPromiseResolve,
-            initPromise: registerPromise, // Other methods may build upon this promise
-            channelReceiver: null,
-            request: request,
-            channels: {
-                source: null
+            registration: {
+                registered: new BooleanProcess(0),
+                registerPromise: registerPromise,
+                registerPromiseResolve: registerPromiseResolve,
             },
+            initPromise: registerPromise, // Other methods may build upon this promise
+            handlers: {
+
+            },
+            source: {
+
+            }
         };
+
         if(request){
+            this.core.source = {
+                request: request
+            };
             this.__register();
         }else if(!canBeDirectlyInstantiated){
             const error = Error("This module can only be instantiated from a handle request");
@@ -29,44 +37,36 @@ export default class Module{
         }
 
     }
-    __register(){
-        if(this.core.registered===false){
-            this.core.registered = null; //adding
-            if(this.core.request){
-                const requestPath = new RequestPath(this.core.request.source);
-                this.core.requestPath = requestPath.augmentPath(this.getClass().modulePath, 0);
-                WindowHandler._registerModuleInstance(this);
-                Registry._registerModuleInstance(this).then(ID=>{
-                    Channel.createReceiver(
-                        this.core.requestPath.toString(true),
-                        this.__createChannelMethods()
-                    ).then(receiver=>{
-                        this.core.channelReceiver = receiver;
-                        Channel.createSender(
-                            this.core.request.source,
-                            this.core.request.type,
-                            this.core.requestPath.toString(true)
-                        ).then(channel=>{
-                            this.core.channels.source = channel;
-                            window.channel = channel; // TODO remove (for testing);
-                            this.core.registered = true;
-                            this.core.registerPromiseResolve(this);
-                        });
-                    });
-                });
+    async __register(){
+        if(this.core.registration.registered.false()){
+            this.core.registration.registered.turningTrue(true);
+            const source = this.core.source;
+            if(source.request){
+                const requestPath = new RequestPath(source.request.source);
+                source.requestPath = requestPath.augmentPath(this.getClass().modulePath, 0);
+                const ID = await Registry._registerModuleInstance(this);
+
+                this.core.channelReceiver = await Channel.createReceiver(
+                    source.requestPath.toString(true),
+                    this.__createChannelMethods()
+                );
+                source.channel = await Channel.createSender(
+                    source.request.source,
+                    source.request.type,
+                    source.requestPath.toString(true)
+                );
+
+                this.core.registration.registered.true(true);
+                this.core.registration.registerPromiseResolve(this);
             }else{
-                this.core.requestPath = new RequestPath(this.getClass().modulePath);
-                WindowHandler._registerModuleInstance(this);
-                Registry._registerModuleInstance(this).then(ID=>{
-                    Channel.createReceiver(
-                        this.core.requestPath.toString(true),
-                        this.__createChannelMethods()
-                    ).then(receiver=>{
-                        this.core.channelReceiver = receiver;
-                        this.core.registered = true;
-                        this.core.registerPromiseResolve(this);
-                    });
-                });
+                source.requestPath = new RequestPath(this.getClass().modulePath);
+                const ID = await Registry._registerModuleInstance(this);
+                this.core.channelReceiver = await Channel.createReceiver(
+                    source.requestPath.toString(true),
+                    this.__createChannelMethods()
+                );
+                this.core.registration.registered.true(true);
+                this.core.registration.registerPromiseResolve(this);
             }
         }
     }
@@ -74,7 +74,7 @@ export default class Module{
         return this.core.initPromise = this.core.initPromise.then(method);
     }
     __onRegister(then, ctch){
-        return this.core.registerPromise.then(then).catch(ctch);
+        return this.core.registration.registerPromise.then(then).catch(ctch);
     }
     onInit(then, ctch){
         return this.core.initPromise.then(then).catch(ctch);
@@ -88,16 +88,19 @@ export default class Module{
         return this.__proto__.constructor;
     }
     getPath(){
-        return this.core.requestPath;
+        return this.core.source.requestPath;
+    }
+    static getPath(){
+        return this.modulePath;
     }
     static toString(){
-        return this.modulePath;
+        return this.getPath();
     }
 
     // Channel related methods
     __getMethods(){
         const output = {};
-        const ignoreRegex = /constructor|^__/g;
+        const channelMethodRegex = /^\$/g;
         let nextProto = this.__proto__;
         while(nextProto && nextProto!=Module.prototype){
             const proto = nextProto;
@@ -105,8 +108,8 @@ export default class Module{
 
             Object.getOwnPropertyNames(proto).forEach(varName=>{
                 const variable = this.__proto__[varName];
-                if(variable instanceof Function && !ignoreRegex.test(varName)){
-                    output[varName] = this.__proto__[varName];
+                if(variable instanceof Function && channelMethodRegex.test(varName)){
+                    output[varName.replace(channelMethodRegex, "")] = this.__proto__[varName];
                 }
             });
         }
@@ -118,11 +121,10 @@ export default class Module{
         Object.keys(methods).forEach(methodName=>{
             const method = methods[methodName];
             output[methodName] = event=>{
-                return method.apply(this, event.data);
+                return method.apply(this, [event].concat(event.data));
             };
         });
         output.close = event=>{
-            console.log("close", this);
             return this.dispose();
         };
         output.closeDescendant = event=>{
@@ -131,45 +133,50 @@ export default class Module{
         return output;
     }
     __disposeDescendant(requestPath, type){
-        const channels = this.core.channels[type];
-        if(channels){
+        const handler = this.core.handlers[type];
+        if(handler){
+            const channels = handler.channels;
             if(channels instanceof Array){
-                this.core.channels[type] = channels.filter(channel=>{
+                handler.channels = channels.filter(channel=>{
                     return channel._getID() != requestPath;
                 });
 
-                if(this.core.channels[type].length == 0)
-                    delete this.core.channels[type];
+                if(handler.channels.length == 0)
+                    delete this.core.handlers[type];
             }else if(channels._getID() == requestPath){
-                delete this.core.channels[type];
+                delete this.core.handlers[type];
             }
         }
     }
-    dispose(){
-        if(this.core.registered){
-            this.core.registered = undefined; // Removing
+    async dispose(){
+        if(this.core.registration.registered.turningTrue())
+            throw Error("Module is still registering");
+        if(this.core.registration.registered.true()){
+            this.core.registration.registered.turningFalse(true);
             const channelDisposalPromises = [];
-            Object.keys(this.core.channels).forEach(type=>{
-                if(type!="source"){
-                    const channels = this.core.channels[type];
-                    if(channels instanceof Array){
-                        channelDisposalPromises.concat(channels.map(channel=>{
-                            return channel.close();
-                        }));
-                    }else{
-                        channelDisposalPromises.push(channels.close());
-                    }
+            Object.keys(this.core.handlers).forEach(type=>{
+                const handler = this.core.handlers[type];
+                const channels = handler.channels;
+                if(channels instanceof Array){
+                    channelDisposalPromises.concat(channels.map(channel=>{
+                        console.log(channel);
+                        return channel.close();
+                    }));
+                }else{
+                    console.log(channels);
+                    channelDisposalPromises.push(channels.close());
                 }
             });
 
-            return Promise.all(channelDisposalPromises).then(()=>{
-                return this.core.channels.source.closeDescendant(this.getPath().toString(true), this.core.request.type);
-            }).then(()=>{
-                return Registry._deregisterModuleInstance(this);
-            }).then(()=>{
-                this.core.registered = false; // Removed
-                return Promise.resolve(WindowHandler._deregisterModuleInstance(this));
-            });
+            await Promise.all(channelDisposalPromises);
+            if(this.core.source.channel){
+                await this.core.source.channel.closeDescendant(this.getPath().toString(true), this.core.source.request.type)
+            }
+
+            this.core.registration.registered.false(true);
+            this.core.channelReceiver.close();
+
+            await Registry._deregisterModuleInstance(this);
         }
     }
 
@@ -178,21 +185,31 @@ export default class Module{
      * @param  {{type:String, execute:String|function, data:Object, source:Module, methods:Object}} request The information on how to handle the data
      * @return {Promise} The Promise that shall return the channels created to communicate with the modules
      */
-    requestHandle(request){
-        if(!this.registered) this.__register();
-        return this.__onRegister(()=>{
-            if(!request.methods)
+    async requestHandle(request){
+        if(this.core.registration.registered.turningFalse())
+            throw Error("Module is currently deregistering");
+
+        if(this.core.registration.registered.false()){
+            await this.__register();
+            // await this.__onRegister();
+        }else if(this.core.registration.registered.turningTrue()){
+            await this.__onRegister();
+        }
+
+        if(!request.methods)
             request.methods = {};
-            request.source = this;
 
-            if(this.core.channels[request.type])
-            return this.core.channels[request.type];
+        request.source = this;
 
-            this.core.channelReceiver.createSubChannel(request.type, request.methods);
-            return Registry.requestHandle(request).then(channels=>{
-                this.core.channels[request.type] = channels;
-                return channels;
-            });
-        });
+        if(this.core.handlers[request.type])
+            return this.core.handler[request.type].channels;
+
+        this.core.channelReceiver.createSubChannel(request.type, request.methods);
+        const channels = await Registry.requestHandle(request);
+        this.core.handlers[request.type] = {
+            request: request,
+            channels: channels
+        };
+        return channels;
     }
 }
