@@ -31,25 +31,31 @@ const deserializeSymbol = (0, _symbol2.default)("deserialize");
 
 exports.serializeSymbol = serializeSymbol;
 exports.deserializeSymbol = deserializeSymbol;
+
 /**
+ * @classdesc
  * An extended version of JSON that is able to also encode the following information:
  *  - Module classes
  *  - Module class instances (if the class has serialize and deserialize methods)
  *  - recursive objects/internal object references
+ * @class
+ * @hideconstructor
  */
 
 class ExtendedJSON {
     /**
      * Encode more complicated data into a serializable object
-     * @param  {Object} object The data you want to map
-     * @return {Object}        The object that represents your data as as serializable string
+     * @param {Object} object -The data you want to map
+     * @returns {Object} The object that represents your data as as serializable string
+     * @public
      */
     static encode(object) {
         /**
          * Goes through an object and returns the object in the encoded format
-         * @param  {Object} object The object to convert
-         * @param  {String} path   The path within the parent object to reach this object so far
-         * @return {Object}        The encoded version of the input object
+         * @param {Object} object - The object to convert
+         * @param {string} path - The path within the parent object to reach this object so far
+         * @returns {Object} The encoded version of the input object
+         * @public
          */
         const encodeValue = function (object, path) {
             try {
@@ -150,15 +156,17 @@ class ExtendedJSON {
     }
     /**
      * Decode the more complicated data that was encoded into a serializable object
-     * @param  {Object} object The data you want return into its source data
-     * @return {Object}        The source data in its format before encoding was applied
+     * @param  {Object} object - The data you want return into its source data
+     * @returns {Object} The source data in its format before encoding was applied
+     * @public
      */
     static decode(object) {
         /**
          * Goes through an encoded object and returns the object in its original format
-         * @param  {Object} value  The value to decode
-         * @param  {Object} parent The object that the value will be stored in (used for object reference paths)
-         * @return {Object} The resulting value after decoding the input value
+         * @param {Object} value - The value to decode
+         * @param {Object} parent - The object that the value will be stored in (used for object reference paths)
+         * @returns {Object} The resulting value after decoding the input value
+         * @public
          */
         const decodeValue = function (value, parent) {
             try {
@@ -175,9 +183,11 @@ class ExtendedJSON {
                             let obj = parent;
                             let key;
                             while ((key = path.shift()) && obj) {
-                                if (key == "..") // Step up in the object
-                                    obj = obj[parentSymbol];else // Step down to a child in the object
-                                    obj = obj[key];
+                                if (key == "..")
+                                    // Step up in the object
+                                    obj = obj[parentSymbol];
+                                    // Step down to a child in the object
+                                else obj = obj[key];
                             }
 
                             // Return the object
@@ -251,16 +261,18 @@ class ExtendedJSON {
 
     /**
      * Use ExtendedJSON to turn a string into an object just like JSON would
-     * @param  {String} string The string to translate back into an object
-     * @return {Object}        The source object that the string was made from
+     * @param {String} string - The string to translate back into an object
+     * @returns {Object} The source object that the string was made from
+     * @public
      */
     static parse(string) {
         return this.decode(JSON.parse(string));
     }
     /**
      * Use ExtendedJSON to turn an object into a string just like JSON would
-     * @param  {Object} object The source object to turn into a string
-     * @return {String}        The string that the object was translated into
+     * @param {Object} object - The source object to turn into a string
+     * @returns {String} The string that the object was translated into
+     * @public
      */
     static stringify(object) {
         return (0, _stringify2.default)(this.encode(object));
@@ -269,13 +281,15 @@ class ExtendedJSON {
     /**
      * Get the serializeSymbol to use as a function name in your own class, allowing said class to be serialized by ExtendedJSON
      * @type {Symbol}
+     * @public
      */
     static get serializeSymbol() {
         return serializeSymbol;
     }
     /**
      * Get the deserializeSymbol to use as a function name in your own class, allowing said class to be deserialized by ExtendedJSON
-     * @type {[type]}
+     * @type {Symbol}
+     * @public
      */
     static get deserializeSymbol() {
         return deserializeSymbol;
@@ -284,9 +298,10 @@ class ExtendedJSON {
     // Private methods
     /**
      * Goes through an object and returns all the pathSymbols from it
-     * @param  {Object} object The object to clean up
-     * @param  {Symbol|String} prop The property to remove from the object
-     * @return {Undefined} The method returns no useful information
+     * @param {Object} object 0 The object to clean up
+     * @param {(Symbol|string)} prop - The property to remove from the object
+     * @returns {undefined} The method returns no useful information
+     * @private
      */
     static __cleanObject(object, prop) {
         // Only clean the object if it really is an object, if it isn't already cleaned and if there is still something to clean

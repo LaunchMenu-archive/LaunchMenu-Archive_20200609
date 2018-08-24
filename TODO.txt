@@ -7,8 +7,8 @@ short-term:
 
     -clean up code:
         // -turn from promises to async methods
-        -separate all classes into dedicated files
-        -consistently name classes
+        // -separate all classes into dedicated files
+        // -consistently name classes
         -consider to pull apart front end and backend in classes
         -properly comment all code
         -properly type classes, fields and methods

@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Settings - Documentation</title>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <span class="navicon"></span>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ChannelHandler.html">ChannelHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelHandler.html#.createReceiver">createReceiver</a></li><li data-type='method'><a href="ChannelHandler.html#.createSender">createSender</a></li></ul></li><li><a href="ChannelReceiver.html">ChannelReceiver</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelReceiver.html#close">close</a></li><li data-type='method'><a href="ChannelReceiver.html#createSubChannel">createSubChannel</a></li><li data-type='method'><a href="ChannelReceiver.html#deleteSubChannel">deleteSubChannel</a></li><li data-type='method'><a href="ChannelReceiver.html#getID">getID</a></li></ul></li><li><a href="ChannelSender.html">ChannelSender</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelSender.html#_getID">_getID</a></li><li data-type='method'><a href="ChannelSender.html#_getSubChannelID">_getSubChannelID</a></li><li data-type='method'><a href="ChannelSender.html#_setupMethods">_setupMethods</a></li></ul></li><li><a href="ExtendedJSON.html">ExtendedJSON</a><ul class='members'><li class='list-title'>Members</li><li data-type='member'><a href="ExtendedJSON.html#.deserializeSymbol">deserializeSymbol</a></li><li data-type='member'><a href="ExtendedJSON.html#.serializeSymbol">serializeSymbol</a></li></ul><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ExtendedJSON.html#.decode">decode</a></li><li data-type='method'><a href="ExtendedJSON.html#.encode">encode</a></li><li data-type='method'><a href="ExtendedJSON.html#.parse">parse</a></li><li data-type='method'><a href="ExtendedJSON.html#.stringify">stringify</a></li></ul></li><li><a href="GlobalData.html">GlobalData</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="GlobalData.html#_setData">_setData</a></li><li data-type='method'><a href="GlobalData.html#change">change</a></li><li data-type='method'><a href="GlobalData.html#dispose">dispose</a></li><li data-type='method'><a href="GlobalData.html#get">get</a></li><li data-type='method'><a href="GlobalData.html#off">off</a></li><li data-type='method'><a href="GlobalData.html#on">on</a></li></ul></li><li><a href="GlobalDataHandler.html">GlobalDataHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="GlobalDataHandler.html#._changeField">_changeField</a></li><li data-type='method'><a href="GlobalDataHandler.html#.create">create</a></li></ul></li><li><a href="IPC.html">IPC</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="IPC.html#._deregisterWindow">_deregisterWindow</a></li><li data-type='method'><a href="IPC.html#._getWindows">_getWindows</a></li><li data-type='method'><a href="IPC.html#._registerWindow">_registerWindow</a></li><li data-type='method'><a href="IPC.html#.getID">getID</a></li><li data-type='method'><a href="IPC.html#.off">off</a></li><li data-type='method'><a href="IPC.html#.on">on</a></li><li data-type='method'><a href="IPC.html#.once">once</a></li><li data-type='method'><a href="IPC.html#.send">send</a></li><li data-type='method'><a href="IPC.html#.sendSync">sendSync</a></li></ul></li><li><a href="Module.html">Module</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Module.html#.getPath">getPath</a></li><li data-type='method'><a href="Module.html#.toString">toString</a></li><li data-type='method'><a href="Module.html#dispose">dispose</a></li><li data-type='method'><a href="Module.html#getClass">getClass</a></li><li data-type='method'><a href="Module.html#getPath">getPath</a></li><li data-type='method'><a href="Module.html#requestHandle">requestHandle</a></li><li data-type='method'><a href="Module.html#toString">toString</a></li></ul></li><li><a href="Registry.html">Registry</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Registry.html#._deregisterModuleInstance">_deregisterModuleInstance</a></li><li data-type='method'><a href="Registry.html#._getModuleInstanceCount">_getModuleInstanceCount</a></li><li data-type='method'><a href="Registry.html#._loadAllModules">_loadAllModules</a></li><li data-type='method'><a href="Registry.html#._loadModule">_loadModule</a></li><li data-type='method'><a href="Registry.html#._registerModuleInstance">_registerModuleInstance</a></li><li data-type='method'><a href="Registry.html#.getModuleInstanceChannels">getModuleInstanceChannels</a></li><li data-type='method'><a href="Registry.html#.requestHandle">requestHandle</a></li><li data-type='method'><a href="Registry.html#.requestModule">requestModule</a></li></ul></li><li><a href="RequestPath.html">RequestPath</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="RequestPath.html#augmentPath">augmentPath</a></li><li data-type='method'><a href="RequestPath.html#getModuleID">getModuleID</a></li><li data-type='method'><a href="RequestPath.html#getSubPath">getSubPath</a></li><li data-type='method'><a href="RequestPath.html#toString">toString</a></li></ul></li><li><a href="Settings.html">Settings</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Settings.html#_setData">_setData</a></li><li data-type='method'><a href="Settings.html#change">change</a></li><li data-type='method'><a href="Settings.html#dispose">dispose</a></li><li data-type='method'><a href="Settings.html#get">get</a></li><li data-type='method'><a href="Settings.html#off">off</a></li><li data-type='method'><a href="Settings.html#on">on</a></li><li data-type='method'><a href="Settings.html#reload">reload</a></li><li data-type='method'><a href="Settings.html#save">save</a></li></ul></li><li><a href="SettingsHandler.html">SettingsHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="SettingsHandler.html#._create">_create</a></li><li data-type='method'><a href="SettingsHandler.html#._getModuleFile">_getModuleFile</a></li><li data-type='method'><a href="SettingsHandler.html#.create">create</a></li></ul></li><li><a href="State.html">State</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="State.html#false">false</a></li><li data-type='method'><a href="State.html#falseOrTurningFalse">falseOrTurningFalse</a></li><li data-type='method'><a href="State.html#true">true</a></li><li data-type='method'><a href="State.html#trueOrTurningTrue">trueOrTurningTrue</a></li><li data-type='method'><a href="State.html#turningFalse">turningFalse</a></li><li data-type='method'><a href="State.html#turningTrue">turningTrue</a></li></ul></li><li><a href="WindowHandler.html">WindowHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="WindowHandler.html#._close">_close</a></li><li data-type='method'><a href="WindowHandler.html#.openModuleInstance">openModuleInstance</a></li></ul></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">Settings</h1>
+    
+
+    
+
+
+
+
+<section>
+
+<header>
+    <span class="creds">
+      
+
+      
+    </span>
+
+    <hr>
+
+    
+        <h2>
+        Settings
+        </h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+    
+    </div>
+
+    
+        <h3 class="subsection-title">Extends</h3>
+
+        
+
+
+    <ul>
+        <li><a href="GlobalData.html">GlobalData</a></li>
+    </ul>
+
+
+    
+
+    
+
+    
+
+     
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+
+    
+
+
+<div class="group" id="_setData">
+
+
+    <h4 class="name"><span class="type-signature">(protected) </span><b>_setData</b><span class="signature">(<span class="sig-params">data</span>)</span><span class="type-signature">:undefined</span></h4>
+
+    
+
+
+
+<div class="description">
+    Sets the initial data of the object, without sending events to other instances
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters</h5>
+    
+
+<div class="params">
+    
+
+    
+        <span class="name">data</span><span class="type"><span class="param-type">:Object</span></span>
+    
+
+    
+
+    
+
+    <div class="description last">The data to store in the instance</div>
+
+    
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns</h5>
+
+        
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        <span class="param-type">:undefined</span>
+    </dd>
+</dl>
+
+
+    
+
+
+
+
+
+<h5>Details</h5>
+<dl class="details">
+    
+
+    
+
+    
+    <dt class="inherited-from">Inherited From</dt>
+    <dd class="inherited-from"><ul class="dummy"><li>
+        <a href="GlobalData.html#_setData">GlobalData#_setData</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+ 
+
+
+
+
+
+<div class="src">Source: <a href="communication_data_globalData_globalData.js.html">communication/data/globalData/globalData.js</a>, <a href="communication_data_globalData_globalData.js.html#line98">line 98</a></div>
+
+
+</div>
+
+        
+            
+
+
+    
+
+
+<div class="group" id="change">
+
+
+    <h4 class="name"><span class="type-signature">(async) </span><b>change</b><span class="signature">(<span class="sig-params">data</span>)</span><span class="type-signature">:Object</span></h4>
+
+    
+
+
+
+<div class="description">
+    Changes the data by providing an object with the field you want to alter,The value 'undefined' can be used to delete a field
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters</h5>
+    
+
+<div class="params">
+    
+
+    
+        <span class="name">data</span><span class="type"><span class="param-type">:Object</span></span>
+    
+
+    
+
+    
+
+    <div class="description last">The object with the altered fields</div>
+
+    
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns</h5>
+
+        
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        <span class="param-type">:Object</span>
+    </dd>
+</dl>
+
+<div class="param-desc">
+    The currently saved data after the alteration
+</div>
+
+
+    
+
+
+
+
+
+<h5>Details</h5>
+<dl class="details">
+    
+
+    
+
+    
+    <dt class="inherited-from">Inherited From</dt>
+    <dd class="inherited-from"><ul class="dummy"><li>
+        <a href="GlobalData.html#change">GlobalData#change</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+ 
+
+
+
+
+
+<div class="src">Source: <a href="communication_data_globalData_globalData.js.html">communication/data/globalData/globalData.js</a>, <a href="communication_data_globalData_globalData.js.html#line27">line 27</a></div>
+
+
+</div>
+
+        
+            
+
+
+    
+
+
+<div class="group" id="dispose">
+
+
+    <h4 class="name"><span class="type-signature"></span><b>dispose</b><span class="signature">(<span class="sig-params">dontSave</span>)</span><span class="type-signature">:undefined</span></h4>
+
+    
+
+
+
+<div class="description">
+    Gets rid of all connected data such that the object is safely removed and saves the data in the file
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters</h5>
+    
+
+<div class="params">
+    
+
+    
+        <span class="name">dontSave</span><span class="type"><span class="param-type">:boolean</span></span>
+    
+
+    
+
+    
+
+    <div class="description last">Whether to not save the file when disposing</div>
+
+    
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns</h5>
+
+        
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        <span class="param-type">:undefined</span>
+    </dd>
+</dl>
+
+
+    
+
+
+
+
+
+<h5>Details</h5>
+<dl class="details">
+    
+
+    
+
+    
+
+    
+    <dt class="tag-overrides">Overrides</dt>
+    <dd class="tag-overrides"><ul class="dummy"><li>
+        <a href="GlobalData.html#dispose">GlobalData#dispose</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+ 
+
+
+
+
+
+<div class="src">Source: <a href="communication_data_settings_settings.js.html">communication/data/settings/settings.js</a>, <a href="communication_data_settings_settings.js.html#line24">line 24</a></div>
+
+
+</div>
+
+        
+            
+
+
+    
+
+
+<div class="group" id="get">
+
+
+    <h4 class="name"><span class="type-signature"></span><b>get</b><span class="signature">(<span class="sig-params">path</span>)</span><span class="type-signature">:*</span></h4>
+
+    
+
+
+
+<div class="description">
+    Gets a specific property by specifying the path to said property
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters</h5>
+    
+
+<div class="params">
+    
+
+    
+        <span class="name">path</span><span class="type"><span class="param-type">:string</span></span>
+    
+
+    
+
+    
+
+    <div class="description last">The path to the property</div>
+
+    
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns</h5>
+
+        
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        <span class="param-type">:*</span>
+    </dd>
+</dl>
+
+<div class="param-desc">
+    The data saved under the specified field
+</div>
+
+
+    
+
+
+
+
+
+<h5>Details</h5>
+<dl class="details">
+    
+
+    
+
+    
+    <dt class="inherited-from">Inherited From</dt>
+    <dd class="inherited-from"><ul class="dummy"><li>
+        <a href="GlobalData.html#get">GlobalData#get</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+ 
+
+
+
+
+
+<div class="src">Source: <a href="communication_data_globalData_globalData.js.html">communication/data/globalData/globalData.js</a>, <a href="communication_data_globalData_globalData.js.html#line40">line 40</a></div>
+
+
+</div>
+
+        
+            
+
+
+    
+
+
+<div class="group" id="off">
+
+
+    <h4 class="name"><span class="type-signature"></span><b>off</b><span class="signature">(<span class="sig-params">type<span class="params-divider">, </span>listener</span>)</span><span class="type-signature">:undefined</span></h4>
+
+    
+
+
+
+<div class="description">
+    Removes a listener from the object which would have gotten invoked when data changes
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters</h5>
+    
+
+<div class="params">
+    
+
+    
+        <span class="name">type</span><span class="type"><span class="param-type">:'update'|'delete'|'create'|'change'</span></span>
+    
+
+    
+
+    
+
+    <div class="description last">The event type that was listened to</div>
+
+    
+
+    
+        <span class="name">listener</span><span class="type"><span class="param-type">:function</span></span>
+    
+
+    
+
+    
+
+    <div class="description last">The function that was listening to said event type</div>
+
+    
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns</h5>
+
+        
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        <span class="param-type">:undefined</span>
+    </dd>
+</dl>
+
+
+    
+
+
+
+
+
+<h5>Details</h5>
+<dl class="details">
+    
+
+    
+
+    
+    <dt class="inherited-from">Inherited From</dt>
+    <dd class="inherited-from"><ul class="dummy"><li>
+        <a href="GlobalData.html#off">GlobalData#off</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+ 
+
+
+
+
+
+<div class="src">Source: <a href="communication_data_globalData_globalData.js.html">communication/data/globalData/globalData.js</a>, <a href="communication_data_globalData_globalData.js.html#line74">line 74</a></div>
+
+
+</div>
+
+        
+            
+
+
+    
+
+
+<div class="group" id="on">
+
+
+    <h4 class="name"><span class="type-signature"></span><b>on</b><span class="signature">(<span class="sig-params">type<span class="params-divider">, </span>listener</span>)</span><span class="type-signature">:undefined</span></h4>
+
+    
+
+
+
+<div class="description">
+    Adds a listener to the object which will get invoked when data changes
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters</h5>
+    
+
+<div class="params">
+    
+
+    
+        <span class="name">type</span><span class="type"><span class="param-type">:'update'|'delete'|'create'|'change'</span></span>
+    
+
+    
+
+    
+
+    <div class="description last">The event type to listen to</div>
+
+    
+
+    
+        <span class="name">listener</span><span class="type"><span class="param-type">:function</span></span>
+    
+
+    
+
+    
+
+    <div class="description last">The function to call once a property has been changed</div>
+
+    
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns</h5>
+
+        
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        <span class="param-type">:undefined</span>
+    </dd>
+</dl>
+
+
+    
+
+
+
+
+
+<h5>Details</h5>
+<dl class="details">
+    
+
+    
+
+    
+    <dt class="inherited-from">Inherited From</dt>
+    <dd class="inherited-from"><ul class="dummy"><li>
+        <a href="GlobalData.html#on">GlobalData#on</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+ 
+
+
+
+
+
+<div class="src">Source: <a href="communication_data_globalData_globalData.js.html">communication/data/globalData/globalData.js</a>, <a href="communication_data_globalData_globalData.js.html#line58">line 58</a></div>
+
+
+</div>
+
+        
+            
+
+
+    
+
+
+<div class="group" id="reload">
+
+
+    <h4 class="name"><span class="type-signature">(async) </span><b>reload</b><span class="signature">(<span class="sig-params"></span>)</span><span class="type-signature">:undefined</span></h4>
+
+    
+
+
+
+<div class="description">
+    Reloads the data from the specified file
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns</h5>
+
+        
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        <span class="param-type">:undefined</span>
+    </dd>
+</dl>
+
+
+    
+
+
+
+
+
+
+
+
+
+
+<div class="src">Source: <a href="communication_data_settings_settings.js.html">communication/data/settings/settings.js</a>, <a href="communication_data_settings_settings.js.html#line48">line 48</a></div>
+
+
+</div>
+
+        
+            
+
+
+    
+
+
+<div class="group" id="save">
+
+
+    <h4 class="name"><span class="type-signature">(async) </span><b>save</b><span class="signature">(<span class="sig-params"></span>)</span><span class="type-signature">:undefined</span></h4>
+
+    
+
+
+
+<div class="description">
+    Saves the data in the specified file
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns</h5>
+
+        
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        <span class="param-type">:undefined</span>
+    </dd>
+</dl>
+
+
+    
+
+
+
+
+
+
+
+
+
+
+<div class="src">Source: <a href="communication_data_settings_settings.js.html">communication/data/settings/settings.js</a>, <a href="communication_data_settings_settings.js.html#line35">line 35</a></div>
+
+
+</div>
+
+        
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc" target="_blank">JSDoc 3.5.5</a> on 8/25/2018 using the <a href="https://github.com/Grafluxe/boxy-jsdoc-template" target="_blank">boxy-jsdoc-template</a> theme.
+</footer>
+
+<script src="scripts/prettify/prettify.js"></script>
+<script src="scripts/prettify/lang-css.js"></script>
+<script src="scripts/script.js"></script>
+
+</body>
+</html>

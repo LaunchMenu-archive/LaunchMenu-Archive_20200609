@@ -29,33 +29,48 @@ var _extendedJSON2 = _interopRequireDefault(_extendedJSON);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
- * A class that allows for communication between different processes and renderers
+ * @typedef {object} IPC~IPCevent
+ * @property {number} sourceID - The ID of the process/window that original sent the event
+ * @property {*} data - The data that was sent with the event
+ */
+
+/**
+ * @classdesc A static class that allows for communication between different processes and windows
+ * @class
+ * @hideconstructor
  */
 class IPC {
     /**
      * Send data to another window or the main script
-     * @param  {String} type                        The event type to send (preferably prefixed with some class ID)
-     * @param  {Object} data                        The data to send
-     * @param  {String|[String, ...]} [dest="*"]    The window ID(s) to send this data to
-     * @return {Promise} The promise that will get called with all the returned data from the listeners
+     * @param  {string} type - The event type to send (preferably prefixed with some class ID)
+     * @param  {Object} data - The data to send
+     * @param  {(string|string[])} [dest="*"] - The process/window ID(s) to send this data to
+     * @returns {Promise<Object[]>} An array of all the data that listeners for the event have returned
+     * @async
+     * @public
      */
     static send(type, data, dest = "*") {
         return this.__send(type, data, dest);
     }
+
     /**
      * Send data synchronously to the main script
-     * @param  {String} type                        The event type to send (preferably prefixed with some class ID)
-     * @param  {Object} data                        The data to send
-     * @return {Promise} The promise that will get called with all the returned data from the listeners
+     * @param  {string} type - The event type to send (preferably prefixed with some class ID)
+     * @param  {*} data - The data to send
+     * @returns {Object[]} An array of all the data that listeners for the event have returned
+     * @public
      */
     static sendSync(type, data) {
         return this.__sendSync(type, data);
     }
+
+    // TODO: add proper handler definition once VScode fixes @callback
     /**
-     * Listen for data being send by the main process or renderers
-     * @param  {String} type                The type of event to listen for
-     * @param  {Function(event)} handler    The function to handle the event occuring
-     * @return {Undefined} The method returns no useful information
+     * Listens for data being sent by a process/window
+     * @param  {string} type - The type of event to listen for
+     * @param  {function} handler - The function to handle the event occuring
+     * @returns {undefined}
+     * @public
      */
     static on(type, handler) {
         if (!this.listeners[type]) this.listeners[type] = [];
@@ -63,11 +78,13 @@ class IPC {
         const index = listeners.indexOf(handler);
         if (index == -1) listeners.push(handler);
     }
+
     /**
-     * Listen for data being send by the main process or renderers, but only listen for it once
-     * @param  {String} type                The type of event to listen for
-     * @param  {Function(event)} handler    The function to handle the event when occuring
-     * @return {Undefined} The method returns no useful information
+     * Listens for data being sent by a process/window, but only listen for it once
+     * @param  {string} type - The type of event to listen for
+     * @param  {function} handler - The function to handle the event occuring
+     * @returns {undefined}
+     * @public
      */
     static once(type, handler) {
         const orHandler = handler;
@@ -77,11 +94,13 @@ class IPC {
         };
         this.on(type, handler);
     }
+
     /**
-     * Stop listening for data being send by the main process or renderers
-     * @param  {String} type                The type of event that is being listened for
-     * @param  {Function(event)} handler    The function that handles the event when occuring
-     * @return {Undefined} The method returns no useful information
+     * Stops listening for data being sent by a process/window
+     * @param  {String} type - The type of event that is being listened for
+     * @param  {Function(event)} - The function that handles the event when occuring
+     * @return {undefined}
+     * @public
      */
     static off(type, handler) {
         const listeners = this.listeners[type];
@@ -93,44 +112,51 @@ class IPC {
 
     /**
      * Gets the identifier of this process or renderer which other processes or renderers can use to communicate
-     * @return {Number} The numeric identifier
+     * @return {number} The numeric identifier
+     * @public
      */
     static getID() {
         return this.ID;
     }
 
-    // Protected methods
     /**
      * Get all the windows that are registered and can be communicated with (only works in the main process)
-     * @return {[BrowserWindow]} The actual windows
+     * @return {BrowserWindow[]} The actual windows
+     * @protected
      */
     static _getWindows() {
         return this.windows;
     }
+
     /**
      * Register a window such that it can start communicating with other processes and windows
-     * @param  {BrowserWindow} window The window to register
-     * @return {Undefined} The method returns no useful information
+     * @param  {BrowserWindow} window - The window to register
+     * @param  {number} windowID - The ID to register the window under
+     * @return {undefined}
+     * @protected
      */
     static _registerWindow(window, windowID) {
         this.windows[windowID] = window;
     }
+
     /**
      * Deregister a window for when it is destroyed, such that it is no longer listed as a valid window
-     * @param  {windowID} windowID The ID of the window to deregister
-     * @return {Undefined} The method returns no useful information
+     * @param  {number} windowID - The ID the window is registered under
+     * @return {undefined}
+     * @protected
      */
     static _deregisterWindow(windowID) {
         delete this.windows[windowID];
     }
 
-    // Private methods
     /**
-     * Emit an event to all the registered listeners
-     * @param  {String} type  The event type to invoke
-     * @param  {Object} event The event data to pass to the listeners
-     * @param  {Boolean} sync Whether to act synchronously and only allow sync returns
-     * @return {Promise} The method returns a promise that will resolve in all the returned values from listeners
+     * Emit an event to all the registered listeners in this process/window
+     * @param  {string} type  - The event type to invoke
+     * @param  {IPC~IPCevent} event - The event data to pass to the listeners
+     * @param  {boolean} sync - Whether to act synchronously and only allow sync returns
+     * @return {Promise<Object[]>} An array of all the data that listeners for the event have returned
+     * @async
+     * @private
      */
     static __emitEvent(type, event, sync) {
         const listeners = this.listeners[type];
@@ -154,14 +180,17 @@ class IPC {
             return responses.concat(promiseResponses);
         });
     }
+
     /**
-     * Send data to another window or the main script
-     * @param  {String} type                        The event type to send (preferbly prefixed with some module ID)
-     * @param  {Object} data                        The data to send
-     * @param  {String|[String, ...]} [dest="*"]    The window ID(s) to send this data to
-     * @param  {Number} source                      The process/renderer ID that the event was originally sent from
-     * @param  {Number} respID                      The ID of the response listener in the source process/renderer to call
-     * @return {Promise} The promise that will get called with all the returned data from the listeners
+     * Send data to other processes/windows
+     * @param  {string} type - The event type to send (preferbly prefixed with some module ID)
+     * @param  {*} data - The data to send
+     * @param  {(string|string[])} [dest="*"] - The process/window ID(s) to send this data to
+     * @param  {number} source - The process/window ID that the event was originally sent from
+     * @param  {number} respID - The ID of the response listener in the source process/window to call
+     * @return {Promise<Object[]>} An array of all the data that listeners for the event have returned
+     * @async
+     * @private
      */
     static __send(type, data, dest = "*", source = 0, respID = undefined) {
         // Only create a promise if this is not a forwarded event
@@ -238,19 +267,27 @@ class IPC {
             });
         } else {
             // Send the data to the main process such that it can spread it to the appropriate windows
-            const forwardData = { dest: dest, type: type, sourceID: this.ID, responseID: respID, data: encodedData };
+            const forwardData = {
+                dest: dest,
+                type: type,
+                sourceID: this.ID,
+                responseID: respID,
+                data: encodedData
+            };
             _electron.ipcRenderer.send("IPC.forward", forwardData);
         }
 
         // Return the response promise
         return promise;
     }
+
     /**
      * Send data synchronously to the main script
-     * @param  {String} type                        The event type to send (preferably prefixed with some class ID)
-     * @param  {Object} data                        The data to send
-     * @param  {Number} source                      The process/renderer ID that the event was originally sent from
-     * @return {Promise} The promise that will get called with all the returned data from the listeners
+     * @param  {string} type - The event type to send (preferably prefixed with some class ID)
+     * @param  {*} data - The data to send
+     * @param  {number} source - The process/window ID that the event was originally sent from
+     * @return {Object[]} An array of all the data that listeners for the event have returned
+     * @private
      */
     static __sendSync(type, data, sourceID) {
         if (_isMain2.default) {
@@ -261,17 +298,23 @@ class IPC {
             }, true);
         } else {
             // Send event to the main process and return the data
-            const response = _electron.ipcRenderer.sendSync("IPC.syncCall", { type: type, data: _extendedJSON2.default.encode(data) });
+            const response = _electron.ipcRenderer.sendSync("IPC.syncCall", {
+                type: type,
+                data: _extendedJSON2.default.encode(data)
+            });
             return _extendedJSON2.default.decode(response);
         }
     }
+
     /**
      * Send a response to the source window that emitted the event
-     * @param  {Number} sourceID                         The ID of the event source process/renderer
-     * @param  {NUmber} responseData.responseID          The ID of the response in said process/renderer
-     * @param  {Array}  responseData.responses           The actual array of returned responses
-     * @param  {Number} responseData.responseOriginCount The number of processes/renderers that need to return responses
-     * @return {Undefined} The method returns no useful information
+     * @param  {string} sourceID - The ID of the event source process/window
+     * @param  {object} responseData - The response data
+     * @param  {number} responseData.responseID - The ID of the response in said process/window
+     * @param  {Object[]}  responseData.responses - The actual array of returned responses
+     * @param  {number} responseData.responseOriginCount - The number of processes/windows that need to return responses
+     * @return {undefined}
+     * @private
      */
     static __sendResponse(sourceID, responseData) {
         // Check whether this is the main process or a renderer
@@ -301,12 +344,14 @@ class IPC {
             });
         }
     }
+
     /**
      * Recieve a response from some process/renderer, and resolve promise when all are recieved
-     * @param  {Number} responseID          The ID of the response identifier
-     * @param  {Array}  responses           The actual array of returned responses
-     * @param  {Number} responseOriginCount The number of processes/renderers that need to return responses
-     * @return {Undefined} The method returns no useful information
+     * @param  {number} responseID - The ID of the response identifier
+     * @param  {Object[]}  responses - The actual array of returned responses
+     * @param  {number} responseOriginCount - The number of processes/renderers that need to return responses
+     * @return {undefined}
+     * @private
      */
     static __recieveResponse(responseID, responses, responseOriginCount) {
         // Find the attached response listener from the ID
@@ -323,9 +368,11 @@ class IPC {
             }
         }
     }
+
     /**
      * The initial setup method to be called by this file itself, initialises the static fields of the class
-     * @return {Undefined} The method returns no useful information
+     * @return {undefined}
+     * @private
      */
     static __setup() {
         this.windows = { 0: this }; // The available windows to forward the events to
@@ -381,6 +428,6 @@ class IPC {
         }
     }
 }
-IPC.__setup();
 exports.default = IPC;
+IPC.__setup();
 //# sourceMappingURL=IPC.js.map

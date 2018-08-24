@@ -1,66 +1,70 @@
 {
-  "name": "launchmenu",
-  "version": "1.0.0",
-  "description": "An open source utility program focusing on file searches",
-  "main": "dest/main.s",
-  "scripts": {
-    "test": "node \"dev/test launcher.js\"",
-    "start": "node dev/launcher.js",
-    "watch": "node-sass src/ -o dist/ & concurrently \"node-sass src/ -o dist/ -w\" \"cpx \\\"src/**/*.{html,png,jpg}\\\" \\\"dist\\\" --watch --verbose\" \"npx babel src --watch --out-dir dist --source-maps\"",
-    "babel": "npx babel src/modules/testModule2.js --out-file dist/modules/testModule2.js --source-maps --plugins \"../../dist/dev/babelRequest.js\""
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/LaunchMenu/LaunchMenu.git"
-  },
-  "keywords": [
-    "LaunchMenu",
-    "LM",
-    "spotlight"
-  ],
-  "author": "Sancarn, Tar van Krieken",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/LaunchMenu/LaunchMenu/issues"
-  },
-  "homepage": "https://github.com/LaunchMenu/LaunchMenu#readme",
-  "dependencies": {
-    "electron": "2.0.4",
-    "react": "^16.4.1",
-    "react-dom": "^16.4.1",
-    "source-map-support": "^0.5.6"
-  },
-  "devDependencies": {
-    "ava": "^0.25.0",
-    "babel-cli": "^6.26.0",
-    "babel-core": "^6.26.3",
-    "babel-plugin-source-map-support": "^2.0.1",
-    "babel-plugin-transform-react-jsx": "^6.24.1",
-    "babel-plugin-transform-runtime": "^6.23.0",
-    "babel-preset-es2016": "^6.24.1",
-    "babel-preset-node6": "^11.0.0",
-    "babel-register": "^6.26.0",
-    "babel-runtime": "^6.26.0",
-    "babel-watch": "^2.0.7",
-    "concurrently": "^3.6.0",
-    "cpx": "^1.5.0",
-    "electron-ava": "^0.3.0",
-    "jasmine": "^3.1.0",
-    "madge": "^3.2.0",
-    "node-sass": "^4.9.2",
-    "npx": "^10.2.0"
-  },
-  "electron-ava": {
-    "files": [
-      "**/.tests/**/*.js"
+    "name": "launchmenu",
+    "version": "1.0.0",
+    "description": "An open source utility program focusing on file searches",
+    "main": "dest/main.s",
+    "scripts": {
+        "test": "node \"dev/test launcher.js\"",
+        "start": "node dev/launcher.js",
+        "watch": "node-sass src/ -o dist/ & concurrently \"node-sass src/ -o dist/ -w\" \"cpx \\\"src/**/*.{html,png,jpg}\\\" \\\"dist\\\" --watch --verbose\" \"npx babel src --watch --out-dir dist --source-maps\"",
+        "jsdoc": "jsdoc src -r -c \".jsdocrc.json\"",
+        "babel": "npx babel src/modules/testModule2.js --out-file dist/modules/testModule2.js --source-maps --plugins \"../../dist/dev/babelRequest.js\""
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/LaunchMenu/LaunchMenu.git"
+    },
+    "keywords": [
+        "LaunchMenu",
+        "LM",
+        "spotlight"
     ],
-    "cache": true,
-    "concurrency": 5,
-    "failWithoutAssertions": false,
-    "compileEnhancements": false,
-    "require": [
-      "babel-register"
-    ],
-    "babel": "inherit"
-  }
+    "author": "Sancarn, Tar van Krieken",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/LaunchMenu/LaunchMenu/issues"
+    },
+    "homepage": "https://github.com/LaunchMenu/LaunchMenu#readme",
+    "dependencies": {
+        "electron": "2.0.4",
+        "react": "^16.4.1",
+        "react-dom": "^16.4.1",
+        "source-map-support": "^0.5.6"
+    },
+    "devDependencies": {
+        "ava": "^0.25.0",
+        "babel-cli": "^6.26.0",
+        "babel-core": "^6.26.3",
+        "babel-plugin-source-map-support": "^2.0.1",
+        "babel-plugin-transform-react-jsx": "^6.24.1",
+        "babel-plugin-transform-runtime": "^6.23.0",
+        "babel-preset-es2016": "^6.24.1",
+        "babel-preset-node6": "^11.0.0",
+        "babel-register": "^6.26.0",
+        "babel-runtime": "^6.26.0",
+        "babel-watch": "^2.0.7",
+        "boxy-jsdoc-template": "^2.0.2",
+        "concurrently": "^3.6.0",
+        "cpx": "^1.5.0",
+        "electron-ava": "^0.3.0",
+        "jasmine": "^3.1.0",
+        "jsdoc": "^3.5.5",
+        "jsdoc-export-default-interop": "^0.3.1",
+        "madge": "^3.2.0",
+        "node-sass": "^4.9.2",
+        "npx": "^10.2.0"
+    },
+    "electron-ava": {
+        "files": [
+            "**/.tests/**/*.js"
+        ],
+        "cache": true,
+        "concurrency": 5,
+        "failWithoutAssertions": false,
+        "compileEnhancements": false,
+        "require": [
+            "babel-register"
+        ],
+        "babel": "inherit"
+    }
 }

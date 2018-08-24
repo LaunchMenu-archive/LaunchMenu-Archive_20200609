@@ -20,17 +20,13 @@ var Registry = require("../../../dist/core/registry/registry").default;
 
 require("source-map-support/register");
 
-var _channel = require("../communication/channel");
+var _channelHandler = require("../communication/channel/channelHandler");
 
-var _channel2 = _interopRequireDefault(_channel);
+var _channelHandler2 = _interopRequireDefault(_channelHandler);
 
 var _registry = require("./registry");
 
 var _registry2 = _interopRequireDefault(_registry);
-
-var _windowHandler = require("../window/windowHandler");
-
-var _windowHandler2 = _interopRequireDefault(_windowHandler);
 
 var _requestPath = require("./requestPath");
 
@@ -43,6 +39,13 @@ var _booleanProcess2 = _interopRequireDefault(_booleanProcess);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 class Module {
+    /**
+     * Create a module instance which is the core building block for LM
+     * @param {Request} request - The request that caused this module to be instantiated
+     * @param {boolean} canBeDirectlyInstantiated - Whether or not this module should be instantiatable without a request
+     * @constructs Module
+     * @public
+     */
     constructor(request, canBeDirectlyInstantiated) {
         let registerPromiseResolve = null;
         const registerPromise = new _promise2.default((resolve, reject) => {
@@ -70,6 +73,12 @@ class Module {
             throw error;
         }
     }
+    /**
+     * Registers the module if it wasn't registered already
+     * @returns {Module} A reference to itself
+     * @async
+     * @private
+     */
     async __register() {
         if (this.core.registration.registered.false()) {
             this.core.registration.registered.turningTrue(true);
@@ -79,48 +88,107 @@ class Module {
                 source.requestPath = requestPath.augmentPath(this.getClass().modulePath, 0);
                 const ID = await _registry2.default._registerModuleInstance(this);
 
-                this.core.channelReceiver = await _channel2.default.createReceiver(source.requestPath.toString(true), this.__createChannelMethods());
-                source.channel = await _channel2.default.createSender(source.request.source, source.request.type, source.requestPath.toString(true));
+                this.core.channelReceiver = await _channelHandler2.default.createReceiver(source.requestPath.toString(true), this.__createChannelMethods());
+                source.channel = await _channelHandler2.default.createSender(source.request.source, source.request.type, source.requestPath.toString(true));
 
                 this.core.registration.registered.true(true);
                 this.core.registration.registerPromiseResolve(this);
             } else {
                 source.requestPath = new _requestPath2.default(this.getClass().modulePath);
                 const ID = await _registry2.default._registerModuleInstance(this);
-                this.core.channelReceiver = await _channel2.default.createReceiver(source.requestPath.toString(true), this.__createChannelMethods());
+                this.core.channelReceiver = await _channelHandler2.default.createReceiver(source.requestPath.toString(true), this.__createChannelMethods());
                 this.core.registration.registered.true(true);
                 this.core.registration.registerPromiseResolve(this);
             }
         }
     }
+
+    /**
+     * Adds a function to run before indicating that initialisation has finished
+     * @param {function} method - The function to run (may be async)
+     * @returns {Promise} A promise that resolves when the module is initialised
+     * @private
+     */
     __init(method) {
         return this.core.initPromise = this.core.initPromise.then(method);
     }
+
+    /**
+     * Adds a then and catch function to the registration completion promise
+     * @param {function} [then] - The function to run when registration has finished
+     * @param {function} [ctch] - The function to run if something goes wrong during registration
+     * @returns {Promise<Module>} A reference to this module instance
+     * @async
+     * @private
+     */
     __onRegister(then, ctch) {
         return this.core.registration.registerPromise.then(then).catch(ctch);
     }
+
+    /**
+     * Adds a then and catch function to the initialization completion promise
+     * @param {function} [then] - The function to run when initialization has finished
+     * @param {function} [ctch] - The function to run if something goes wrong during initialization
+     * @returns {Promise<Module>} A reference to this module instance
+     * @async
+     * @private
+     */
     onInit(then, ctch) {
         return this.core.initPromise.then(then).catch(ctch);
     }
 
     // Registry related methods
+    /**
+     * Returns the path to this module class
+     * @returns {string} The path to this module class
+     * @public
+     */
     toString() {
         return this.getClass().toString();
     }
+
+    /**
+     * Returns the class of this module instance
+     * @returns {Class<Module>} The class of this module instance
+     * @public
+     */
     getClass() {
         return this.__proto__.constructor;
     }
+
+    /**
+     * Returns the requestPath that created this module instance
+     * @returns {RequestPath} The request path
+     * @public
+     */
     getPath() {
         return this.core.source.requestPath;
     }
+
+    /**
+     * Returns the path to this module class
+     * @returns {string} The path to this module class
+     * @public
+     */
     static getPath() {
         return this.modulePath;
     }
+
+    /**
+     * Returns the path to this module class
+     * @returns {string} The path to this module class
+     * @public
+     */
     static toString() {
         return this.getPath();
     }
 
-    // Channel related methods
+    // Channel-related methods
+    /**
+     * Gets all the methods of this module that are not static
+     * @returns {Object} All methods indexed by name
+     * @private
+     */
     __getMethods() {
         const output = {};
         const channelMethodRegex = /^\$/g;
@@ -131,13 +199,19 @@ class Module {
 
             (0, _getOwnPropertyNames2.default)(proto).forEach(varName => {
                 const variable = this.__proto__[varName];
-                if (variable instanceof Function && channelMethodRegex.test(varName)) {
+                if (variable instanceof Function && channelMethodRegex.test(varName) && !output[varName]) {
                     output[varName.replace(channelMethodRegex, "")] = this.__proto__[varName];
                 }
             });
         }
         return output;
     }
+
+    /**
+     * Creates all methods to interact with this module over a channel
+     * @returns {Object} All methods indexed by name
+     * @private
+     */
     __createChannelMethods() {
         const output = {};
         const methods = this.__getMethods();
@@ -151,11 +225,19 @@ class Module {
             return this.dispose();
         };
         output.closeDescendant = event => {
-            return this.__disposeDescendant.apply(this, event.data);
+            return this.__disconnectDescendant.apply(this, event.data);
         };
         return output;
     }
-    __disposeDescendant(requestPath, type) {
+
+    /**
+     * Disconnects a module from this module (But doesn't dispose it)
+     * @param {RequestPath} requestPath - The request path for the module to disconnect
+     * @param {string} type - The type of request that the module was instiated for
+     * @returns {undefined}
+     * @private
+     */
+    __disconnectDescendant(requestPath, type) {
         const handler = this.core.handlers[type];
         if (handler) {
             const channels = handler.channels;
@@ -170,6 +252,13 @@ class Module {
             }
         }
     }
+
+    /**
+     * Disposes this module entirely, also getting rid of its connections to other modules
+     * @returns {Promise} The promise that resolves once disposal has completed
+     * @async
+     * @public
+     */
     async dispose() {
         if (this.core.registration.registered.turningTrue()) throw Error("Module is still registering");
         if (this.core.registration.registered.true()) {
@@ -180,11 +269,9 @@ class Module {
                 const channels = handler.channels;
                 if (channels instanceof Array) {
                     channelDisposalPromises.concat(channels.map(channel => {
-                        console.log(channel);
                         return channel.close();
                     }));
                 } else {
-                    console.log(channels);
                     channelDisposalPromises.push(channels.close());
                 }
             });
@@ -195,7 +282,7 @@ class Module {
             }
 
             this.core.registration.registered.false(true);
-            this.core.channelReceiver.close();
+            await this.core.channelReceiver.close();
 
             await _registry2.default._deregisterModuleInstance(this);
         }
@@ -203,8 +290,10 @@ class Module {
 
     /**
      * Request modules to handle the passed data and establish a connection with these modules
-     * @param  {{type:String, execute:String|function, data:Object, source:Module, methods:Object}} request The information on how to handle the data
-     * @return {Promise} The Promise that shall return the channels created to communicate with the modules
+     * @param  {Registry~Request} request - The information on how to handle the data
+     * @returns {Promise<ChannelSender[]>} The channel(s) that have been created to answer the request
+     * @async
+     * @public
      */
     async requestHandle(request) {
         if (this.core.registration.registered.turningFalse()) throw Error("Module is currently deregistering");

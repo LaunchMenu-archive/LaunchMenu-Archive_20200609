@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>communication/channel/channelReceiver.js - Documentation</title>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <span class="navicon"></span>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ChannelHandler.html">ChannelHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelHandler.html#.createReceiver">createReceiver</a></li><li data-type='method'><a href="ChannelHandler.html#.createSender">createSender</a></li></ul></li><li><a href="ChannelReceiver.html">ChannelReceiver</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelReceiver.html#close">close</a></li><li data-type='method'><a href="ChannelReceiver.html#createSubChannel">createSubChannel</a></li><li data-type='method'><a href="ChannelReceiver.html#deleteSubChannel">deleteSubChannel</a></li><li data-type='method'><a href="ChannelReceiver.html#getID">getID</a></li></ul></li><li><a href="ChannelSender.html">ChannelSender</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelSender.html#_getID">_getID</a></li><li data-type='method'><a href="ChannelSender.html#_getSubChannelID">_getSubChannelID</a></li><li data-type='method'><a href="ChannelSender.html#_setupMethods">_setupMethods</a></li></ul></li><li><a href="ExtendedJSON.html">ExtendedJSON</a><ul class='members'><li class='list-title'>Members</li><li data-type='member'><a href="ExtendedJSON.html#.deserializeSymbol">deserializeSymbol</a></li><li data-type='member'><a href="ExtendedJSON.html#.serializeSymbol">serializeSymbol</a></li></ul><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ExtendedJSON.html#.decode">decode</a></li><li data-type='method'><a href="ExtendedJSON.html#.encode">encode</a></li><li data-type='method'><a href="ExtendedJSON.html#.parse">parse</a></li><li data-type='method'><a href="ExtendedJSON.html#.stringify">stringify</a></li></ul></li><li><a href="GlobalData.html">GlobalData</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="GlobalData.html#_setData">_setData</a></li><li data-type='method'><a href="GlobalData.html#change">change</a></li><li data-type='method'><a href="GlobalData.html#dispose">dispose</a></li><li data-type='method'><a href="GlobalData.html#get">get</a></li><li data-type='method'><a href="GlobalData.html#off">off</a></li><li data-type='method'><a href="GlobalData.html#on">on</a></li></ul></li><li><a href="GlobalDataHandler.html">GlobalDataHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="GlobalDataHandler.html#._changeField">_changeField</a></li><li data-type='method'><a href="GlobalDataHandler.html#.create">create</a></li></ul></li><li><a href="IPC.html">IPC</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="IPC.html#._deregisterWindow">_deregisterWindow</a></li><li data-type='method'><a href="IPC.html#._getWindows">_getWindows</a></li><li data-type='method'><a href="IPC.html#._registerWindow">_registerWindow</a></li><li data-type='method'><a href="IPC.html#.getID">getID</a></li><li data-type='method'><a href="IPC.html#.off">off</a></li><li data-type='method'><a href="IPC.html#.on">on</a></li><li data-type='method'><a href="IPC.html#.once">once</a></li><li data-type='method'><a href="IPC.html#.send">send</a></li><li data-type='method'><a href="IPC.html#.sendSync">sendSync</a></li></ul></li><li><a href="Module.html">Module</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Module.html#.getPath">getPath</a></li><li data-type='method'><a href="Module.html#.toString">toString</a></li><li data-type='method'><a href="Module.html#dispose">dispose</a></li><li data-type='method'><a href="Module.html#getClass">getClass</a></li><li data-type='method'><a href="Module.html#getPath">getPath</a></li><li data-type='method'><a href="Module.html#requestHandle">requestHandle</a></li><li data-type='method'><a href="Module.html#toString">toString</a></li></ul></li><li><a href="Registry.html">Registry</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Registry.html#._deregisterModuleInstance">_deregisterModuleInstance</a></li><li data-type='method'><a href="Registry.html#._getModuleInstanceCount">_getModuleInstanceCount</a></li><li data-type='method'><a href="Registry.html#._loadAllModules">_loadAllModules</a></li><li data-type='method'><a href="Registry.html#._loadModule">_loadModule</a></li><li data-type='method'><a href="Registry.html#._registerModuleInstance">_registerModuleInstance</a></li><li data-type='method'><a href="Registry.html#.getModuleInstanceChannels">getModuleInstanceChannels</a></li><li data-type='method'><a href="Registry.html#.requestHandle">requestHandle</a></li><li data-type='method'><a href="Registry.html#.requestModule">requestModule</a></li></ul></li><li><a href="RequestPath.html">RequestPath</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="RequestPath.html#augmentPath">augmentPath</a></li><li data-type='method'><a href="RequestPath.html#getModuleID">getModuleID</a></li><li data-type='method'><a href="RequestPath.html#getSubPath">getSubPath</a></li><li data-type='method'><a href="RequestPath.html#toString">toString</a></li></ul></li><li><a href="Settings.html">Settings</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Settings.html#_setData">_setData</a></li><li data-type='method'><a href="Settings.html#change">change</a></li><li data-type='method'><a href="Settings.html#dispose">dispose</a></li><li data-type='method'><a href="Settings.html#get">get</a></li><li data-type='method'><a href="Settings.html#off">off</a></li><li data-type='method'><a href="Settings.html#on">on</a></li><li data-type='method'><a href="Settings.html#reload">reload</a></li><li data-type='method'><a href="Settings.html#save">save</a></li></ul></li><li><a href="SettingsHandler.html">SettingsHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="SettingsHandler.html#._create">_create</a></li><li data-type='method'><a href="SettingsHandler.html#._getModuleFile">_getModuleFile</a></li><li data-type='method'><a href="SettingsHandler.html#.create">create</a></li></ul></li><li><a href="State.html">State</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="State.html#false">false</a></li><li data-type='method'><a href="State.html#falseOrTurningFalse">falseOrTurningFalse</a></li><li data-type='method'><a href="State.html#true">true</a></li><li data-type='method'><a href="State.html#trueOrTurningTrue">trueOrTurningTrue</a></li><li data-type='method'><a href="State.html#turningFalse">turningFalse</a></li><li data-type='method'><a href="State.html#turningTrue">turningTrue</a></li></ul></li><li><a href="WindowHandler.html">WindowHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="WindowHandler.html#._close">_close</a></li><li data-type='method'><a href="WindowHandler.html#.openModuleInstance">openModuleInstance</a></li></ul></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">communication/channel/channelReceiver.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import IPC from "../IPC";
+
+/**
+ * @typedef {object} ChannelReceiver~ChannelEvent
+ * @property {number} senderID - The ID of the channel that sent the message
+ * @property {*} data - The data that was sent with the event
+ */
+
+export default class ChannelReceiver {
+    /**
+     * Create a new channel reciever, allowing to recieve messages from the channel
+     * @param {string} ID - The unique identifier for the channel
+     * @param {Object} listeners - An object of functions to act on messages indexed by message type
+     * @constructs ChannelReceiver
+     * @hideconstructor
+     */
+    constructor(ID, listeners) {
+        this.ID = ID;
+
+        // Create objects to store listeners
+        this.globalListeners = listeners;
+        this.subChannelListeners = {};
+
+        this.IPClisteners = {
+            // Forward IPC messages
+            message: event => {
+                let data = event.data;
+
+                // Extract the data to build the event to emit in this channel
+                const sender = data.senderID;
+                const subChannelID = data.subChannelID;
+                const message = data.message;
+                data = data.data;
+
+                // Emit the event
+                return this.__emitEvent(
+                    message,
+                    {
+                        senderID: sender,
+                        data: data,
+                    },
+                    subChannelID
+                );
+            },
+            // Send available message types on request
+            requestMessageTypes: event => {
+                this.__broadCastMessageTypes(event.sourceID);
+            },
+        };
+        IPC.on("channel.message:" + ID, this.IPClisteners.message);
+        IPC.on(
+            "channel.requestMessageTypes:" + ID,
+            this.IPClisteners.requestMessageTypes
+        );
+
+        // Send available message types to all processes/renderers
+        this.__broadCastMessageTypes("*");
+    }
+    /**
+     * Create a subchannel that can overwrite certain listeners on the channel, or add listeners just for the sub channel
+     * @param  {string} ID - The ID of the subchannel
+     * @param  {Object} listeners - An object of functions to act on messages indexed by message type
+     * @returns {undefined}
+     * @public
+     */
+    createSubChannel(ID, listeners) {
+        this.subChannelListeners[ID] = listeners;
+        this.__broadCastMessageTypes("*");
+    }
+    /**
+     * Delete a subchannel
+     * @param  {string} ID - The subChannel to remove
+     * @returns {undefined}
+     * @public
+     */
+    deleteSubChannel(ID) {
+        delete this.subChannel[ID];
+    }
+    /**
+     * Get the channel ID
+     * @return {string} The channel ID
+     * @public
+     */
+    getID() {
+        return this.ID;
+    }
+
+    /**
+     * Dispose of all data
+     * @returns {undefined}
+     * @public
+     */
+    close() {
+        IPC.off("channel.message:" + this.ID, this.IPClisteners.message);
+        IPC.off(
+            "channel.requestMessageTypes:" + this.ID,
+            this.IPClisteners.requestMessageTypes
+        );
+    }
+
+    /**
+     * Emit an event to the registered listener
+     * @param  {string} message - The event type to invoke
+     * @param  {ChannelReceiver~ChannelEvent} event - The event data to pass to the listener
+     * @param  {(string|undefined)} subChannelID - The subchannel of which to take the listener if available
+     * @returns {undefined}
+     * @private
+     */
+    __emitEvent(message, event, subChannelID) {
+        if (subChannelID) {
+            // Attempt to find message listeners on this subchannel
+            const subChannel = this.subChannelListeners[subChannelID];
+            const listener = subChannel &amp;&amp; subChannel[message];
+
+            // If listeners exist, call them and don't invoke any global listeners
+            if (listener) return listener.call(this, event);
+        }
+
+        // Retrieve listeners
+        const listener = this.globalListeners[message];
+
+        // If listeners exist, call them
+        if (listener) return listener.call(this, event);
+    }
+    /**
+     * Broadcast all available message types to the specified processes/windows
+     * @param  {(string|string[])} [processes="*"] The processes/windows to send the message types to
+     * @returns {undefined}
+     * @private
+     */
+    __broadCastMessageTypes(processes = "*") {
+        // Create object to broadcast to the requesting renderer/process
+        const messageTypes = {
+            globalListeners: Object.keys(this.globalListeners),
+            subChannelListeners: {
+                // Will be filled by the for loop below
+            },
+        };
+
+        // Add all the subChannel
+        for (let key in this.subChannelListeners)
+            messageTypes.subChannelListeners[key] = Object.keys(
+                this.subChannelListeners[key]
+            );
+
+        // Broadcast the messages
+        IPC.send(
+            "channel.sendMessageTypes:" + this.ID,
+            messageTypes,
+            processes
+        );
+    }
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc" target="_blank">JSDoc 3.5.5</a> on 8/25/2018 using the <a href="https://github.com/Grafluxe/boxy-jsdoc-template" target="_blank">boxy-jsdoc-template</a> theme.
+</footer>
+
+<script src="scripts/prettify/prettify.js"></script>
+<script src="scripts/prettify/lang-css.js"></script>
+<script src="scripts/script.js"></script>
+
+</body>
+</html>

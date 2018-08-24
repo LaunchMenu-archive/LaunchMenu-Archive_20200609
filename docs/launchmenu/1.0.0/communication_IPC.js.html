@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>communication/IPC.js - Documentation</title>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <span class="navicon"></span>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ChannelHandler.html">ChannelHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelHandler.html#.createReceiver">createReceiver</a></li><li data-type='method'><a href="ChannelHandler.html#.createSender">createSender</a></li></ul></li><li><a href="ChannelReceiver.html">ChannelReceiver</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelReceiver.html#close">close</a></li><li data-type='method'><a href="ChannelReceiver.html#createSubChannel">createSubChannel</a></li><li data-type='method'><a href="ChannelReceiver.html#deleteSubChannel">deleteSubChannel</a></li><li data-type='method'><a href="ChannelReceiver.html#getID">getID</a></li></ul></li><li><a href="ChannelSender.html">ChannelSender</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelSender.html#_getID">_getID</a></li><li data-type='method'><a href="ChannelSender.html#_getSubChannelID">_getSubChannelID</a></li><li data-type='method'><a href="ChannelSender.html#_setupMethods">_setupMethods</a></li></ul></li><li><a href="ExtendedJSON.html">ExtendedJSON</a><ul class='members'><li class='list-title'>Members</li><li data-type='member'><a href="ExtendedJSON.html#.deserializeSymbol">deserializeSymbol</a></li><li data-type='member'><a href="ExtendedJSON.html#.serializeSymbol">serializeSymbol</a></li></ul><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ExtendedJSON.html#.decode">decode</a></li><li data-type='method'><a href="ExtendedJSON.html#.encode">encode</a></li><li data-type='method'><a href="ExtendedJSON.html#.parse">parse</a></li><li data-type='method'><a href="ExtendedJSON.html#.stringify">stringify</a></li></ul></li><li><a href="GlobalData.html">GlobalData</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="GlobalData.html#_setData">_setData</a></li><li data-type='method'><a href="GlobalData.html#change">change</a></li><li data-type='method'><a href="GlobalData.html#dispose">dispose</a></li><li data-type='method'><a href="GlobalData.html#get">get</a></li><li data-type='method'><a href="GlobalData.html#off">off</a></li><li data-type='method'><a href="GlobalData.html#on">on</a></li></ul></li><li><a href="GlobalDataHandler.html">GlobalDataHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="GlobalDataHandler.html#._changeField">_changeField</a></li><li data-type='method'><a href="GlobalDataHandler.html#.create">create</a></li></ul></li><li><a href="IPC.html">IPC</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="IPC.html#._deregisterWindow">_deregisterWindow</a></li><li data-type='method'><a href="IPC.html#._getWindows">_getWindows</a></li><li data-type='method'><a href="IPC.html#._registerWindow">_registerWindow</a></li><li data-type='method'><a href="IPC.html#.getID">getID</a></li><li data-type='method'><a href="IPC.html#.off">off</a></li><li data-type='method'><a href="IPC.html#.on">on</a></li><li data-type='method'><a href="IPC.html#.once">once</a></li><li data-type='method'><a href="IPC.html#.send">send</a></li><li data-type='method'><a href="IPC.html#.sendSync">sendSync</a></li></ul></li><li><a href="Module.html">Module</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Module.html#.getPath">getPath</a></li><li data-type='method'><a href="Module.html#.toString">toString</a></li><li data-type='method'><a href="Module.html#dispose">dispose</a></li><li data-type='method'><a href="Module.html#getClass">getClass</a></li><li data-type='method'><a href="Module.html#getPath">getPath</a></li><li data-type='method'><a href="Module.html#requestHandle">requestHandle</a></li><li data-type='method'><a href="Module.html#toString">toString</a></li></ul></li><li><a href="Registry.html">Registry</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Registry.html#._deregisterModuleInstance">_deregisterModuleInstance</a></li><li data-type='method'><a href="Registry.html#._getModuleInstanceCount">_getModuleInstanceCount</a></li><li data-type='method'><a href="Registry.html#._loadAllModules">_loadAllModules</a></li><li data-type='method'><a href="Registry.html#._loadModule">_loadModule</a></li><li data-type='method'><a href="Registry.html#._registerModuleInstance">_registerModuleInstance</a></li><li data-type='method'><a href="Registry.html#.getModuleInstanceChannels">getModuleInstanceChannels</a></li><li data-type='method'><a href="Registry.html#.requestHandle">requestHandle</a></li><li data-type='method'><a href="Registry.html#.requestModule">requestModule</a></li></ul></li><li><a href="RequestPath.html">RequestPath</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="RequestPath.html#augmentPath">augmentPath</a></li><li data-type='method'><a href="RequestPath.html#getModuleID">getModuleID</a></li><li data-type='method'><a href="RequestPath.html#getSubPath">getSubPath</a></li><li data-type='method'><a href="RequestPath.html#toString">toString</a></li></ul></li><li><a href="Settings.html">Settings</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Settings.html#_setData">_setData</a></li><li data-type='method'><a href="Settings.html#change">change</a></li><li data-type='method'><a href="Settings.html#dispose">dispose</a></li><li data-type='method'><a href="Settings.html#get">get</a></li><li data-type='method'><a href="Settings.html#off">off</a></li><li data-type='method'><a href="Settings.html#on">on</a></li><li data-type='method'><a href="Settings.html#reload">reload</a></li><li data-type='method'><a href="Settings.html#save">save</a></li></ul></li><li><a href="SettingsHandler.html">SettingsHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="SettingsHandler.html#._create">_create</a></li><li data-type='method'><a href="SettingsHandler.html#._getModuleFile">_getModuleFile</a></li><li data-type='method'><a href="SettingsHandler.html#.create">create</a></li></ul></li><li><a href="State.html">State</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="State.html#false">false</a></li><li data-type='method'><a href="State.html#falseOrTurningFalse">falseOrTurningFalse</a></li><li data-type='method'><a href="State.html#true">true</a></li><li data-type='method'><a href="State.html#trueOrTurningTrue">trueOrTurningTrue</a></li><li data-type='method'><a href="State.html#turningFalse">turningFalse</a></li><li data-type='method'><a href="State.html#turningTrue">turningTrue</a></li></ul></li><li><a href="WindowHandler.html">WindowHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="WindowHandler.html#._close">_close</a></li><li data-type='method'><a href="WindowHandler.html#.openModuleInstance">openModuleInstance</a></li></ul></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">communication/IPC.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import {ipcMain, ipcRenderer} from "electron";
+import isMain from "../isMain";
+import ExtendedJSON from "../communication/extendedJSON";
+
+/**
+ * @typedef {object} IPC~IPCevent
+ * @property {number} sourceID - The ID of the process/window that original sent the event
+ * @property {*} data - The data that was sent with the event
+ */
+
+/**
+ * @classdesc A static class that allows for communication between different processes and windows
+ * @class
+ * @hideconstructor
+ */
+export default class IPC {
+    /**
+     * Send data to another window or the main script
+     * @param  {string} type - The event type to send (preferably prefixed with some class ID)
+     * @param  {Object} data - The data to send
+     * @param  {(string|string[])} [dest="*"] - The process/window ID(s) to send this data to
+     * @returns {Promise&lt;Object[]>} An array of all the data that listeners for the event have returned
+     * @async
+     * @public
+     */
+    static send(type, data, dest = "*") {
+        return this.__send(type, data, dest);
+    }
+
+    /**
+     * Send data synchronously to the main script
+     * @param  {string} type - The event type to send (preferably prefixed with some class ID)
+     * @param  {*} data - The data to send
+     * @returns {Object[]} An array of all the data that listeners for the event have returned
+     * @public
+     */
+    static sendSync(type, data) {
+        return this.__sendSync(type, data);
+    }
+
+    // TODO: add proper handler definition once VScode fixes @callback
+    /**
+     * Listens for data being sent by a process/window
+     * @param  {string} type - The type of event to listen for
+     * @param  {function} handler - The function to handle the event occuring
+     * @returns {undefined}
+     * @public
+     */
+    static on(type, handler) {
+        if (!this.listeners[type]) this.listeners[type] = [];
+        const listeners = this.listeners[type];
+        const index = listeners.indexOf(handler);
+        if (index == -1) listeners.push(handler);
+    }
+
+    /**
+     * Listens for data being sent by a process/window, but only listen for it once
+     * @param  {string} type - The type of event to listen for
+     * @param  {function} handler - The function to handle the event occuring
+     * @returns {undefined}
+     * @public
+     */
+    static once(type, handler) {
+        const orHandler = handler;
+        handler = event => {
+            this.off(type, handler);
+            orHandler.call(this, event);
+        };
+        this.on(type, handler);
+    }
+
+    /**
+     * Stops listening for data being sent by a process/window
+     * @param  {String} type - The type of event that is being listened for
+     * @param  {Function(event)} - The function that handles the event when occuring
+     * @return {undefined}
+     * @public
+     */
+    static off(type, handler) {
+        const listeners = this.listeners[type];
+        if (listeners) {
+            const index = listeners.indexOf(handler);
+            if (index != -1) listeners.splice(index, 1);
+        }
+    }
+
+    /**
+     * Gets the identifier of this process or renderer which other processes or renderers can use to communicate
+     * @return {number} The numeric identifier
+     * @public
+     */
+    static getID() {
+        return this.ID;
+    }
+
+    /**
+     * Get all the windows that are registered and can be communicated with (only works in the main process)
+     * @return {BrowserWindow[]} The actual windows
+     * @protected
+     */
+    static _getWindows() {
+        return this.windows;
+    }
+
+    /**
+     * Register a window such that it can start communicating with other processes and windows
+     * @param  {BrowserWindow} window - The window to register
+     * @param  {number} windowID - The ID to register the window under
+     * @return {undefined}
+     * @protected
+     */
+    static _registerWindow(window, windowID) {
+        this.windows[windowID] = window;
+    }
+
+    /**
+     * Deregister a window for when it is destroyed, such that it is no longer listed as a valid window
+     * @param  {number} windowID - The ID the window is registered under
+     * @return {undefined}
+     * @protected
+     */
+    static _deregisterWindow(windowID) {
+        delete this.windows[windowID];
+    }
+
+    /**
+     * Emit an event to all the registered listeners in this process/window
+     * @param  {string} type  - The event type to invoke
+     * @param  {IPC~IPCevent} event - The event data to pass to the listeners
+     * @param  {boolean} sync - Whether to act synchronously and only allow sync returns
+     * @return {Promise&lt;Object[]>} An array of all the data that listeners for the event have returned
+     * @async
+     * @private
+     */
+    static __emitEvent(type, event, sync) {
+        const listeners = this.listeners[type];
+        const responses = [];
+        const promises = [];
+
+        // Emit the event itself
+        if (listeners)
+            listeners.forEach(listener => {
+                const response = listener.call(this, event);
+                if (response instanceof Promise) {
+                    promises.push(response);
+                } else {
+                    responses.push(response);
+                }
+            });
+
+        // Return the responses of the event
+        if (sync) return responses;
+
+        return Promise.all(promises).then(promiseResponses => {
+            return responses.concat(promiseResponses);
+        });
+    }
+
+    /**
+     * Send data to other processes/windows
+     * @param  {string} type - The event type to send (preferbly prefixed with some module ID)
+     * @param  {*} data - The data to send
+     * @param  {(string|string[])} [dest="*"] - The process/window ID(s) to send this data to
+     * @param  {number} source - The process/window ID that the event was originally sent from
+     * @param  {number} respID - The ID of the response listener in the source process/window to call
+     * @return {Promise&lt;Object[]>} An array of all the data that listeners for the event have returned
+     * @async
+     * @private
+     */
+    static __send(type, data, dest = "*", source = 0, respID = undefined) {
+        // Only create a promise if this is not a forwarded event
+        let promise;
+        if (respID == undefined) {
+            // Create a promise that can be used to return a response
+            let resolve;
+            promise = new Promise((res, reject) => {
+                resolve = res;
+            });
+            // Register the response listener
+            respID = this.responseListeners.ID++;
+            this.responseListeners[respID] = {
+                resolve, // The resolve function to call when finished
+                responseOriginsReceived: 0, // The number of processes/renderers that have returned responses
+                responses: [], // The responses that have been recieved so far
+            };
+        }
+
+        // Send the data
+        const encodedData = ExtendedJSON.encode(data);
+        if (isMain) {
+            // If the call is made from the main process
+            // Send the data to the appropriate windows
+            const windows = this._getWindows();
+
+            // Format the destination
+            if (dest == "*") {
+                // If we want to target all windows (and the main thread), create a list of all destinations
+                dest = Object.keys(windows);
+            } else if (!(dest instanceof Array)) {
+                // If only a single destination is provided, still make sure it is an array
+                dest = [dest];
+            } else {
+                // Remove all invalid window ids
+                for (let i = dest.length - 1; i >= 0; i--) {
+                    let id = dest[i];
+                    if (!windows[Number(id)]) dest.splice(i, 1);
+                }
+            }
+
+            // Go through all destionations and send the data
+            const destCount = dest.length;
+            dest.forEach(id => {
+                if (id == 0) {
+                    // Target the main process
+                    // Emit the event if the main process is a destination of the event
+                    const getResponses = this.__emitEvent(type, {
+                        sourceID: source,
+                        data: data,
+                    });
+
+                    // Return responses
+                    getResponses.then(responses => {
+                        this.__sendResponse(source, {
+                            responseID: respID,
+                            responseOriginCount: destCount,
+                            responses: responses,
+                        });
+                    });
+                } else {
+                    // Target a window
+                    const window = windows[Number(id)];
+                    if (window) {
+                        window.webContents.send("IPC.recieve", {
+                            type: type,
+                            sourceID: source,
+                            data: encodedData,
+                            responseID: respID,
+                            responseOriginCount: destCount,
+                        });
+                    }
+                }
+            });
+        } else {
+            // Send the data to the main process such that it can spread it to the appropriate windows
+            const forwardData = {
+                dest: dest,
+                type: type,
+                sourceID: this.ID,
+                responseID: respID,
+                data: encodedData,
+            };
+            ipcRenderer.send("IPC.forward", forwardData);
+        }
+
+        // Return the response promise
+        return promise;
+    }
+
+    /**
+     * Send data synchronously to the main script
+     * @param  {string} type - The event type to send (preferably prefixed with some class ID)
+     * @param  {*} data - The data to send
+     * @param  {number} source - The process/window ID that the event was originally sent from
+     * @return {Object[]} An array of all the data that listeners for the event have returned
+     * @private
+     */
+    static __sendSync(type, data, sourceID) {
+        if (isMain) {
+            // If the call is made from the main process
+            return this.__emitEvent(
+                type,
+                {
+                    sourceID: sourceID,
+                    data: data,
+                },
+                true
+            );
+        } else {
+            // Send event to the main process and return the data
+            const response = ipcRenderer.sendSync("IPC.syncCall", {
+                type: type,
+                data: ExtendedJSON.encode(data),
+            });
+            return ExtendedJSON.decode(response);
+        }
+    }
+
+    /**
+     * Send a response to the source window that emitted the event
+     * @param  {string} sourceID - The ID of the event source process/window
+     * @param  {object} responseData - The response data
+     * @param  {number} responseData.responseID - The ID of the response in said process/window
+     * @param  {Object[]}  responseData.responses - The actual array of returned responses
+     * @param  {number} responseData.responseOriginCount - The number of processes/windows that need to return responses
+     * @return {undefined}
+     * @private
+     */
+    static __sendResponse(sourceID, responseData) {
+        // Check whether this is the main process or a renderer
+        if (isMain) {
+            // If this is the main process, and the event was sent by the main process, process the data
+            if (sourceID == 0) {
+                this.__recieveResponse(
+                    responseData.responseID,
+                    responseData.responses,
+                    responseData.responseOriginCount
+                );
+
+                // If this is the main process and the data was meant for a renderer, forward the data
+            } else {
+                const window = this.windows[Number(sourceID)];
+                if (window) {
+                    window.webContents.send("IPC.recieveResponse", {
+                        responseID: responseData.responseID,
+                        responseOriginCount: responseData.responseOriginCount,
+                        responses: ExtendedJSON.encode(responseData.responses),
+                    });
+                }
+            }
+        } else {
+            // If this is a renderer, pass the response back to the main process
+            ipcRenderer.send("IPC.forwardResponse", {
+                sourceID: sourceID,
+                responseID: responseData.responseID,
+                responseOriginCount: responseData.responseOriginCount,
+                responses: ExtendedJSON.encode(responseData.responses),
+            });
+        }
+    }
+
+    /**
+     * Recieve a response from some process/renderer, and resolve promise when all are recieved
+     * @param  {number} responseID - The ID of the response identifier
+     * @param  {Object[]}  responses - The actual array of returned responses
+     * @param  {number} responseOriginCount - The number of processes/renderers that need to return responses
+     * @return {undefined}
+     * @private
+     */
+    static __recieveResponse(responseID, responses, responseOriginCount) {
+        // Find the attached response listener from the ID
+        const rl = this.responseListeners[responseID];
+        if (rl) {
+            // Combine the new responses with the already recieved responses
+            rl.responses = rl.responses.concat(responses);
+
+            // Increase the response count, and if it matches the required response count, resolve the promise
+            if (++rl.responseOriginsReceived == responseOriginCount) {
+                // Delete the listener, and resolve the promise
+                delete this.responseListeners[responseID];
+                rl.resolve(rl.responses);
+            }
+        }
+    }
+
+    /**
+     * The initial setup method to be called by this file itself, initialises the static fields of the class
+     * @return {undefined}
+     * @private
+     */
+    static __setup() {
+        this.windows = {0: this}; // The available windows to forward the events to
+        this.listeners = {}; // The event listeners in this process/renderer
+        this.responseListeners = {ID: 0}; // The response listeners in this process/renderer
+
+        // Check whether this is the main process or a renderer
+        if (isMain) {
+            this.ID = 0;
+
+            // Forward the call made by a renderer, and passing the sourceID to track the origin
+            ipcMain.on("IPC.forward", (event, arg) => {
+                this.__send(
+                    arg.type,
+                    ExtendedJSON.decode(arg.data),
+                    arg.dest,
+                    arg.sourceID,
+                    arg.responseID
+                );
+            });
+
+            // Return any responses to the source process/renderer when recieved
+            ipcMain.on("IPC.forwardResponse", (event, arg) => {
+                arg.responses = ExtendedJSON.decode(arg.responses); // __sendResponse expects non encodedData
+                this.__sendResponse(arg.sourceID, arg);
+            });
+
+            // Listen for synchonous IPC calls
+            ipcMain.on("IPC.syncCall", (event, arg) => {
+                const response = this.__sendSync(
+                    arg.type,
+                    ExtendedJSON.decode(arg.data),
+                    arg.sourceID
+                );
+                event.returnValue = ExtendedJSON.encode(response);
+            });
+        } else {
+            // Is a renderer thread
+            // this.ID gets set in windowHandler once finished loading
+
+            // Emit the IPC event to all listeners whenever it is recieved
+            ipcRenderer.on("IPC.recieve", (event, arg) => {
+                // Emit the event when recieved
+                const getResponses = this.__emitEvent(arg.type, {
+                    sourceID: arg.sourceID,
+                    data: ExtendedJSON.decode(arg.data),
+                });
+
+                // Return responses
+                getResponses.then(responses => {
+                    this.__sendResponse(arg.sourceID, {
+                        responseID: arg.responseID,
+                        responseOriginCount: arg.responseOriginCount,
+                        responses: responses,
+                    });
+                });
+            });
+
+            // Call the response listener whenever the response returned
+            ipcRenderer.on("IPC.recieveResponse", (event, arg) => {
+                this.__recieveResponse(
+                    arg.responseID,
+                    ExtendedJSON.decode(arg.responses),
+                    arg.responseOriginCount
+                );
+            });
+        }
+    }
+}
+IPC.__setup();
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc" target="_blank">JSDoc 3.5.5</a> on 8/25/2018 using the <a href="https://github.com/Grafluxe/boxy-jsdoc-template" target="_blank">boxy-jsdoc-template</a> theme.
+</footer>
+
+<script src="scripts/prettify/prettify.js"></script>
+<script src="scripts/prettify/lang-css.js"></script>
+<script src="scripts/script.js"></script>
+
+</body>
+</html>

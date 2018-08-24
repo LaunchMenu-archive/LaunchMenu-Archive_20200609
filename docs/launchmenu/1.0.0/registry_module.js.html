@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>registry/module.js - Documentation</title>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <span class="navicon"></span>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ChannelHandler.html">ChannelHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelHandler.html#.createReceiver">createReceiver</a></li><li data-type='method'><a href="ChannelHandler.html#.createSender">createSender</a></li></ul></li><li><a href="ChannelReceiver.html">ChannelReceiver</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelReceiver.html#close">close</a></li><li data-type='method'><a href="ChannelReceiver.html#createSubChannel">createSubChannel</a></li><li data-type='method'><a href="ChannelReceiver.html#deleteSubChannel">deleteSubChannel</a></li><li data-type='method'><a href="ChannelReceiver.html#getID">getID</a></li></ul></li><li><a href="ChannelSender.html">ChannelSender</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelSender.html#_getID">_getID</a></li><li data-type='method'><a href="ChannelSender.html#_getSubChannelID">_getSubChannelID</a></li><li data-type='method'><a href="ChannelSender.html#_setupMethods">_setupMethods</a></li></ul></li><li><a href="ExtendedJSON.html">ExtendedJSON</a><ul class='members'><li class='list-title'>Members</li><li data-type='member'><a href="ExtendedJSON.html#.deserializeSymbol">deserializeSymbol</a></li><li data-type='member'><a href="ExtendedJSON.html#.serializeSymbol">serializeSymbol</a></li></ul><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ExtendedJSON.html#.decode">decode</a></li><li data-type='method'><a href="ExtendedJSON.html#.encode">encode</a></li><li data-type='method'><a href="ExtendedJSON.html#.parse">parse</a></li><li data-type='method'><a href="ExtendedJSON.html#.stringify">stringify</a></li></ul></li><li><a href="GlobalData.html">GlobalData</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="GlobalData.html#_setData">_setData</a></li><li data-type='method'><a href="GlobalData.html#change">change</a></li><li data-type='method'><a href="GlobalData.html#dispose">dispose</a></li><li data-type='method'><a href="GlobalData.html#get">get</a></li><li data-type='method'><a href="GlobalData.html#off">off</a></li><li data-type='method'><a href="GlobalData.html#on">on</a></li></ul></li><li><a href="GlobalDataHandler.html">GlobalDataHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="GlobalDataHandler.html#._changeField">_changeField</a></li><li data-type='method'><a href="GlobalDataHandler.html#.create">create</a></li></ul></li><li><a href="IPC.html">IPC</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="IPC.html#._deregisterWindow">_deregisterWindow</a></li><li data-type='method'><a href="IPC.html#._getWindows">_getWindows</a></li><li data-type='method'><a href="IPC.html#._registerWindow">_registerWindow</a></li><li data-type='method'><a href="IPC.html#.getID">getID</a></li><li data-type='method'><a href="IPC.html#.off">off</a></li><li data-type='method'><a href="IPC.html#.on">on</a></li><li data-type='method'><a href="IPC.html#.once">once</a></li><li data-type='method'><a href="IPC.html#.send">send</a></li><li data-type='method'><a href="IPC.html#.sendSync">sendSync</a></li></ul></li><li><a href="Module.html">Module</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Module.html#.getPath">getPath</a></li><li data-type='method'><a href="Module.html#.toString">toString</a></li><li data-type='method'><a href="Module.html#dispose">dispose</a></li><li data-type='method'><a href="Module.html#getClass">getClass</a></li><li data-type='method'><a href="Module.html#getPath">getPath</a></li><li data-type='method'><a href="Module.html#requestHandle">requestHandle</a></li><li data-type='method'><a href="Module.html#toString">toString</a></li></ul></li><li><a href="Registry.html">Registry</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Registry.html#._deregisterModuleInstance">_deregisterModuleInstance</a></li><li data-type='method'><a href="Registry.html#._getModuleInstanceCount">_getModuleInstanceCount</a></li><li data-type='method'><a href="Registry.html#._loadAllModules">_loadAllModules</a></li><li data-type='method'><a href="Registry.html#._loadModule">_loadModule</a></li><li data-type='method'><a href="Registry.html#._registerModuleInstance">_registerModuleInstance</a></li><li data-type='method'><a href="Registry.html#.getModuleInstanceChannels">getModuleInstanceChannels</a></li><li data-type='method'><a href="Registry.html#.requestHandle">requestHandle</a></li><li data-type='method'><a href="Registry.html#.requestModule">requestModule</a></li></ul></li><li><a href="RequestPath.html">RequestPath</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="RequestPath.html#augmentPath">augmentPath</a></li><li data-type='method'><a href="RequestPath.html#getModuleID">getModuleID</a></li><li data-type='method'><a href="RequestPath.html#getSubPath">getSubPath</a></li><li data-type='method'><a href="RequestPath.html#toString">toString</a></li></ul></li><li><a href="Settings.html">Settings</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Settings.html#_setData">_setData</a></li><li data-type='method'><a href="Settings.html#change">change</a></li><li data-type='method'><a href="Settings.html#dispose">dispose</a></li><li data-type='method'><a href="Settings.html#get">get</a></li><li data-type='method'><a href="Settings.html#off">off</a></li><li data-type='method'><a href="Settings.html#on">on</a></li><li data-type='method'><a href="Settings.html#reload">reload</a></li><li data-type='method'><a href="Settings.html#save">save</a></li></ul></li><li><a href="SettingsHandler.html">SettingsHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="SettingsHandler.html#._create">_create</a></li><li data-type='method'><a href="SettingsHandler.html#._getModuleFile">_getModuleFile</a></li><li data-type='method'><a href="SettingsHandler.html#.create">create</a></li></ul></li><li><a href="State.html">State</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="State.html#false">false</a></li><li data-type='method'><a href="State.html#falseOrTurningFalse">falseOrTurningFalse</a></li><li data-type='method'><a href="State.html#true">true</a></li><li data-type='method'><a href="State.html#trueOrTurningTrue">trueOrTurningTrue</a></li><li data-type='method'><a href="State.html#turningFalse">turningFalse</a></li><li data-type='method'><a href="State.html#turningTrue">turningTrue</a></li></ul></li><li><a href="WindowHandler.html">WindowHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="WindowHandler.html#._close">_close</a></li><li data-type='method'><a href="WindowHandler.html#.openModuleInstance">openModuleInstance</a></li></ul></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">registry/module.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import ChannelHandler from "../communication/channel/channelHandler";
+import Registry from "./registry";
+import RequestPath from "./requestPath";
+import BooleanProcess from "../utils/booleanProcess";
+
+export default class Module {
+    /**
+     * Create a module instance which is the core building block for LM
+     * @param {Request} request - The request that caused this module to be instantiated
+     * @param {boolean} canBeDirectlyInstantiated - Whether or not this module should be instantiatable without a request
+     * @constructs Module
+     * @public
+     */
+    constructor(request, canBeDirectlyInstantiated) {
+        let registerPromiseResolve = null;
+        const registerPromise = new Promise((resolve, reject) => {
+            registerPromiseResolve = resolve;
+        });
+        this.core = {
+            registration: {
+                registered: new BooleanProcess(0),
+                registerPromise: registerPromise,
+                registerPromiseResolve: registerPromiseResolve,
+            },
+            initPromise: registerPromise, // Other methods may build upon this promise
+            handlers: {},
+            source: {},
+        };
+
+        if (request) {
+            this.core.source = {
+                request: request,
+            };
+            this.__register();
+        } else if (!canBeDirectlyInstantiated) {
+            const error = Error(
+                "This module can only be instantiated from a handle request"
+            );
+            reject(error);
+            throw error;
+        }
+    }
+    /**
+     * Registers the module if it wasn't registered already
+     * @returns {Module} A reference to itself
+     * @async
+     * @private
+     */
+    async __register() {
+        if (this.core.registration.registered.false()) {
+            this.core.registration.registered.turningTrue(true);
+            const source = this.core.source;
+            if (source.request) {
+                const requestPath = new RequestPath(source.request.source);
+                source.requestPath = requestPath.augmentPath(
+                    this.getClass().modulePath,
+                    0
+                );
+                const ID = await Registry._registerModuleInstance(this);
+
+                this.core.channelReceiver = await ChannelHandler.createReceiver(
+                    source.requestPath.toString(true),
+                    this.__createChannelMethods()
+                );
+                source.channel = await ChannelHandler.createSender(
+                    source.request.source,
+                    source.request.type,
+                    source.requestPath.toString(true)
+                );
+
+                this.core.registration.registered.true(true);
+                this.core.registration.registerPromiseResolve(this);
+            } else {
+                source.requestPath = new RequestPath(
+                    this.getClass().modulePath
+                );
+                const ID = await Registry._registerModuleInstance(this);
+                this.core.channelReceiver = await ChannelHandler.createReceiver(
+                    source.requestPath.toString(true),
+                    this.__createChannelMethods()
+                );
+                this.core.registration.registered.true(true);
+                this.core.registration.registerPromiseResolve(this);
+            }
+        }
+    }
+
+    /**
+     * Adds a function to run before indicating that initialisation has finished
+     * @param {function} method - The function to run (may be async)
+     * @returns {Promise} A promise that resolves when the module is initialised
+     * @private
+     */
+    __init(method) {
+        return (this.core.initPromise = this.core.initPromise.then(method));
+    }
+
+    /**
+     * Adds a then and catch function to the registration completion promise
+     * @param {function} [then] - The function to run when registration has finished
+     * @param {function} [ctch] - The function to run if something goes wrong during registration
+     * @returns {Promise&lt;Module>} A reference to this module instance
+     * @async
+     * @private
+     */
+    __onRegister(then, ctch) {
+        return this.core.registration.registerPromise.then(then).catch(ctch);
+    }
+
+    /**
+     * Adds a then and catch function to the initialization completion promise
+     * @param {function} [then] - The function to run when initialization has finished
+     * @param {function} [ctch] - The function to run if something goes wrong during initialization
+     * @returns {Promise&lt;Module>} A reference to this module instance
+     * @async
+     * @private
+     */
+    onInit(then, ctch) {
+        return this.core.initPromise.then(then).catch(ctch);
+    }
+
+    // Registry related methods
+    /**
+     * Returns the path to this module class
+     * @returns {string} The path to this module class
+     * @public
+     */
+    toString() {
+        return this.getClass().toString();
+    }
+
+    /**
+     * Returns the class of this module instance
+     * @returns {Class&lt;Module>} The class of this module instance
+     * @public
+     */
+    getClass() {
+        return this.__proto__.constructor;
+    }
+
+    /**
+     * Returns the requestPath that created this module instance
+     * @returns {RequestPath} The request path
+     * @public
+     */
+    getPath() {
+        return this.core.source.requestPath;
+    }
+
+    /**
+     * Returns the path to this module class
+     * @returns {string} The path to this module class
+     * @public
+     */
+    static getPath() {
+        return this.modulePath;
+    }
+
+    /**
+     * Returns the path to this module class
+     * @returns {string} The path to this module class
+     * @public
+     */
+    static toString() {
+        return this.getPath();
+    }
+
+    // Channel-related methods
+    /**
+     * Gets all the methods of this module that are not static
+     * @returns {Object} All methods indexed by name
+     * @private
+     */
+    __getMethods() {
+        const output = {};
+        const channelMethodRegex = /^\$/g;
+        let nextProto = this.__proto__;
+        while (nextProto &amp;&amp; nextProto != Module.prototype) {
+            const proto = nextProto;
+            nextProto = proto.__proto__;
+
+            Object.getOwnPropertyNames(proto).forEach(varName => {
+                const variable = this.__proto__[varName];
+                if (
+                    variable instanceof Function &amp;&amp;
+                    channelMethodRegex.test(varName) &amp;&amp;
+                    !output[varName]
+                ) {
+                    output[
+                        varName.replace(channelMethodRegex, "")
+                    ] = this.__proto__[varName];
+                }
+            });
+        }
+        return output;
+    }
+
+    /**
+     * Creates all methods to interact with this module over a channel
+     * @returns {Object} All methods indexed by name
+     * @private
+     */
+    __createChannelMethods() {
+        const output = {};
+        const methods = this.__getMethods();
+        Object.keys(methods).forEach(methodName => {
+            const method = methods[methodName];
+            output[methodName] = event => {
+                return method.apply(this, [event].concat(event.data));
+            };
+        });
+        output.close = event => {
+            return this.dispose();
+        };
+        output.closeDescendant = event => {
+            return this.__disconnectDescendant.apply(this, event.data);
+        };
+        return output;
+    }
+
+    /**
+     * Disconnects a module from this module (But doesn't dispose it)
+     * @param {RequestPath} requestPath - The request path for the module to disconnect
+     * @param {string} type - The type of request that the module was instiated for
+     * @returns {undefined}
+     * @private
+     */
+    __disconnectDescendant(requestPath, type) {
+        const handler = this.core.handlers[type];
+        if (handler) {
+            const channels = handler.channels;
+            if (channels instanceof Array) {
+                handler.channels = channels.filter(channel => {
+                    return channel._getID() != requestPath;
+                });
+
+                if (handler.channels.length == 0)
+                    delete this.core.handlers[type];
+            } else if (channels._getID() == requestPath) {
+                delete this.core.handlers[type];
+            }
+        }
+    }
+
+    /**
+     * Disposes this module entirely, also getting rid of its connections to other modules
+     * @returns {Promise} The promise that resolves once disposal has completed
+     * @async
+     * @public
+     */
+    async dispose() {
+        if (this.core.registration.registered.turningTrue())
+            throw Error("Module is still registering");
+        if (this.core.registration.registered.true()) {
+            this.core.registration.registered.turningFalse(true);
+            const channelDisposalPromises = [];
+            Object.keys(this.core.handlers).forEach(type => {
+                const handler = this.core.handlers[type];
+                const channels = handler.channels;
+                if (channels instanceof Array) {
+                    channelDisposalPromises.concat(
+                        channels.map(channel => {
+                            return channel.close();
+                        })
+                    );
+                } else {
+                    channelDisposalPromises.push(channels.close());
+                }
+            });
+
+            await Promise.all(channelDisposalPromises);
+            if (this.core.source.channel) {
+                await this.core.source.channel.closeDescendant(
+                    this.getPath().toString(true),
+                    this.core.source.request.type
+                );
+            }
+
+            this.core.registration.registered.false(true);
+            await this.core.channelReceiver.close();
+
+            await Registry._deregisterModuleInstance(this);
+        }
+    }
+
+    /**
+     * Request modules to handle the passed data and establish a connection with these modules
+     * @param  {Registry~Request} request - The information on how to handle the data
+     * @returns {Promise&lt;ChannelSender[]>} The channel(s) that have been created to answer the request
+     * @async
+     * @public
+     */
+    async requestHandle(request) {
+        if (this.core.registration.registered.turningFalse())
+            throw Error("Module is currently deregistering");
+
+        if (this.core.registration.registered.false()) {
+            await this.__register();
+            // await this.__onRegister();
+        } else if (this.core.registration.registered.turningTrue()) {
+            await this.__onRegister();
+        }
+
+        if (!request.methods) request.methods = {};
+
+        request.source = this;
+
+        if (this.core.handlers[request.type])
+            return this.core.handler[request.type].channels;
+
+        this.core.channelReceiver.createSubChannel(
+            request.type,
+            request.methods
+        );
+        const channels = await Registry.requestHandle(request);
+        this.core.handlers[request.type] = {
+            request: request,
+            channels: channels,
+        };
+        return channels;
+    }
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc" target="_blank">JSDoc 3.5.5</a> on 8/25/2018 using the <a href="https://github.com/Grafluxe/boxy-jsdoc-template" target="_blank">boxy-jsdoc-template</a> theme.
+</footer>
+
+<script src="scripts/prettify/prettify.js"></script>
+<script src="scripts/prettify/lang-css.js"></script>
+<script src="scripts/script.js"></script>
+
+</body>
+</html>

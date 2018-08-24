@@ -30,7 +30,7 @@ var _requestPath = require("./requestPath");
 
 var _requestPath2 = _interopRequireDefault(_requestPath);
 
-var _settingsHandler = require("../communication/data/settingsHandler");
+var _settingsHandler = require("../communication/data/settings/settingsHandler");
 
 var _settingsHandler2 = _interopRequireDefault(_settingsHandler);
 
@@ -38,9 +38,9 @@ var _windowHandler = require("../window/windowHandler");
 
 var _windowHandler2 = _interopRequireDefault(_windowHandler);
 
-var _channel = require("../communication/channel");
+var _channelHandler = require("../communication/channel/channelHandler");
 
-var _channel2 = _interopRequireDefault(_channel);
+var _channelHandler2 = _interopRequireDefault(_channelHandler);
 
 var _IPC = require("../communication/IPC");
 
@@ -56,19 +56,47 @@ const defaultModuleData = {
 };
 
 /**
- * A class to track all the modules, and handle module requests
+ * @typedef {Object} Registry~Request
+ * @property {string} type - The type of handeling you are requesting
+ * @property {('all'|'one'|'function')} [use] - What modules to use to answer the request
+ * @property {Object} [data] - Any extra data you want to pass that modules can use to determine if they can answer the request
+ * @property {Module} [source] - The module that sent out the request (can be left out when usimg Module.requestHandle)
+ * @property {Object} [methods] - Extra methods that can get called by the handle (is only used by Module.requestHandle)
+ */
+
+/**
+ * @typedef {Object} Registry~Requestlistener
+ * @property {string} type - The type of request to handle
+ * @property {Object[]} listeners - The modules that can answer this request
+ * @property {Class<Module>} listeners[].module - The module class that can answer the request
+ * @property {function} listeners[].filter - The filter to make sure the class can handle this request
+ */
+
+/**
+ * @classdesc A class to track all the modules, and handle module requests
+ * @class
+ * @hideconstructor
  */
 class Registry {
     /**
      * Request modules to handle the passed data and establish a connection with these modules
-     * @param  {{type:String, execute:String|function, data:Object, source:Module}} request The information on how to handle the data
-     * @return {Promise} The Promise that shall return the channels created to communicate with the modules
+     * @param  {Request} request - The information on how to handle the data
+     * @return {Promise<ChannelSender[]>} The channel(s) that have been created to answer the request
+     * @async
+     * @public
      */
     static requestHandle(request) {
         if (!request.use || typeof request.use == "string" || !request.use.match(/^(one|all)$/g)) request.use = "one";
         if (request.source instanceof _module2.default) request.source = request.source.getPath().toString(true);
         return this.__request([request], "handle");
     }
+
+    /**
+     * Request module classes of a specific type
+     * @param {Request} request - The information on what module to get
+     * @returns {(Class<Module>|Array<Class<Module>>)} The module(s) that it could find with the specified type
+     * @public
+     */
     static requestModule(request) {
         var requests = (0, _from2.default)(arguments);
 
@@ -98,34 +126,14 @@ class Registry {
             return requestsModules[0];
         }
     }
-    // /**
-    //  * Registers a module in the registry such that it can be requested by other modules
-    //  * @param  {Class} Class The class of the module you want to register
-    //  * @param  {{type:String, filter:function(request)}} classListener An event you would like this module to act on
-    //  * @return {Undefined} The method returns no useful information
-    //  */
-    // static __register(Class, ...classListeners){
-    //     // Set the path of the module
-    //     Class.modulePath = globalModulePath;
-    //
-    //     // Register the module itself
-    //     this.moduleClasses[Class.modulePath] = {
-    //         class: Class,
-    //         listeners: classListeners
-    //     };
-    //
-    //     // Register all the listeners
-    //     classListeners.forEach(listener=>{
-    //         // Keep a connection with the module itself
-    //         listener.module = Class;
-    //
-    //         // Add to the list of listeners for this request type
-    //         const listeners = this.__getListeners(listener.type);
-    //         listeners.listeners.push(listener);
-    //     });
-    // }
 
     // Protected methods
+    /**
+     * Loads a module at the specified path relative to the modules folder
+     * @param {string} path - The path to the module class
+     * @returns {Class<Module>} The module class
+     * @protected
+     */
     static _loadModule(path) {
         if (!this.moduleClasses[path]) {
             // Require module
@@ -153,10 +161,22 @@ class Registry {
         }
         return this.moduleClasses[path];
     }
-    static _loadAllModules() {
-        //TODO make a module loader
-    }
+    /**
+     * Loads all the modules
+     * @returns {Array<Class<Module>>} All the module classes that have been loaded
+     * @protected
+     */
+    static _loadAllModules() {}
+    //TODO: make a module loader
 
+
+    /**
+     * Registeres the module so the registry knows of its existence
+     * @param {Module} moduleInstance - The module to register
+     * @returns {number} The unique ID that the module instance has now been assigned
+     * @async
+     * @protected
+     */
     static async _registerModuleInstance(moduleInstance) {
         // Store the instance in this module/process
         this.moduleInstances.push(moduleInstance);
@@ -169,6 +189,14 @@ class Registry {
         requestPath.getModuleID().ID = ID;
         return ID;
     }
+
+    /**
+     * Deregisters the module so the registry knows it is no longer used
+     * @param {Module} moduleInstance - The module to deregister
+     * @returns {undefined}
+     * @async
+     * @protected
+     */
     static async _deregisterModuleInstance(moduleInstance) {
         // Remove the module path in the main process
         const requestPath = moduleInstance.getPath();
@@ -181,15 +209,22 @@ class Registry {
         if (index !== -1) this.moduleInstances.splice(index, 1);
         if (this.moduleInstances.length == 0) _windowHandler2.default._close();
     }
+
+    /**
+     * Returns the amount of modules that are currently registered
+     * @returns {number} The amount of modules are currently registered
+     * @protected
+     */
     static _getModuleInstanceCount() {
         return this.moduleInstances.length;
     }
 
     // Private methods
     /**
-     * Creates the listener variable for a certain type if necessary, and returns it
-     * @param  {String} type The request type to return the listener of
-     * @return {{type:String, listeners:[{module:Module, filter:function(request)}, ...]}} An object that tracks the listeners for a certain request type
+     * Creates an object to store what classes can answer a certain request type if it hasn't been created already, and returns it
+     * @param {String} type - The request type to return the object of
+     * @returns {Registry~Requestlistener} An object that tracks the listeners for a certain request type
+     * @private
      */
     static __getListeners(type) {
         // Create listeners type variable if not available
@@ -201,15 +236,23 @@ class Registry {
         // Return listener type
         return this.listeners[type];
     }
+
     /**
      * Returns the relative path from this class to the modules directory
-     * @param  {String} [path=""] The path to append to the modules directory
-     * @return {String}           The relative path to the directory
+     * @param {String} [path=""] - The path to append to the modules directory
+     * @returns {String} The relative path to the directory
+     * @private
      */
     static __getModulesPath(path = "") {
         return _path2.default.join("..", "..", "modules", path);
     }
 
+    /**
+     * Retrieves the modules that can handle the passed request
+     * @param {Registry~Request} request - The request to find module classes for
+     * @returns {(Class<Module>|Array<Class<Module>>)} The module classes that have been chosen to handle the request
+     * @private
+     */
     static __getModules(request) {
         // Get the module listeners to handle this type of request
         const listenerType = this.__getListeners(request.type);
@@ -234,7 +277,17 @@ class Registry {
             return priorities[0] && priorities[0].module;
         }
     }
-    static async __resolveRequest(type, requests, requestsModules) {
+
+    /**
+     * Finishes the request by serving the correct data based on the module classes that were found
+     * @param {('module'|'handle')} type - The type of request that was made (either to handle data, or to get modules)
+     * @param {Registry~Request[]} requests - The requests that are being finished (only contains 1 if type=='handle')
+     * @param {Array<Array<Class<Module>>>} requestsModules - The modules that are found to match each request
+     * @returns {(Promise<Array<Array<Class<Module>>>>|Promise<ChannelSender[]>|Promise<ChannelSender>)} The data that the request results in
+     * @async
+     * @private
+     */
+    static async __finishRequest(type, requests, requestsModules) {
         // Resolve request by simply returning the module if it was a module request,
         //      or instanciate a module and return a channel on a handle request
         if (type == "module") {
@@ -282,6 +335,15 @@ class Registry {
             }
         }
     }
+
+    /**
+     * Handles one or more requests and serves the responses
+     * @param {Registry~Request[]} requests - The requests to make
+     * @param {('module'|'handle')} type - The type of request that was made (either to handle data, or to get modules)
+     * @param {boolean} synced - Whether or not to request data synchronously (can only be synced if type=='module')
+     * @returns {(Promise<Array<Array<Class<Module>>>>|Promise<ChannelSender[]>|Promise<ChannelSender>)} The data that the request results in
+     * @private
+     */
     static __request(requests, type, synced) {
         if (synced) {
             if (_isMain2.default) {
@@ -300,20 +362,30 @@ class Registry {
                 const requestsModules = requests.map(request => {
                     return this.__getModules(request);
                 });
-                return this.__resolveRequest(type, requests, requestsModules);
+                return this.__finishRequest(type, requests, requestsModules);
             } else {
                 // Send a command to the main window to look for modules to resolve the request
                 return _IPC2.default.send("Registry.request", requests, 0).then(responses => {
                     const requestsModules = responses[0];
 
-                    return this.__resolveRequest(type, requests, requestsModules);
+                    return this.__finishRequest(type, requests, requestsModules);
                 });
             }
         }
     }
 
     // TODO: test if this method works at all
-    static async getModuleInstanceChannels(module, windowID, subChannel, source) {
+    /**
+     * Gets channels to all instances of a specific module class
+     * @param {(Class<Module>|Module)} module - The module to get the instance of
+     * @param {string} [subChannel] - The sub channel to target
+     * @param {(Module|string)} source - The channelID to return messages to if needed
+     * @param {number} [windowID] - Only looks in this window for instances if provided
+     * @returns {ChannelSender[]} The channels that were set up for the found modules
+     * @async
+     * @public
+     */
+    static async getModuleInstanceChannels(module, subChannel, source, windowID) {
         if (module.getPath) module = module.getPath();
         const responses = (await _IPC2.default.send("Registry.getModuleInstances", module, 0))[0];
         const instancePaths = responses;
@@ -324,7 +396,7 @@ class Registry {
         });
 
         instancePaths = instancePaths.map(path => {
-            return _channel2.default.createSender(path.path, subChannel, source);
+            return _channelHandler2.default.createSender(path.path, subChannel, source);
         });
 
         return _promise2.default.all(instancePaths);
@@ -332,7 +404,8 @@ class Registry {
 
     /**
      * The initial setup method to be called by this file itself, initialises the static fields of the class
-     * @return {Undefined} The method returns no useful information
+     * @return {undefined}
+     * @private
      */
     static __setup() {
         // Stores the listeners for handle and module requests, indexed by type
@@ -414,7 +487,7 @@ class Registry {
             });
         }
     }
-};
+}
 Registry.__setup();
 exports.default = Registry;
 //# sourceMappingURL=registry.js.map

@@ -1,13 +1,19 @@
-import Channel from "../communication/channel";
+import ChannelHandler from "../communication/channel/channelHandler";
 import Registry from "./registry";
-import WindowHandler from "../window/windowHandler";
 import RequestPath from "./requestPath";
 import BooleanProcess from "../utils/booleanProcess";
 
-export default class Module{
-    constructor(request, canBeDirectlyInstantiated){
+export default class Module {
+    /**
+     * Create a module instance which is the core building block for LM
+     * @param {Request} request - The request that caused this module to be instantiated
+     * @param {boolean} canBeDirectlyInstantiated - Whether or not this module should be instantiatable without a request
+     * @constructs Module
+     * @public
+     */
+    constructor(request, canBeDirectlyInstantiated) {
         let registerPromiseResolve = null;
-        const registerPromise = new Promise((resolve, reject)=>{
+        const registerPromise = new Promise((resolve, reject) => {
             registerPromiseResolve = resolve;
         });
         this.core = {
@@ -17,40 +23,46 @@ export default class Module{
                 registerPromiseResolve: registerPromiseResolve,
             },
             initPromise: registerPromise, // Other methods may build upon this promise
-            handlers: {
-
-            },
-            source: {
-
-            }
+            handlers: {},
+            source: {},
         };
 
-        if(request){
+        if (request) {
             this.core.source = {
-                request: request
+                request: request,
             };
             this.__register();
-        }else if(!canBeDirectlyInstantiated){
-            const error = Error("This module can only be instantiated from a handle request");
+        } else if (!canBeDirectlyInstantiated) {
+            const error = Error(
+                "This module can only be instantiated from a handle request"
+            );
             reject(error);
             throw error;
         }
-
     }
-    async __register(){
-        if(this.core.registration.registered.false()){
+    /**
+     * Registers the module if it wasn't registered already
+     * @returns {Module} A reference to itself
+     * @async
+     * @private
+     */
+    async __register() {
+        if (this.core.registration.registered.false()) {
             this.core.registration.registered.turningTrue(true);
             const source = this.core.source;
-            if(source.request){
+            if (source.request) {
                 const requestPath = new RequestPath(source.request.source);
-                source.requestPath = requestPath.augmentPath(this.getClass().modulePath, 0);
+                source.requestPath = requestPath.augmentPath(
+                    this.getClass().modulePath,
+                    0
+                );
                 const ID = await Registry._registerModuleInstance(this);
 
-                this.core.channelReceiver = await Channel.createReceiver(
+                this.core.channelReceiver = await ChannelHandler.createReceiver(
                     source.requestPath.toString(true),
                     this.__createChannelMethods()
                 );
-                source.channel = await Channel.createSender(
+                source.channel = await ChannelHandler.createSender(
                     source.request.source,
                     source.request.type,
                     source.requestPath.toString(true)
@@ -58,10 +70,12 @@ export default class Module{
 
                 this.core.registration.registered.true(true);
                 this.core.registration.registerPromiseResolve(this);
-            }else{
-                source.requestPath = new RequestPath(this.getClass().modulePath);
+            } else {
+                source.requestPath = new RequestPath(
+                    this.getClass().modulePath
+                );
                 const ID = await Registry._registerModuleInstance(this);
-                this.core.channelReceiver = await Channel.createReceiver(
+                this.core.channelReceiver = await ChannelHandler.createReceiver(
                     source.requestPath.toString(true),
                     this.__createChannelMethods()
                 );
@@ -70,111 +84,200 @@ export default class Module{
             }
         }
     }
-    __init(method){
-        return this.core.initPromise = this.core.initPromise.then(method);
+
+    /**
+     * Adds a function to run before indicating that initialisation has finished
+     * @param {function} method - The function to run (may be async)
+     * @returns {Promise} A promise that resolves when the module is initialised
+     * @private
+     */
+    __init(method) {
+        return (this.core.initPromise = this.core.initPromise.then(method));
     }
-    __onRegister(then, ctch){
+
+    /**
+     * Adds a then and catch function to the registration completion promise
+     * @param {function} [then] - The function to run when registration has finished
+     * @param {function} [ctch] - The function to run if something goes wrong during registration
+     * @returns {Promise<Module>} A reference to this module instance
+     * @async
+     * @private
+     */
+    __onRegister(then, ctch) {
         return this.core.registration.registerPromise.then(then).catch(ctch);
     }
-    onInit(then, ctch){
+
+    /**
+     * Adds a then and catch function to the initialization completion promise
+     * @param {function} [then] - The function to run when initialization has finished
+     * @param {function} [ctch] - The function to run if something goes wrong during initialization
+     * @returns {Promise<Module>} A reference to this module instance
+     * @async
+     * @private
+     */
+    onInit(then, ctch) {
         return this.core.initPromise.then(then).catch(ctch);
     }
 
     // Registry related methods
-    toString(){
+    /**
+     * Returns the path to this module class
+     * @returns {string} The path to this module class
+     * @public
+     */
+    toString() {
         return this.getClass().toString();
     }
-    getClass(){
+
+    /**
+     * Returns the class of this module instance
+     * @returns {Class<Module>} The class of this module instance
+     * @public
+     */
+    getClass() {
         return this.__proto__.constructor;
     }
-    getPath(){
+
+    /**
+     * Returns the requestPath that created this module instance
+     * @returns {RequestPath} The request path
+     * @public
+     */
+    getPath() {
         return this.core.source.requestPath;
     }
-    static getPath(){
+
+    /**
+     * Returns the path to this module class
+     * @returns {string} The path to this module class
+     * @public
+     */
+    static getPath() {
         return this.modulePath;
     }
-    static toString(){
+
+    /**
+     * Returns the path to this module class
+     * @returns {string} The path to this module class
+     * @public
+     */
+    static toString() {
         return this.getPath();
     }
 
-    // Channel related methods
-    __getMethods(){
+    // Channel-related methods
+    /**
+     * Gets all the methods of this module that are not static
+     * @returns {Object} All methods indexed by name
+     * @private
+     */
+    __getMethods() {
         const output = {};
         const channelMethodRegex = /^\$/g;
         let nextProto = this.__proto__;
-        while(nextProto && nextProto!=Module.prototype){
+        while (nextProto && nextProto != Module.prototype) {
             const proto = nextProto;
             nextProto = proto.__proto__;
 
-            Object.getOwnPropertyNames(proto).forEach(varName=>{
+            Object.getOwnPropertyNames(proto).forEach(varName => {
                 const variable = this.__proto__[varName];
-                if(variable instanceof Function && channelMethodRegex.test(varName)){
-                    output[varName.replace(channelMethodRegex, "")] = this.__proto__[varName];
+                if (
+                    variable instanceof Function &&
+                    channelMethodRegex.test(varName) &&
+                    !output[varName]
+                ) {
+                    output[
+                        varName.replace(channelMethodRegex, "")
+                    ] = this.__proto__[varName];
                 }
             });
         }
         return output;
     }
-    __createChannelMethods(){
+
+    /**
+     * Creates all methods to interact with this module over a channel
+     * @returns {Object} All methods indexed by name
+     * @private
+     */
+    __createChannelMethods() {
         const output = {};
         const methods = this.__getMethods();
-        Object.keys(methods).forEach(methodName=>{
+        Object.keys(methods).forEach(methodName => {
             const method = methods[methodName];
-            output[methodName] = event=>{
+            output[methodName] = event => {
                 return method.apply(this, [event].concat(event.data));
             };
         });
-        output.close = event=>{
+        output.close = event => {
             return this.dispose();
         };
-        output.closeDescendant = event=>{
-            return this.__disposeDescendant.apply(this, event.data);
+        output.closeDescendant = event => {
+            return this.__disconnectDescendant.apply(this, event.data);
         };
         return output;
     }
-    __disposeDescendant(requestPath, type){
+
+    /**
+     * Disconnects a module from this module (But doesn't dispose it)
+     * @param {RequestPath} requestPath - The request path for the module to disconnect
+     * @param {string} type - The type of request that the module was instiated for
+     * @returns {undefined}
+     * @private
+     */
+    __disconnectDescendant(requestPath, type) {
         const handler = this.core.handlers[type];
-        if(handler){
+        if (handler) {
             const channels = handler.channels;
-            if(channels instanceof Array){
-                handler.channels = channels.filter(channel=>{
+            if (channels instanceof Array) {
+                handler.channels = channels.filter(channel => {
                     return channel._getID() != requestPath;
                 });
 
-                if(handler.channels.length == 0)
+                if (handler.channels.length == 0)
                     delete this.core.handlers[type];
-            }else if(channels._getID() == requestPath){
+            } else if (channels._getID() == requestPath) {
                 delete this.core.handlers[type];
             }
         }
     }
-    async dispose(){
-        if(this.core.registration.registered.turningTrue())
+
+    /**
+     * Disposes this module entirely, also getting rid of its connections to other modules
+     * @returns {Promise} The promise that resolves once disposal has completed
+     * @async
+     * @public
+     */
+    async dispose() {
+        if (this.core.registration.registered.turningTrue())
             throw Error("Module is still registering");
-        if(this.core.registration.registered.true()){
+        if (this.core.registration.registered.true()) {
             this.core.registration.registered.turningFalse(true);
             const channelDisposalPromises = [];
-            Object.keys(this.core.handlers).forEach(type=>{
+            Object.keys(this.core.handlers).forEach(type => {
                 const handler = this.core.handlers[type];
                 const channels = handler.channels;
-                if(channels instanceof Array){
-                    channelDisposalPromises.concat(channels.map(channel=>{
-                        console.log(channel);
-                        return channel.close();
-                    }));
-                }else{
-                    console.log(channels);
+                if (channels instanceof Array) {
+                    channelDisposalPromises.concat(
+                        channels.map(channel => {
+                            return channel.close();
+                        })
+                    );
+                } else {
                     channelDisposalPromises.push(channels.close());
                 }
             });
 
             await Promise.all(channelDisposalPromises);
-            if(this.core.source.channel){
-                await this.core.source.channel.closeDescendant(this.getPath().toString(true), this.core.source.request.type)
+            if (this.core.source.channel) {
+                await this.core.source.channel.closeDescendant(
+                    this.getPath().toString(true),
+                    this.core.source.request.type
+                );
             }
 
             this.core.registration.registered.false(true);
-            this.core.channelReceiver.close();
+            await this.core.channelReceiver.close();
 
             await Registry._deregisterModuleInstance(this);
         }
@@ -182,33 +285,37 @@ export default class Module{
 
     /**
      * Request modules to handle the passed data and establish a connection with these modules
-     * @param  {{type:String, execute:String|function, data:Object, source:Module, methods:Object}} request The information on how to handle the data
-     * @return {Promise} The Promise that shall return the channels created to communicate with the modules
+     * @param  {Registry~Request} request - The information on how to handle the data
+     * @returns {Promise<ChannelSender[]>} The channel(s) that have been created to answer the request
+     * @async
+     * @public
      */
-    async requestHandle(request){
-        if(this.core.registration.registered.turningFalse())
+    async requestHandle(request) {
+        if (this.core.registration.registered.turningFalse())
             throw Error("Module is currently deregistering");
 
-        if(this.core.registration.registered.false()){
+        if (this.core.registration.registered.false()) {
             await this.__register();
             // await this.__onRegister();
-        }else if(this.core.registration.registered.turningTrue()){
+        } else if (this.core.registration.registered.turningTrue()) {
             await this.__onRegister();
         }
 
-        if(!request.methods)
-            request.methods = {};
+        if (!request.methods) request.methods = {};
 
         request.source = this;
 
-        if(this.core.handlers[request.type])
+        if (this.core.handlers[request.type])
             return this.core.handler[request.type].channels;
 
-        this.core.channelReceiver.createSubChannel(request.type, request.methods);
+        this.core.channelReceiver.createSubChannel(
+            request.type,
+            request.methods
+        );
         const channels = await Registry.requestHandle(request);
         this.core.handlers[request.type] = {
             request: request,
-            channels: channels
+            channels: channels,
         };
         return channels;
     }

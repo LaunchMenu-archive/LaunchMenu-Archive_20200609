@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>ChannelSender - Documentation</title>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <span class="navicon"></span>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ChannelHandler.html">ChannelHandler</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelHandler.html#.createReceiver">createReceiver</a></li><li data-type='method'><a href="ChannelHandler.html#.createSender">createSender</a></li></ul></li><li><a href="ChannelReceiver.html">ChannelReceiver</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ChannelReceiver.html#close">close</a></li><li data-type='method'><a href="ChannelReceiver.html#createSubChannel">createSubChannel</a></li><li data-type='method'><a href="ChannelReceiver.html#deleteSubChannel">deleteSubChannel</a></li><li data-type='method'><a href="ChannelReceiver.html#getID">getID</a></li></ul></li><li><a href="ChannelReceiver_ChannelReceiver.html">ChannelReceiver</a></li><li><a href="ChannelSender_ChannelSender.html">ChannelSender</a></li><li><a href="ExtendedJSON.html">ExtendedJSON</a><ul class='members'><li class='list-title'>Members</li><li data-type='member'><a href="ExtendedJSON.html#.deserializeSymbol">deserializeSymbol</a></li><li data-type='member'><a href="ExtendedJSON.html#.serializeSymbol">serializeSymbol</a></li></ul><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="ExtendedJSON.html#.__cleanObject">__cleanObject</a></li><li data-type='method'><a href="ExtendedJSON.html#.decode">decode</a></li><li data-type='method'><a href="ExtendedJSON.html#.encode">encode</a></li><li data-type='method'><a href="ExtendedJSON.html#.parse">parse</a></li><li data-type='method'><a href="ExtendedJSON.html#.stringify">stringify</a></li></ul></li><li><a href="IPC.html">IPC</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="IPC.html#._deregisterWindow">_deregisterWindow</a></li><li data-type='method'><a href="IPC.html#._getWindows">_getWindows</a></li><li data-type='method'><a href="IPC.html#._registerWindow">_registerWindow</a></li><li data-type='method'><a href="IPC.html#.getID">getID</a></li><li data-type='method'><a href="IPC.html#.off">off</a></li><li data-type='method'><a href="IPC.html#.on">on</a></li><li data-type='method'><a href="IPC.html#.once">once</a></li><li data-type='method'><a href="IPC.html#.send">send</a></li><li data-type='method'><a href="IPC.html#.sendSync">sendSync</a></li></ul></li><li><a href="Registry.html">Registry</a><ul class='methods'><li class='list-title'>Methods</li><li data-type='method'><a href="Registry.html#.__getListeners">__getListeners</a></li><li data-type='method'><a href="Registry.html#.__getModulesPath">__getModulesPath</a></li><li data-type='method'><a href="Registry.html#.__setup">__setup</a></li><li data-type='method'><a href="Registry.html#.requestHandle">requestHandle</a></li></ul></li></ul><h3><a href="global.html">Global</a></h3>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">ChannelSender</h1>
+    
+
+    
+
+
+
+
+<section>
+
+<header>
+    <span class="creds">
+      
+
+      
+    </span>
+
+    <hr>
+
+    
+        <h2>
+        ChannelSender
+        </h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+
+
+    
+
+
+<div class="group" id="ChannelSender">
+
+
+    <h4 class="name"><span class="type-signature"></span>new <b>ChannelSender</b><span class="signature">(<span class="sig-params">ID<span class="params-divider">, </span>subChannelID<span class="params-divider">, </span>senderID</span>)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Create a new channel sender, allowing to send messages to the channel
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters</h5>
+    
+
+<div class="params">
+    
+
+    
+        <span class="name">ID</span><span class="type"><span class="param-type">:string</span></span>
+    
+
+    
+
+    
+
+    <div class="description last">The unique identifier for the channel</div>
+
+    
+
+    
+        <span class="name">subChannelID</span><span class="type"><span class="param-type">:string</span></span>
+    
+
+    
+
+    
+
+    <div class="description last">The subChannelID that will be used to access special subchannel methods</div>
+
+    
+
+    
+        <span class="name">senderID</span><span class="type"><span class="param-type">:string</span></span>
+    
+
+    
+
+    
+
+    <div class="description last">An ID that the reciever of this channel can respond to (can be left out)</div>
+
+    
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="src">Source: <a href="communication_channel_channelSender.js.html">communication/channel/channelSender.js</a>, <a href="communication_channel_channelSender.js.html#line11">line 11</a></div>
+
+
+</div>
+
+    
+    </div>
+
+    
+
+    
+
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc" target="_blank">JSDoc 3.5.5</a> on 8/24/2018 using the <a href="https://github.com/Grafluxe/boxy-jsdoc-template" target="_blank">boxy-jsdoc-template</a> theme.
+</footer>
+
+<script src="scripts/prettify/prettify.js"></script>
+<script src="scripts/prettify/lang-css.js"></script>
+<script src="scripts/script.js"></script>
+
+</body>
+</html>

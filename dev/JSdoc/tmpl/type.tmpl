@@ -1,0 +1,8 @@
+<?js
+  var data = obj;
+  var self = this;
+
+  if(data.length) {
+?><span class="param-type"><?js 
+  } 
+data.forEach(function(name, i) { ?><?js if (i === 0) { ?>:<?js } ?><?js= self.linkto(name, self.htmlsafe(name)) ?><?js if (i < data.length-1) { ?>|<?js } }); if(data.length) { ?></span><?js } ?>

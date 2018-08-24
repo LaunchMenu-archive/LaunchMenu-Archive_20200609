@@ -1,0 +1,103 @@
+<?js
+    var data = obj;
+    var params = data.subparams || data;
+
+    /* sort subparams under their parent params (like opts.classname) */
+    var parentParam = null;
+    params.forEach(function(param, i) {
+        var paramRegExp;
+
+        if (!param) {
+            return;
+        }
+
+        if (parentParam && parentParam.name && param.name) {
+            paramRegExp = new RegExp('^(?:' + parentParam.name + '(?:\\[\\])*)\\.(.+)$');
+
+            if ( paramRegExp.test(param.name) ) {
+                param.name = RegExp.$1;
+                parentParam.subparams = parentParam.subparams || [];
+                parentParam.subparams.push(param);
+                params[i] = null;
+            }
+            else {
+                parentParam = param;
+            }
+        }
+        else {
+            parentParam = param;
+        }
+
+        if (!data.subparams) {
+            param.parentObj = "";
+        } else {
+            param.parentObj += data.name + ".";
+        }
+    });
+
+    /* determine if we need extra columns, "attributes" and "default" */
+    params.hasAttributes = false;
+    params.hasDefault = false;
+    params.hasName = false;
+
+    params.forEach(function(param) {
+        if (!param) { return; }
+
+        if (param.optional || param.nullable || param.variable) {
+            params.hasAttributes = true;
+        }
+
+        if (param.name) {
+            params.hasName = true;
+        }
+
+        if (typeof param.defaultvalue !== 'undefined') {
+            params.hasDefault = true;
+        }
+    });
+?>
+
+<div class="params">
+    <?js
+        var self = this;
+
+        params.forEach(function(param) {
+            if (!param) { return; }
+    ?>
+
+    <?js if (params.hasName) {?>
+        <span class="name"><?js if (param.parentObj) {?><span class="obj-tree"><?js= param.parentObj ?></span><?js } ?><?js= param.name ?></span><?js if (param.type && param.type.names) {?><span class="type"><?js= self.partial('type.tmpl', param.type.names) ?></span><?js } ?>
+    <?js } ?>
+
+    <?js if (params.hasDefault) {?>
+        <span class="default">
+        <?js if (typeof param.defaultvalue !== 'undefined') { ?>
+            = <?js= self.htmlsafe(param.defaultvalue) ?>
+        <?js } ?>
+        </span>
+    <?js } ?>
+
+    <?js if (params.hasAttributes && (param.optional || param.nullable || param.variable)) {?>
+        <span class="attributes">
+        <?js if (param.optional) { ?>
+            (optional)<br>
+        <?js } ?>
+
+        <?js if (param.nullable) { ?>
+            (nullable)<br>
+        <?js } ?>
+
+        <?js if (param.variable) { ?>
+            (repeatable)<br>
+        <?js } ?>
+        </span>
+    <?js } ?>
+
+    <div class="description last"><?js= param.description ?><?js if (param.subparams) { ?>
+        <div class="child-params">
+          <?js= self.partial('params.tmpl', param) ?>
+        </div>
+    <?js } ?></div>
+
+    <?js }); ?>
+</div>
