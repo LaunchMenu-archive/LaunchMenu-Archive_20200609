@@ -22,7 +22,9 @@ export default class Settings extends GlobalData {
      * @public
      */
     dispose(dontSave) {
+        // By default save the data on exit
         if (!dontSave) this.save();
+
         return super.dispose();
     }
 
@@ -33,6 +35,7 @@ export default class Settings extends GlobalData {
      * @public
      */
     save() {
+        // Send a request to the Settings Handler to save this data
         return IPC.send("Settings.save", {
             ID: this.ID,
             fileName: this.fileName,
@@ -46,6 +49,7 @@ export default class Settings extends GlobalData {
      * @public
      */
     reload() {
+        // Send a request to the Settings Handler to reload this data
         return IPC.send("Settings.reload", {
             ID: this.ID,
             fileName: this.fileName,

@@ -50,6 +50,7 @@ class IPC {
      * @public
      */
     static send(type, data, dest = "*") {
+        // Forward the event to the private send method (which can take additional arguments)
         return this.__send(type, data, dest);
     }
 
@@ -61,6 +62,7 @@ class IPC {
      * @public
      */
     static sendSync(type, data) {
+        // Forward the event to the private sendSync method (which can take additional arguments)
         return this.__sendSync(type, data);
     }
 
@@ -73,8 +75,13 @@ class IPC {
      * @public
      */
     static on(type, handler) {
+        // If there are no listeners for this type yet, create an array for them
         if (!this.listeners[type]) this.listeners[type] = [];
+
+        // Get the array of listeners for this type
         const listeners = this.listeners[type];
+
+        // Check if this listener is already present, if not, add it
         const index = listeners.indexOf(handler);
         if (index == -1) listeners.push(handler);
     }
@@ -87,12 +94,17 @@ class IPC {
      * @public
      */
     static once(type, handler) {
-        const orHandler = handler;
-        handler = event => {
-            this.off(type, handler);
-            orHandler.call(this, event);
+        // Create a handler middleware that will automaticall remove itself
+        const handleMiddleware = function (event) {
+            // As soon as an event is received, remove yourself
+            this.off(type, handleMiddleware);
+
+            // Call the handler itself with the same data
+            handler.apply(this, arguments);
         };
-        this.on(type, handler);
+
+        // Add the handler middleware event listener
+        return this.on(type, handleMiddleware);
     }
 
     /**
@@ -103,15 +115,17 @@ class IPC {
      * @public
      */
     static off(type, handler) {
+        // Get the listeners for this type, and check if even existent
         const listeners = this.listeners[type];
         if (listeners) {
+            // Get the index at which this handler is stored, and remove that index if present
             const index = listeners.indexOf(handler);
             if (index != -1) listeners.splice(index, 1);
         }
     }
 
     /**
-     * Gets the identifier of this process or renderer which other processes or renderers can use to communicate
+     * Gets the identifier of this process or window which other processes or windows can use to communicate
      * @return {number} The numeric identifier
      * @public
      */
@@ -153,19 +167,25 @@ class IPC {
      * Emit an event to all the registered listeners in this process/window
      * @param  {string} type  - The event type to invoke
      * @param  {IPC~IPCevent} event - The event data to pass to the listeners
-     * @param  {boolean} sync - Whether to act synchronously and only allow sync returns
+     * @param  {boolean} [sync] - Whether to act synchronously and only allow sync returns
      * @return {Promise<Object[]>} An array of all the data that listeners for the event have returned
      * @async
      * @private
      */
     static __emitEvent(type, event, sync) {
+        // Retrieve the listeners to send this event to
         const listeners = this.listeners[type];
+
+        // Track the returned respones as well as promises
         const responses = [];
         const promises = [];
 
         // Emit the event itself
         if (listeners) listeners.forEach(listener => {
+            // Call the listener and store what it returns
             const response = listener.call(this, event);
+
+            // If it returns a promise, add it to the promises, otherwise add it to the responses
             if (response instanceof _promise2.default) {
                 promises.push(response);
             } else {
@@ -173,9 +193,10 @@ class IPC {
             }
         });
 
-        // Return the responses of the event
+        // Return the responses of the event and ignore the promises if synchronous
         if (sync) return responses;
 
+        // If not synchronous, wait for all promises to resolve, and add their results to the reponses
         return _promise2.default.all(promises).then(promiseResponses => {
             return responses.concat(promiseResponses);
         });
@@ -205,7 +226,7 @@ class IPC {
             respID = this.responseListeners.ID++;
             this.responseListeners[respID] = {
                 resolve, // The resolve function to call when finished
-                responseOriginsReceived: 0, // The number of processes/renderers that have returned responses
+                responseOriginsReceived: 0, // The number of processes/windows that have returned responses
                 responses: [] // The responses that have been recieved so far
             };
         }
@@ -255,6 +276,7 @@ class IPC {
                     // Target a window
                     const window = windows[Number(id)];
                     if (window) {
+                        // Tell a window that it received the event defined below, so it can emit it and send back its response data to main
                         window.webContents.send("IPC.recieve", {
                             type: type,
                             sourceID: source,
@@ -266,15 +288,14 @@ class IPC {
                 }
             });
         } else {
-            // Send the data to the main process such that it can spread it to the appropriate windows
-            const forwardData = {
+            // Send the event to the main process such that it can spread it to the appropriate windows
+            _electron.ipcRenderer.send("IPC.forward", {
                 dest: dest,
                 type: type,
                 sourceID: this.ID,
                 responseID: respID,
                 data: encodedData
-            };
-            _electron.ipcRenderer.send("IPC.forward", forwardData);
+            });
         }
 
         // Return the response promise
@@ -291,13 +312,13 @@ class IPC {
      */
     static __sendSync(type, data, sourceID) {
         if (_isMain2.default) {
-            // If the call is made from the main process
+            // If the call is made from the main process, just emit the event and return the responses
             return this.__emitEvent(type, {
                 sourceID: sourceID,
                 data: data
             }, true);
         } else {
-            // Send event to the main process and return the data
+            // Otherwise send the event to the main process and return the retrieved data from there
             const response = _electron.ipcRenderer.sendSync("IPC.syncCall", {
                 type: type,
                 data: _extendedJSON2.default.encode(data)
@@ -317,13 +338,13 @@ class IPC {
      * @private
      */
     static __sendResponse(sourceID, responseData) {
-        // Check whether this is the main process or a renderer
+        // Check whether this is the main process or a window
         if (_isMain2.default) {
             // If this is the main process, and the event was sent by the main process, process the data
             if (sourceID == 0) {
                 this.__recieveResponse(responseData.responseID, responseData.responses, responseData.responseOriginCount);
 
-                // If this is the main process and the data was meant for a renderer, forward the data
+                // If this is the main process and the data was meant for anotherw process/window, forward the data
             } else {
                 const window = this.windows[Number(sourceID)];
                 if (window) {
@@ -335,7 +356,7 @@ class IPC {
                 }
             }
         } else {
-            // If this is a renderer, pass the response back to the main process
+            // If this is a process/window, pass the response back to the main process
             _electron.ipcRenderer.send("IPC.forwardResponse", {
                 sourceID: sourceID,
                 responseID: responseData.responseID,
@@ -346,10 +367,10 @@ class IPC {
     }
 
     /**
-     * Recieve a response from some process/renderer, and resolve promise when all are recieved
+     * Recieve a response from some process/window, and resolve promise when all are recieved
      * @param  {number} responseID - The ID of the response identifier
      * @param  {Object[]}  responses - The actual array of returned responses
-     * @param  {number} responseOriginCount - The number of processes/renderers that need to return responses
+     * @param  {number} responseOriginCount - The number of processes/windows that need to return responses
      * @return {undefined}
      * @private
      */
@@ -376,19 +397,19 @@ class IPC {
      */
     static __setup() {
         this.windows = { 0: this }; // The available windows to forward the events to
-        this.listeners = {}; // The event listeners in this process/renderer
-        this.responseListeners = { ID: 0 }; // The response listeners in this process/renderer
+        this.listeners = {}; // The event listeners in this process/window
+        this.responseListeners = { ID: 0 }; // The response listeners in this process/window
 
-        // Check whether this is the main process or a renderer
+        // Check whether this is the main process or a window
         if (_isMain2.default) {
             this.ID = 0;
 
-            // Forward the call made by a renderer, and passing the sourceID to track the origin
+            // Forward the call made by a window, and passing the sourceID to track the origin
             _electron.ipcMain.on("IPC.forward", (event, arg) => {
                 this.__send(arg.type, _extendedJSON2.default.decode(arg.data), arg.dest, arg.sourceID, arg.responseID);
             });
 
-            // Return any responses to the source process/renderer when recieved
+            // Return any responses to the source process/window when recieved
             _electron.ipcMain.on("IPC.forwardResponse", (event, arg) => {
                 arg.responses = _extendedJSON2.default.decode(arg.responses); // __sendResponse expects non encodedData
                 this.__sendResponse(arg.sourceID, arg);
@@ -396,11 +417,14 @@ class IPC {
 
             // Listen for synchonous IPC calls
             _electron.ipcMain.on("IPC.syncCall", (event, arg) => {
+                // Send the event synchrnously to all listeners, and retrieve their responses
                 const response = this.__sendSync(arg.type, _extendedJSON2.default.decode(arg.data), arg.sourceID);
+
+                // Set their responses as the return datan
                 event.returnValue = _extendedJSON2.default.encode(response);
             });
         } else {
-            // Is a renderer thread
+            // Is a window thread
             // this.ID gets set in windowHandler once finished loading
 
             // Emit the IPC event to all listeners whenever it is recieved

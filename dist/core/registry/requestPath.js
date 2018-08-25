@@ -31,7 +31,10 @@ class RequestPath {
      * @constructs RequestPath
      */
     constructor(path) {
-        if (typeof path != "string" && !(path instanceof Array)) path = path.toString();
+        // Stringify the path if it is of unknown form (requestPath?)
+        if (typeof path != "string" && !(path instanceof Array)) path = path.toString(true);
+
+        // Extract the moduleIDs if the path is a string
         if (typeof path == "string") {
             path = path.split("->").map(module => {
                 module = module.split(":");
@@ -42,6 +45,7 @@ class RequestPath {
             });
         }
 
+        // Store the moduleID array
         this.modules = path;
     }
 
@@ -65,9 +69,14 @@ class RequestPath {
      * @public
      */
     getSubPath(removeCount) {
+        // Create a copy of this request path
         const requestPath = new RequestPath(this.toString(true));
+
+        // Remove n of the last modules in the path
         const modules = requestPath.modules;
         modules.splice(modules.length - removeCount, removeCount);
+
+        // Return the new request path
         return requestPath;
     }
 
@@ -79,12 +88,20 @@ class RequestPath {
      * @public
      */
     augmentPath(module, ID) {
-        if (typeof module != "string") module = module.toString();
+        // Make sure the module is a string of the module class path
+        if (module.getClass) module = module.getClass();
+        if (typeof module != "string") module = module.getPath();
+
+        // Create a copy of the request path
         const requestPath = new RequestPath(this.toString(true));
+
+        // Append a moduleID to thie modules of this request path
         requestPath.modules.push({
             module: module,
             ID: Number(ID || 0)
         });
+
+        // Return the new request path
         return requestPath;
     }
 
@@ -95,7 +112,10 @@ class RequestPath {
      * @public
      */
     getModuleID(index) {
+        // Select the last index if none was provided
         if (index == undefined) index = this.modules.length - 1;
+
+        // Return the moduleID
         return this.modules[index];
     }
 }

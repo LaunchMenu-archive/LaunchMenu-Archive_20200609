@@ -10,6 +10,7 @@ export default class ChannelSender {
      * @hideconstructor
      */
     constructor(ID, subChannelID, senderID) {
+        // Store data in a seperate object such that it isn't confused with channel methods
         this.__data = {
             ID: ID,
             subChannelID: subChannelID,
@@ -44,7 +45,7 @@ export default class ChannelSender {
             }
         } else {
             // Call is actually setting up the data
-            // Gatyher the relevant message types
+            // Gather the relevant message types
             let messageTypes = types.globalListeners;
             const subChannelMessageTypes =
                 types.subChannelListeners[this.__data.subChannelID];
@@ -87,10 +88,10 @@ export default class ChannelSender {
     __setupChannelMessageTypeListener() {
         IPC.once("channel.sendMessageTypes:" + this.__data.ID, event => {
             // Check if all the subchannel methods have already been defined
-            if (
+            const containsSubchannel =
                 !this.__data.subChannelID ||
-                event.data.subChannelListeners[this.__data.subChannelID]
-            ) {
+                event.data.subChannelListeners[this.__data.subChannelID];
+            if (containsSubchannel) {
                 // Store the location to send the messages to
                 this.__data.destProcessID = event.sourceID;
 

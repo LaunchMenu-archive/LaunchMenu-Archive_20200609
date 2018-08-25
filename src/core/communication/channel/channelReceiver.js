@@ -22,7 +22,7 @@ export default class ChannelReceiver {
         this.subChannelListeners = {};
 
         this.IPClisteners = {
-            // Forward IPC messages
+            // Forward IPC messages to channel listeners
             message: event => {
                 let data = event.data;
 
@@ -47,6 +47,8 @@ export default class ChannelReceiver {
                 this.__broadCastMessageTypes(event.sourceID);
             },
         };
+
+        // Set up the message listeners
         IPC.on("channel.message:" + ID, this.IPClisteners.message);
         IPC.on(
             "channel.requestMessageTypes:" + ID,
@@ -91,6 +93,7 @@ export default class ChannelReceiver {
      * @public
      */
     close() {
+        // Clear the IPC listeners
         IPC.off("channel.message:" + this.ID, this.IPClisteners.message);
         IPC.off(
             "channel.requestMessageTypes:" + this.ID,

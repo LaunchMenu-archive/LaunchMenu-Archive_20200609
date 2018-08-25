@@ -36,7 +36,7 @@ const defaultModuleData = {
  * @class
  * @hideconstructor
  */
-class Registry {
+export default class Registry {
     /**
      * Request modules to handle the passed data and establish a connection with these modules
      * @param  {Request} request - The information on how to handle the data
@@ -45,14 +45,18 @@ class Registry {
      * @public
      */
     static requestHandle(request) {
-        if (
+        // Check if the request contains a valid use, if not set it to 'one'
+        const hasInvalidUse =
             !request.use ||
             (typeof request.use == "string" ||
-                !request.use.match(/^(one|all)$/g))
-        )
-            request.use = "one";
+                !request.use.match(/^(one|all)$/g));
+        if (hasInvalidUse) request.use = "one";
+
+        // Check if the request source type is a module, if so, get its string identifier
         if (request.source instanceof Module)
             request.source = request.source.getPath().toString(true);
+
+        // let the private __request method handle the request
         return this.__request([request], "handle");
     }
 
@@ -63,17 +67,22 @@ class Registry {
      * @public
      */
     static requestModule(request) {
+        // Get all the requests that were passed (multiple are allowed) TODO: indicate in JSdoc
         var requests = Array.from(arguments);
 
-        // Normalize the request format
+        // Normalize the format of the requests
         var requests = requests.map(request => {
+            // If the request is only a string rather than an object, turn it into an object
             if (typeof request == "string") request = {type: request};
-            if (
+
+            // Check if the request contains a valid use, if not set it to 'one'
+            const hasInvalidUse =
                 !request.use ||
                 (typeof request.use == "string" ||
-                    !request.use.match(/^(one|all)$/g))
-            )
-                request.use = "one";
+                    !request.use.match(/^(one|all)$/g));
+            if (hasInvalidUse) request.use = "one";
+
+            // Return the new request variable
             return request;
         });
 
@@ -90,6 +99,7 @@ class Registry {
                 response[requestType] = requestsModules[i];
             }
 
+            // Return the modules indexed by request type
             return response;
         } else {
             // Directly return the modules from the only request
@@ -105,6 +115,7 @@ class Registry {
      * @protected
      */
     static _loadModule(path) {
+        // Only load the module if it hadn't been loaded already
         if (!this.moduleClasses[path]) {
             // Require module
             const data = require(this.__getModulesPath(path));
@@ -113,6 +124,7 @@ class Registry {
             if (data) {
                 const clas = data.default;
                 const config = data.config;
+                // Check if the module returned a config
                 if (config) {
                     // Augment data with some variables that can be extracted
                     clas.modulePath = path;
@@ -125,10 +137,13 @@ class Registry {
                     const listeners = this.__getListeners(config.type);
                     listeners.listeners.push(config);
                 } else {
+                    // If the module didn't return a config, simply return the exports of the file
                     return data;
                 }
             }
         }
+
+        // Return the module
         return this.moduleClasses[path];
     }
     /**
@@ -151,7 +166,7 @@ class Registry {
         // Store the instance in this module/process
         this.moduleInstances.push(moduleInstance);
 
-        // Set the proper ID for the request path
+        // Get the a unique ID for the request path
         const requestPath = moduleInstance.getPath();
         const ID = (await IPC.send(
             "Registry.registerModuleInstance",
@@ -160,6 +175,8 @@ class Registry {
             },
             0
         ))[0];
+
+        // Assign the ID to this request path and return it
         requestPath.getModuleID().ID = ID;
         return ID;
     }
@@ -182,9 +199,11 @@ class Registry {
             0
         );
 
-        // Remove the instance from this module/process
+        // Remove the instance from this process/window
         const index = this.moduleInstances.indexOf(moduleInstance);
         if (index !== -1) this.moduleInstances.splice(index, 1);
+
+        // Close this window if there are no more modules in it
         if (this.moduleInstances.length == 0) WindowHandler._close();
     }
 
@@ -251,10 +270,13 @@ class Registry {
 
         // Determine what modules to return
         if (request.use == "all") {
+            // If all modules should be returned, simply extract the modules from the priority data and return them
             return priorities.map(a => a.module);
         } else if (typeof request.use == "Function") {
+            // If a filter function is provided, apply it and then extract the modules from the data and return them
             return priorities.filter(request.use).map(a => a.module);
         } else {
+            // Otherwise only a single module should be returned, so simply return this module
             return priorities[0] && priorities[0].module;
         }
     }
@@ -314,6 +336,7 @@ class Registry {
                         )
                     );
                 } catch (e) {
+                    // TODO: properply handle the error if something goes wrong
                     console.error(
                         `Something went wrong while trying to instantiate ${module}: `,
                         e
@@ -321,9 +344,10 @@ class Registry {
                 }
             });
 
-            // Return all the created channels once ready
+            // Wait for all the promises to resolve and get their channels
             const channels = await Promise.all(instantiatePromises);
 
+            // Determine whether to return only a single channel or an array of channels and return it
             if (request.use == "one") {
                 return channels[0];
             } else {
@@ -383,7 +407,7 @@ class Registry {
      * @param {string} [subChannel] - The sub channel to target
      * @param {(Module|string)} source - The channelID to return messages to if needed
      * @param {number} [windowID] - Only looks in this window for instances if provided
-     * @returns {ChannelSender[]} The channels that were set up for the found modules
+     * @returns {Promise<ChannelSender[]>} The channels that were set up for the found modules
      * @async
      * @public
      */
@@ -393,25 +417,33 @@ class Registry {
         source,
         windowID
     ) {
+        // Get the module class path from the module
+        if (module.getClass) module = module.getClass();
         if (module.getPath) module = module.getPath();
-        const responses = (await IPC.send(
+
+        // Ask for all module instances from main
+        const instancePaths = (await IPC.send(
             "Registry.getModuleInstances",
             module,
             0
         ))[0];
-        const instancePaths = responses;
-        if (source.getPath) source = source.getPath();
 
+        // Get the actual unique request path from the module
+        if (source.getPath) source = source.getPath().toString(true);
+
+        // If a windowID is specified, filter the instancePaths so only ones in the correct window are kept
         if (windowID != undefined)
             instancePaths = instancePaths.filter(path => {
                 return path.windowID == windowID;
             });
 
-        instancePaths = instancePaths.map(path => {
+        // Create a channel for each of retrieved instance paths
+        const channels = instancePaths.map(path => {
             return ChannelHandler.createSender(path.path, subChannel, source);
         });
 
-        return Promise.all(instancePaths);
+        // Wait for all channels to be created and then return them
+        return Promise.all(channels);
     }
 
     /**
@@ -452,54 +484,80 @@ class Registry {
 
             // Listen for module instances being registered
             IPC.on("Registry.registerModuleInstance", event => {
+                // Get the request path for the module to register
                 const requestPath = new RequestPath(event.data.requestPath);
 
-                const type = requestPath.getModuleID().module;
-                let pathList = this.moduleInstancePaths[type];
-                if (!pathList) pathList = this.moduleInstancePaths[type] = [];
+                // Get the module class of the path to register
+                const moduleClass = requestPath.getModuleID().module;
+
+                // Retrieve the request path list that exists for that class, or create it if non-existent
+                let pathList = this.moduleInstancePaths[moduleClass];
+                if (!pathList)
+                    pathList = this.moduleInstancePaths[moduleClass] = [];
+
+                // Add this path to the list together with the window it is stored in
                 pathList.push({
                     window: event.sourceID,
                     path: requestPath.toString(true),
                 });
 
+                // Retrieve the path collection that exists for this non unique request path, or create it if non-existent
                 let paths = this.requestPaths[requestPath.toString()];
                 if (!paths)
                     paths = this.requestPaths[requestPath.toString()] = {};
 
+                // Find a unique ID in this collection
                 let ID = 0;
                 while (paths[ID]) ID++;
 
+                // Asssign this unique ID to the last module of the request path and store the path
                 requestPath.getModuleID().ID = ID;
                 paths[ID] = requestPath;
+
+                // Return the unique request path identifier
                 return ID;
             });
 
             // Listen for module instances being deregistered
             IPC.on("Registry.deregisterModuleInstance", event => {
+                // Get the request path for the module to deregister
                 const requestPath = new RequestPath(event.data.requestPath);
 
-                const type = requestPath.getModuleID().module;
-                const pathList = this.moduleInstancePaths[type];
+                // Get the module class of the path to deregister
+                const moduleClass = requestPath.getModuleID().module;
+
+                // Get the paths that are stored for this class
+                const pathList = this.moduleInstancePaths[moduleClass];
                 if (pathList) {
+                    // get the unique request path in string form
                     const requestPathString = requestPath.toString(true);
-                    this.moduleInstancePaths[type] = pathList.filter(path => {
-                        return path.path != requestPathString;
-                    });
+
+                    // Filter out the object that corresponds with this string
+                    this.moduleInstancePaths[moduleClass] = pathList.filter(
+                        path => {
+                            return path.path != requestPathString;
+                        }
+                    );
                 }
 
-                const paths = this.requestPaths[requestPath.toString()];
+                // Get the unique path identifier from the request path
                 const ID = requestPath.getModuleID().ID;
+
+                // Retrieve the path collection that exists for this non unique request path, and delete the path with this unique ID
+                const paths = this.requestPaths[requestPath.toString()];
                 if (paths) delete paths[ID];
             });
 
             // Listen for windows/processes requesting instances of a certain module
             IPC.on("Registry.getModuleInstances", event => {
+                // Extract the module class path that we are looking for
                 const data = event.data;
-                const modulePath = event.modulePath;
+                const modulePath = data.modulePath;
+
+                // Return the request path attached to this class
                 return this.moduleInstancePaths[modulePath];
             });
         }
     }
 }
 Registry.__setup();
-export default Registry;
