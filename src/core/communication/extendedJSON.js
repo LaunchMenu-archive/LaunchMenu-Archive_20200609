@@ -29,7 +29,8 @@ export default class ExtendedJSON {
          * @param {Object} object - The object to convert
          * @param {string} path - The path within the parent object to reach this object so far
          * @returns {Object} The encoded version of the input object
-         * @public
+         * @inner
+         * @private
          */
         const encodeValue = function(object, path) {
             try {
@@ -154,7 +155,8 @@ export default class ExtendedJSON {
          * @param {Object} value - The value to decode
          * @param {Object} parent - The object that the value will be stored in (used for object reference paths)
          * @returns {Object} The resulting value after decoding the input value
-         * @public
+         * @inner
+         * @private
          */
         const decodeValue = function(value, parent) {
             try {

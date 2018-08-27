@@ -1,7 +1,7 @@
 export default class State {
     /**
      * Create a new State object to track an async boolean state
-     * @param {'0'|'1'|'2'|'3'} [state] - The initial state
+     * @param {('0'|'1'|'2'|'3')} [state] - The initial state
      * @constructs State
      * @public
      */

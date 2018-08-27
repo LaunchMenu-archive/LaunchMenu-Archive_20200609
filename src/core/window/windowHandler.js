@@ -4,7 +4,6 @@ import Path from "path";
 import SettingsHandler from "../communication/data/settings/settingsHandler";
 import ChannelHandler from "../communication/channel";
 import IPC from "../communication/IPC";
-import RequestPath from "../registry/requestPath";
 import Registry from "../registry/registry";
 import isMain from "../isMain";
 

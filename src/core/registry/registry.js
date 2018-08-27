@@ -15,15 +15,17 @@ const defaultModuleData = {
 };
 
 /**
+ * A request that can be made to retrieve a module
  * @typedef {Object} Registry~Request
  * @property {string} type - The type of handeling you are requesting
- * @property {('all'|'one'|'function')} [use] - What modules to use to answer the request
+ * @property {('all'|'one'|function)} [use] - What modules to use to answer the request
  * @property {Object} [data] - Any extra data you want to pass that modules can use to determine if they can answer the request
  * @property {Module} [source] - The module that sent out the request (can be left out when usimg Module.requestHandle)
  * @property {Object} [methods] - Extra methods that can get called by the handle (is only used by Module.requestHandle)
  */
 
 /**
+ * The data that is stored to track what modules can answer what requests
  * @typedef {Object} Registry~Requestlistener
  * @property {string} type - The type of request to handle
  * @property {Object[]} listeners - The modules that can answer this request

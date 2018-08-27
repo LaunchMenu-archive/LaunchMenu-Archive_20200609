@@ -159,7 +159,7 @@ export default class GlobalData {
     }
     /**
      * Sends an event to the correct listeners with the correct data
-     * @param {'update'|'delete'|'create'|'change'} type - The type of event to emit
+     * @param {('update'|'delete'|'create'|'change')} type - The type of event to emit
      * @param {string} path - The path to the field for which to emit the event
      * @param {Object} [event] - The event to emit
      * @returns {undefined}
