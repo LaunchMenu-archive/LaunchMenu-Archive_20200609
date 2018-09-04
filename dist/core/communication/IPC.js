@@ -110,7 +110,7 @@ class IPC {
     /**
      * Stops listening for data being sent by a process/window
      * @param  {String} type - The type of event that is being listened for
-     * @param  {Function(event)} - The function that handles the event when occuring
+     * @param  {function} - The function that handles the event when occuring
      * @return {undefined}
      * @public
      */

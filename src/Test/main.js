@@ -39,59 +39,62 @@ import WindowHandler from "../core/window/windowHandler";
 // });
 
 // Module registry
-Registry._loadModule("alert");
-Registry._loadModule("multiAlert");
-Registry._loadModule("testModule2");
-const TestModule2 = Registry.requestModule({type: "test2"});
-const testModule2instance = new TestModule2();
-const testModule2instance2 = new TestModule2();
+// Registry._loadModule("alerts.config");
+// Registry._loadModule("multiAlert");
+// Registry._loadModule("testModule2.config");
 
 // Open a window
 app.on("ready", function() {
-    testModule2instance
-        .requestHandle({
-            type: "multiAlert",
-        })
-        .then(channel => {
-            channel
-                .alert("poooopy pants")
-                .then(() => {
-                    return channel.alert("Nuts");
-                })
-                .then(() => {
+    Registry._loadAllModules().then(data => {
+        const TestModule2 = Registry.requestModule({type: "test2"});
+        const testModule2instance = new TestModule2();
+        const testModule2instance2 = new TestModule2();
+
+        testModule2instance
+            .requestHandle({
+                type: "multiAlert",
+            })
+            .then(channel => {
+                channel
+                    .alert("poooopy pants")
+                    .then(() => {
+                        return channel.alert("Nuts");
+                    })
+                    .then(() => {
+                        return channel.close();
+                    });
+            });
+        testModule2instance2
+            .requestHandle({
+                type: "multiAlert",
+            })
+            .then(channel => {
+                channel.alert("testing").then(() => {
                     return channel.close();
                 });
-        });
-    testModule2instance2
-        .requestHandle({
-            type: "multiAlert",
-        })
-        .then(channel => {
-            channel.alert("testing").then(() => {
-                return channel.close();
             });
-        });
-    testModule2instance2
-        .requestHandle({
-            type: "alert",
-        })
-        .then(channel => {
-            channel.alert("single alert").then(() => {
-                return channel.close();
+        testModule2instance2
+            .requestHandle({
+                type: "alert",
+            })
+            .then(channel => {
+                channel.alert("single alert").then(() => {
+                    return channel.close();
+                });
             });
-        });
 
-    // WindowHandler.open(1).then(data=>{
-    //     console.log("Window opened", data);
-    //     Registry.requestHandle({
-    //         type: "test",
-    //         source: testModule2,
-    //     }).then(result=>{
-    //         console.log(result);
-    //     });
-    // }).catch(err=>{
-    //     console.error(err);
-    // });
+        // WindowHandler.open(1).then(data=>{
+        //     console.log("Window opened", data);
+        //     Registry.requestHandle({
+        //         type: "test",
+        //         source: testModule2,
+        //     }).then(result=>{
+        //         console.log(result);
+        //     });
+        // }).catch(err=>{
+        //     console.error(err);
+        // });
+    });
 });
 
 IPC.once("loaded", event => {

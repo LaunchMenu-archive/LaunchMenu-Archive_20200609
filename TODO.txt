@@ -2,7 +2,8 @@ short-term:
     // -test if the subIDS of mudles work properly
 
     // -make modules useable without registration
-    -automatically load modules in the main thread
+    // -only require class once a request for it has been made
+    // -automatically load modules in the main thread
     -allow modules to run in a negative window number to run in a windowless thread
 
     -clean up code:

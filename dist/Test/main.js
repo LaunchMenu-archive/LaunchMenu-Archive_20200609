@@ -74,50 +74,53 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // });
 
 // Module registry
-_registry2.default._loadModule("alert");
-_registry2.default._loadModule("multiAlert");
-_registry2.default._loadModule("testModule2");
-const TestModule2 = _registry2.default.requestModule({ type: "test2" });
-const testModule2instance = new TestModule2();
-const testModule2instance2 = new TestModule2();
+// Registry._loadModule("alerts.config");
+// Registry._loadModule("multiAlert");
+// Registry._loadModule("testModule2.config");
 
 // Open a window
 _electron.app.on("ready", function () {
-    testModule2instance.requestHandle({
-        type: "multiAlert"
-    }).then(channel => {
-        channel.alert("poooopy pants").then(() => {
-            return channel.alert("Nuts");
-        }).then(() => {
-            return channel.close();
-        });
-    });
-    testModule2instance2.requestHandle({
-        type: "multiAlert"
-    }).then(channel => {
-        channel.alert("testing").then(() => {
-            return channel.close();
-        });
-    });
-    testModule2instance2.requestHandle({
-        type: "alert"
-    }).then(channel => {
-        channel.alert("single alert").then(() => {
-            return channel.close();
-        });
-    });
+    _registry2.default._loadAllModules().then(data => {
+        const TestModule2 = _registry2.default.requestModule({ type: "test2" });
+        const testModule2instance = new TestModule2();
+        const testModule2instance2 = new TestModule2();
 
-    // WindowHandler.open(1).then(data=>{
-    //     console.log("Window opened", data);
-    //     Registry.requestHandle({
-    //         type: "test",
-    //         source: testModule2,
-    //     }).then(result=>{
-    //         console.log(result);
-    //     });
-    // }).catch(err=>{
-    //     console.error(err);
-    // });
+        testModule2instance.requestHandle({
+            type: "multiAlert"
+        }).then(channel => {
+            channel.alert("poooopy pants").then(() => {
+                return channel.alert("Nuts");
+            }).then(() => {
+                return channel.close();
+            });
+        });
+        testModule2instance2.requestHandle({
+            type: "multiAlert"
+        }).then(channel => {
+            channel.alert("testing").then(() => {
+                return channel.close();
+            });
+        });
+        testModule2instance2.requestHandle({
+            type: "alert"
+        }).then(channel => {
+            channel.alert("single alert").then(() => {
+                return channel.close();
+            });
+        });
+
+        // WindowHandler.open(1).then(data=>{
+        //     console.log("Window opened", data);
+        //     Registry.requestHandle({
+        //         type: "test",
+        //         source: testModule2,
+        //     }).then(result=>{
+        //         console.log(result);
+        //     });
+        // }).catch(err=>{
+        //     console.error(err);
+        // });
+    });
 });
 
 _IPC2.default.once("loaded", event => {
