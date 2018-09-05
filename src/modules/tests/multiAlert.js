@@ -1,6 +1,6 @@
-import Module from "../../core/registry/module";
+import LM from "LM";
 
-export default class MultiAlert extends Module {
+export default class MultiAlert extends LM.Module {
     constructor(request) {
         super(request);
         this.__init(() => {

@@ -1,47 +1,12 @@
 "use strict";
 
-var Registry = require("../../dist/core/registry/registry").default; //this is merely some test code
-
-
 require("source-map-support/register");
 
 var _electron = require("electron");
 
-var _url = require("url");
+var _LM = require("LM");
 
-var _url2 = _interopRequireDefault(_url);
-
-var _path = require("path");
-
-var _path2 = _interopRequireDefault(_path);
-
-var _IPC = require("../core/communication/IPC");
-
-var _IPC2 = _interopRequireDefault(_IPC);
-
-var _registry = require("../core/registry/registry");
-
-var _registry2 = _interopRequireDefault(_registry);
-
-var _channel = require("../core/communication/channel");
-
-var _channel2 = _interopRequireDefault(_channel);
-
-var _requestPath = require("../core/registry/requestPath");
-
-var _requestPath2 = _interopRequireDefault(_requestPath);
-
-var _globalDataHandler = require("../core/communication/data/globalDataHandler");
-
-var _globalDataHandler2 = _interopRequireDefault(_globalDataHandler);
-
-var _settingsHandler = require("../core/communication/data/settings/settingsHandler");
-
-var _settingsHandler2 = _interopRequireDefault(_settingsHandler);
-
-var _windowHandler = require("../core/window/windowHandler");
-
-var _windowHandler2 = _interopRequireDefault(_windowHandler);
+var _LM2 = _interopRequireDefault(_LM);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -79,33 +44,65 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // Registry._loadModule("testModule2.config");
 
 // Open a window
+// console.log(LM);
+//this is merely some test code
 _electron.app.on("ready", function () {
-    _registry2.default._loadAllModules().then(data => {
-        const TestModule2 = _registry2.default.requestModule({ type: "test2" });
+    _LM2.default.Registry._loadAllModules().then(data => {
+        const TestModule2 = _LM2.default.Registry.requestModule({ type: "test2" });
         const testModule2instance = new TestModule2();
         const testModule2instance2 = new TestModule2();
 
+        // testModule2instance
+        //     .requestHandle({
+        //         type: "multiAlert",
+        //     })
+        //     .then(channel => {
+        //         channel
+        //             .alert("poooopy pants")
+        //             .then(() => {
+        //                 return channel.alert("Nuts");
+        //             })
+        //             .then(() => {
+        //                 return channel.close();
+        //             });
+        //     });
+        // testModule2instance2
+        //     .requestHandle({
+        //         type: "multiAlert",
+        //     })
+        //     .then(channel => {
+        //         channel.alert("testing").then(() => {
+        //             return channel.close();
+        //         });
+        //     });
+        // testModule2instance2
+        //     .requestHandle({
+        //         type: "alert",
+        //     })
+        //     .then(channel => {
+        //         channel.alert("single alert").then(() => {
+        //             return channel.close();
+        //         });
+        //     });
+
+        const modules = [];
+        let count = 1000;
+        for (var i = 0; i < count; i++) modules.push(new TestModule2());
+
+        // Load the first instance and window
         testModule2instance.requestHandle({
             type: "multiAlert"
         }).then(channel => {
-            channel.alert("poooopy pants").then(() => {
-                return channel.alert("Nuts");
-            }).then(() => {
-                return channel.close();
-            });
-        });
-        testModule2instance2.requestHandle({
-            type: "multiAlert"
-        }).then(channel => {
-            channel.alert("testing").then(() => {
-                return channel.close();
-            });
-        });
-        testModule2instance2.requestHandle({
-            type: "alert"
-        }).then(channel => {
-            channel.alert("single alert").then(() => {
-                return channel.close();
+            console.time("Done");
+            modules.forEach(module => {
+                module.requestHandle({
+                    type: "alert"
+                }).then(channel => {
+                    if (--count == 0) console.timeEnd("Done");
+                    // channel.alert("single alert").then(() => {
+                    //     return channel.close();
+                    // });
+                });
             });
         });
 
@@ -122,69 +119,11 @@ _electron.app.on("ready", function () {
         // });
     });
 });
-
-_IPC2.default.once("loaded", event => {
-    // IPC.on("pong", event=>{
-    // 	return 3;
-    // })
-    //
-    // // IPC testing
-    // IPC.on("ping", (event)=>{
-    // 	console.log("ping", event);
-    // 	IPC.send("pong", {data:2}, 1).then(data=>{
-    //         console.log("response", data);
-    //     });
-    // 	// IPC.send("module", TestModule, 1);
-    // });
-    // IPC.on("moduleInstanceTransfer", (event)=>{
-    //     console.log(event);
-    // });
-    //
-    // // Channel testing
-    // var channel = Channel.createReceiver("TestName", {
-    // 	doSomething: event=>{
-    // 		console.log("smth", event);
-    // 	},
-    // 	doSomethingElse: event=>{
-    // 		console.log("smthElse", event);
-    // 	}
-    // });
-    // channel.createSubChannel("getColor", {
-    // 	onColor: event=>{
-    // 		console.log("color", event);
-    // 	},
-    // 	doSomethingElse: function(event){
-    // 		console.log("smthElse Overwritten", event, event.senderID);
-    // 		Channel.createSender(event.senderID, "", this.getID()).then(channel=>{
-    // 			console.log("establish connection");
-    // 			channel.smth("stuff");
-    // 		});
-    // 	}
-    // });
-    //
-    // // GlobalData testing
-    // GlobalData.create("test", {
-    // 	someField: {
-    // 		someData: 1,
-    // 		someOtherData: true
-    // 	},
-    // 	someStuff: "message",
-    // 	change: {
-    // 		1: 5,
-    // 		2: 5
-    // 	}
-    // }).then(globalData=>{
-    // 	console.log(globalData, globalData.get("someField.someData"));
-    // 	globalData.on("someField.update", event=>{
-    // 		console.log(event);
-    // 		globalData.change({
-    // 			someStuff: {
-    // 				crap: 3
-    // 			}
-    // 		});
-    // 	});
-    // });
-    //
-    // return 4;
-});
+// import url from "url";
+// import path from "path";
+// import IPC from "../core/communication/IPC";
+// import Registry from "../core/registry/registry";
+// import RequestPath from "../core/registry/requestPath";
+// import SettingsHandler from "../core/communication/data/settings/settingsHandler";
+// import WindowHandler from "../core/window/windowHandler";
 //# sourceMappingURL=main.js.map

@@ -16,8 +16,6 @@ var _promise = require("babel-runtime/core-js/promise");
 
 var _promise2 = _interopRequireDefault(_promise);
 
-var Registry = require("../../../dist/core/registry/registry").default;
-
 require("source-map-support/register");
 
 var _channelHandler = require("../communication/channel/channelHandler");

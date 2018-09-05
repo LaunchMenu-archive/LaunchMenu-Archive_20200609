@@ -13,13 +13,7 @@ var _symbol = require("babel-runtime/core-js/symbol");
 
 var _symbol2 = _interopRequireDefault(_symbol);
 
-var Registry = require("../../../dist/core/registry/registry").default;
-
 require("source-map-support/register");
-
-var _module = require("../registry/module");
-
-var _module2 = _interopRequireDefault(_module);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -110,7 +104,8 @@ class ExtendedJSON {
                     }
 
                     // If object is a module and serializable, serialize it
-                    if (object instanceof _module2.default && object[serializeSymbol] && object[deserializeSymbol]) {
+                    const Module = require("../registry/module").default;
+                    if (object instanceof Module && object[serializeSymbol] && object[deserializeSymbol]) {
                         const module = object.getClass().modulePath;
                         const data = object[serializeSymbol]();
                         return {

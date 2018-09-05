@@ -6,7 +6,9 @@
     "scripts": {
         "test": "node \"dev/test launcher.js\"",
         "start": "node dev/launcher.js",
-        "watch": "node-sass src/ -o dist/ & concurrently \"node-sass src/ -o dist/ -w\" \"cpx \\\"src/**/*.{html,png,jpg}\\\" \\\"dist\\\" --watch --verbose\" \"npx babel src --watch --out-dir dist --source-maps\"",
+        "watch-dev": "npx babel dev/src --watch --out-dir dev/dist --source-maps",
+        "watch": "node-sass src/ -o dist/ & concurrently \"node-sass src/ -o dist/ -w\" \"cpx \\\"src/**/*.{html,png,jpg,json}\\\" \\\"dist\\\" --watch --verbose\" \"cpx \\\"dist/core/**/*\\\" \\\"node_modules/lm\\\" --watch --verbose\" \"npx babel src --watch --out-dir dist --source-maps\"",
+        "clean": "rimraf dist/*",
         "jsdoc": "jsdoc src -r -c \".jsdocrc.json\"",
         "babel": "npx babel src/modules/testModule2.js --out-file dist/modules/testModule2.js --source-maps --plugins \"../../dist/dev/babelRequest.js\""
     },
@@ -29,6 +31,7 @@
         "electron": "2.0.4",
         "react": "^16.4.1",
         "react-dom": "^16.4.1",
+        "LM": "file:./dist/core",
         "source-map-support": "^0.5.6"
     },
     "devDependencies": {
@@ -47,12 +50,14 @@
         "concurrently": "^3.6.0",
         "cpx": "^1.5.0",
         "electron-ava": "^0.3.0",
+        "fs-extra-cli": "0.0.4",
         "jasmine": "^3.1.0",
         "jsdoc": "^3.5.5",
         "jsdoc-export-default-interop": "^0.3.1",
         "madge": "^3.2.0",
         "node-sass": "^4.9.2",
-        "npx": "^10.2.0"
+        "npx": "^10.2.0",
+        "rimraf": "^2.6.2"
     },
     "electron-ava": {
         "files": [

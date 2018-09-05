@@ -155,7 +155,6 @@ class Registry {
         }
     }
 
-    // Protected methods
     /**
      * Loads a module at the specified path relative to the modules folder
      * @param {string} path - The path to the module class
@@ -186,7 +185,7 @@ class Registry {
                     let modulePath;
                     if (config.module) {
                         // Get the directory of the config path
-                        let dir = path.split("/");
+                        let dir = path.split(_path2.default.sep);
                         dir.pop();
                         dir = dir.join("/");
 
@@ -223,6 +222,7 @@ class Registry {
         // Return the module
         return this.moduleClasses[path];
     }
+
     /**
      * Loads all the configs of available modules
      * @returns {Promise<Array<Class<Module>>>} All the module classes that have been loaded
@@ -278,6 +278,22 @@ class Registry {
     }
 
     /**
+     * Returns the relative path from this class to the modules directory
+     * @param {String} [path=""] - The path to append to the modules directory
+     * @returns {String} The relative path to the directory
+     * @private
+     */
+    static __getModulesPath(path = "") {
+        // Calculate how many dirs to go up to reach the root
+        let back = __dirname.substring(process.cwd().length).split(_path2.default.sep);
+        back.pop();
+        back = back.map(() => "..").join("/");
+
+        // Get the path from the root to the indicated module
+        return _path2.default.join(back, "dist", "modules", path);
+    }
+
+    /**
      * Registeres the module so the registry knows of its existence
      * @param {Module} moduleInstance - The module to register
      * @returns {number} The unique ID that the module instance has now been assigned
@@ -330,7 +346,6 @@ class Registry {
         return this.moduleInstances.length;
     }
 
-    // Private methods
     /**
      * Creates an object to store what classes can answer a certain request type if it hasn't been created already, and returns it
      * @param {String} type - The request type to return the object of
@@ -346,16 +361,6 @@ class Registry {
 
         // Return listener type
         return this.listeners[type];
-    }
-
-    /**
-     * Returns the relative path from this class to the modules directory
-     * @param {String} [path=""] - The path to append to the modules directory
-     * @returns {String} The relative path to the directory
-     * @private
-     */
-    static __getModulesPath(path = "") {
-        return _path2.default.join("..", "..", "modules", path);
     }
 
     /**

@@ -1,4 +1,3 @@
-import Module from "../registry/module";
 const pathSymbol = Symbol("path");
 const parentSymbol = Symbol("parent");
 const cleanSymbol = Symbol("clean");
@@ -93,6 +92,7 @@ export default class ExtendedJSON {
                     }
 
                     // If object is a module and serializable, serialize it
+                    const Module = require("../registry/module").default;
                     if (
                         object instanceof Module &&
                         object[serializeSymbol] &&

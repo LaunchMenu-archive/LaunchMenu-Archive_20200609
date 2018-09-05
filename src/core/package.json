@@ -1,0 +1,16 @@
+{
+    "name": "lm",
+    "version": "1.0.0",
+    "description": "The core code of LM, (which includes none of the modules, including essential ones)",
+    "license": "MIT",
+    "main": "index.js",
+    "author": "Tar van Krieken",
+    "contributors": [
+        "Tar van Krieken",
+        "Sancarn"
+    ],
+    "dependencies": {
+        "electron": "2.0.4",
+        "source-map-support": "^0.5.6"
+    }
+}

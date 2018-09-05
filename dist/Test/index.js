@@ -1,7 +1,5 @@
 "use strict";
 
-var Registry = require("../../dist/core/registry/registry").default;
-
 require("source-map-support/register");
 
 var _react = require("react");
@@ -24,7 +22,7 @@ var _IPC = require("../core/communication/IPC");
 
 var _IPC2 = _interopRequireDefault(_IPC);
 
-var _LMTest = Registry.requestModule("test");
+var _LMTest = require("LM:test");
 
 var _LMTest2 = _interopRequireDefault(_LMTest);
 

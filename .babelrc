@@ -1,12 +1,8 @@
 {
-    "presets": [
-        "node6",
-        "es2016"
-    ],
+    "presets": ["node6", "es2016"],
     "plugins": [
-        "./dist/dev/babelRequest.js",
         "transform-runtime",
         "transform-react-jsx",
-        "source-map-support",
+        "source-map-support"
     ]
 }

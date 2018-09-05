@@ -4,8 +4,6 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var Registry = require("../../../dist/core/registry/registry").default;
-
 require("source-map-support/register");
 
 var _IPC = require("../communication/IPC");

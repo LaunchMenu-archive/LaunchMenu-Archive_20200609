@@ -1,14 +1,13 @@
 //this is merely some test code
 import {app, BrowserWindow} from "electron";
-import url from "url";
-import path from "path";
-import IPC from "../core/communication/IPC";
-import Registry from "../core/registry/registry";
-import Channel from "../core/communication/channel";
-import RequestPath from "../core/registry/requestPath";
-import GlobalDataHandler from "../core/communication/data/globalDataHandler";
-import SettingsHandler from "../core/communication/data/settings/settingsHandler";
-import WindowHandler from "../core/window/windowHandler";
+// import url from "url";
+// import path from "path";
+// import IPC from "../core/communication/IPC";
+// import Registry from "../core/registry/registry";
+// import RequestPath from "../core/registry/requestPath";
+// import SettingsHandler from "../core/communication/data/settings/settingsHandler";
+// import WindowHandler from "../core/window/windowHandler";
+import LM from "LM";
 
 // var {app, BrowserWindow} = require('electron');
 // var mainWindow;
@@ -44,42 +43,68 @@ import WindowHandler from "../core/window/windowHandler";
 // Registry._loadModule("testModule2.config");
 
 // Open a window
+// console.log(LM);
 app.on("ready", function() {
-    Registry._loadAllModules().then(data => {
-        const TestModule2 = Registry.requestModule({type: "test2"});
+    LM.Registry._loadAllModules().then(data => {
+        const TestModule2 = LM.Registry.requestModule({type: "test2"});
         const testModule2instance = new TestModule2();
         const testModule2instance2 = new TestModule2();
 
+        // testModule2instance
+        //     .requestHandle({
+        //         type: "multiAlert",
+        //     })
+        //     .then(channel => {
+        //         channel
+        //             .alert("poooopy pants")
+        //             .then(() => {
+        //                 return channel.alert("Nuts");
+        //             })
+        //             .then(() => {
+        //                 return channel.close();
+        //             });
+        //     });
+        // testModule2instance2
+        //     .requestHandle({
+        //         type: "multiAlert",
+        //     })
+        //     .then(channel => {
+        //         channel.alert("testing").then(() => {
+        //             return channel.close();
+        //         });
+        //     });
+        // testModule2instance2
+        //     .requestHandle({
+        //         type: "alert",
+        //     })
+        //     .then(channel => {
+        //         channel.alert("single alert").then(() => {
+        //             return channel.close();
+        //         });
+        //     });
+
+        const modules = [];
+        let count = 1000;
+        for (var i = 0; i < count; i++) modules.push(new TestModule2());
+
+        // Load the first instance and window
         testModule2instance
             .requestHandle({
                 type: "multiAlert",
             })
             .then(channel => {
-                channel
-                    .alert("poooopy pants")
-                    .then(() => {
-                        return channel.alert("Nuts");
-                    })
-                    .then(() => {
-                        return channel.close();
-                    });
-            });
-        testModule2instance2
-            .requestHandle({
-                type: "multiAlert",
-            })
-            .then(channel => {
-                channel.alert("testing").then(() => {
-                    return channel.close();
-                });
-            });
-        testModule2instance2
-            .requestHandle({
-                type: "alert",
-            })
-            .then(channel => {
-                channel.alert("single alert").then(() => {
-                    return channel.close();
+                console.time("Done");
+                modules.forEach(module => {
+                    module
+                        .requestHandle({
+                            type: "alert",
+                        })
+                        .then(channel => {
+                            if (--count == 0) console.timeEnd("Done");
+                            // channel.alert("single alert").then(() => {
+                            //     return channel.close();
+                            // });
+                        });
                 });
             });
 
@@ -95,69 +120,4 @@ app.on("ready", function() {
         //     console.error(err);
         // });
     });
-});
-
-IPC.once("loaded", event => {
-    // IPC.on("pong", event=>{
-    // 	return 3;
-    // })
-    //
-    // // IPC testing
-    // IPC.on("ping", (event)=>{
-    // 	console.log("ping", event);
-    // 	IPC.send("pong", {data:2}, 1).then(data=>{
-    //         console.log("response", data);
-    //     });
-    // 	// IPC.send("module", TestModule, 1);
-    // });
-    // IPC.on("moduleInstanceTransfer", (event)=>{
-    //     console.log(event);
-    // });
-    //
-    // // Channel testing
-    // var channel = Channel.createReceiver("TestName", {
-    // 	doSomething: event=>{
-    // 		console.log("smth", event);
-    // 	},
-    // 	doSomethingElse: event=>{
-    // 		console.log("smthElse", event);
-    // 	}
-    // });
-    // channel.createSubChannel("getColor", {
-    // 	onColor: event=>{
-    // 		console.log("color", event);
-    // 	},
-    // 	doSomethingElse: function(event){
-    // 		console.log("smthElse Overwritten", event, event.senderID);
-    // 		Channel.createSender(event.senderID, "", this.getID()).then(channel=>{
-    // 			console.log("establish connection");
-    // 			channel.smth("stuff");
-    // 		});
-    // 	}
-    // });
-    //
-    // // GlobalData testing
-    // GlobalData.create("test", {
-    // 	someField: {
-    // 		someData: 1,
-    // 		someOtherData: true
-    // 	},
-    // 	someStuff: "message",
-    // 	change: {
-    // 		1: 5,
-    // 		2: 5
-    // 	}
-    // }).then(globalData=>{
-    // 	console.log(globalData, globalData.get("someField.someData"));
-    // 	globalData.on("someField.update", event=>{
-    // 		console.log(event);
-    // 		globalData.change({
-    // 			someStuff: {
-    // 				crap: 3
-    // 			}
-    // 		});
-    // 	});
-    // });
-    //
-    // return 4;
 });

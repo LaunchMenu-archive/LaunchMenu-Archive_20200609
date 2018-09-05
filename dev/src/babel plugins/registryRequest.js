@@ -1,72 +1,59 @@
-export default function({types:t}){
+// This is currently broken and not yet fixex because I haven't decided to make use of it in general.
+export default function({types: t}) {
     var requestStatement = null;
     return {
         visitor: {
-            Program(path, data){
+            Program(path, data) {
                 // Reset when the plugin runs on a new file
                 requestStatement = null;
-
 
                 // Require the registry class once
                 // Get the filename of the file we are currently transpiling
                 const filename = data.file.opts.filename;
 
-                // Don't require the registry in the registry itself, or this babel module
-                const registryPath = "core/registry/registry.js";
-                if(filename.match(/(core\/registry\/registry\.js$)|(dev\/babelRequest\.js$)/)) return;
-
-                // Get import path (relative from current location to registry)
-                const filePath = filename
-                                    .split("/")
-                                    .slice(1)
-                                    .map(n => "..")
-                                    .concat(["dist", "core", "registry", "registry"])
-                                    .join("/");
+                // Don't require the registry in any core module
+                if (filename.match(/\bcore\//)) return;
 
                 // Create a require statement for the registry
-                const requireDeclaration = t.VariableDeclaration(
-                    "var",
-                    [
-                        t.VariableDeclarator(
-                            t.Identifier("Registry"),
-                            t.MemberExpression(
-                                t.CallExpression(
-                                    t.Identifier("require"),
-                                    [t.StringLiteral(filePath)]
-                                ),
-                                t.Identifier("default")
-                            )
+                const requireDeclaration = t.VariableDeclaration("var", [
+                    t.VariableDeclarator(
+                        t.Identifier("Registry"),
+                        t.MemberExpression(
+                            t.CallExpression(t.Identifier("require"), [
+                                t.StringLiteral("LM"),
+                            ]),
+                            t.Identifier("Registry")
                         )
-                    ]
-                );
+                    ),
+                ]);
 
                 // Set _blockHoist which will assure it is appended to the top of the document
                 requireDeclaration._blockHoist = 3;
 
                 // Add the requireDeclaration to the document
                 const firstNode = path.get("body")[0];
-                if(firstNode) firstNode.insertBefore(requireDeclaration);
+                // if (firstNode) firstNode.insertBefore(requireDeclaration);
             },
-            CallExpression(path){
+            CallExpression(path) {
                 const node = path.node;
 
                 // Check if the call is to a require method
                 const name = node.callee.name;
-                if(name!=="require") return;
+                if (name !== "require") return;
 
                 // Check if argument is a string literal
                 const arg = node.arguments[0];
-                if(arg.type!=="StringLiteral") return;
+                if (arg.type !== "StringLiteral") return;
 
                 // Check if string has the LM prefix
                 const text = arg.value;
-                if(!text.match(/^LM\:/)) return;
+                if (!text.match(/^LM\:/)) return;
 
                 // Remove LM: from string
                 arg.value = text.substring(3);
 
                 // Replace normal require
-                if(requestStatement){
+                if (requestStatement) {
                     // As a Registry.request already exists in this file, make it a multi request and add this to it
 
                     const varNode = requestStatement.node;
@@ -74,39 +61,35 @@ export default function({types:t}){
                     const requestArgs = declaration.init.arguments;
 
                     // Turn the assignment into a multipe variable assignment if it isn't already
-                    if(declaration.id.type!="ObjectPattern"){
-                        declaration.id = t.ObjectPattern(
-                            [
-                                t.ObjectProperty(
-                                    t.Identifier(requestArgs[0].value),
-                                    declaration.id,
-                                )
-                            ]
-                        );
+                    if (declaration.id.type != "ObjectPattern") {
+                        declaration.id = t.ObjectPattern([
+                            t.ObjectProperty(
+                                t.Identifier(requestArgs[0].value),
+                                declaration.id
+                            ),
+                        ]);
                     }
 
                     // Add the new data to the assignment
                     let varName = path.parentPath.node.id;
-                    if(varName){
+                    if (varName) {
                         varName = varName.name;
 
                         // Add field to descturing object
                         declaration.id.properties.push(
                             t.ObjectProperty(
                                 t.Identifier(arg.value),
-                                t.Identifier(varName),
+                                t.Identifier(varName)
                             )
                         );
 
                         // Add method to request call
-                        requestArgs.push(
-                            arg
-                        );
+                        requestArgs.push(arg);
 
                         // Remove the original import request
                         path.parentPath.remove();
                     }
-                }else{
+                } else {
                     // Replace require with Registry.request
                     path.replaceWith(
                         t.CallExpression(
@@ -121,7 +104,7 @@ export default function({types:t}){
                     // Make it so any future requests add to this already existing request
                     requestStatement = path.parentPath.parentPath;
                 }
-            }
-        }
+            },
+        },
     };
 }

@@ -1,11 +1,10 @@
-import Module from "../core/registry/module";
+import LM from "LM";
 
-export default class Alert extends Module{
-    constructor(request){
+export default class Alert extends LM.Module {
+    constructor(request) {
         super(request);
-        console.log(this);
     }
-    $alert(event, text){
+    $alert(event, text) {
         window.alert(text);
         // console.info(text);
         // return new Promise(resolve=>{
@@ -15,7 +14,7 @@ export default class Alert extends Module{
 }
 export const config = {
     type: "alert",
-    filter: request=>{
+    filter: request => {
         return true;
-    }
+    },
 };

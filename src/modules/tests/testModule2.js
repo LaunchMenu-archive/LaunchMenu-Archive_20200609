@@ -1,11 +1,10 @@
-import Registry from "../../core/registry/registry";
-import Module from "../../core/registry/module";
+import LM from "LM";
 import {
     serializeSymbol,
     deserializeSymbol,
 } from "../../core/communication/extendedJSON";
 
-export default class TestModule2 extends Module {
+export default class TestModule2 extends LM.Module {
     constructor(request, name) {
         super(request, true);
         this.name = name;

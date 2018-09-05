@@ -2,7 +2,7 @@ import {app, BrowserWindow, ipcMain, ipcRenderer} from "electron";
 import Url from "url";
 import Path from "path";
 import SettingsHandler from "../communication/data/settings/settingsHandler";
-import ChannelHandler from "../communication/channel";
+import ChannelHandler from "../communication/channel/channelHandler";
 import IPC from "../communication/IPC";
 import Registry from "../registry/registry";
 import isMain from "../isMain";
