@@ -1,6 +1,6 @@
-import LM from "LM";
+import Module from "LM:Module";
 
-export default class MultiAlert extends LM.Module {
+export default class MultiAlert extends Module {
     constructor(request) {
         super(request);
         this.__init(() => {
@@ -17,9 +17,3 @@ export default class MultiAlert extends LM.Module {
         });
     }
 }
-export const config = {
-    type: "multiAlert",
-    filter: request => {
-        return true;
-    },
-};

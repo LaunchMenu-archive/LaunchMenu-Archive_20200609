@@ -270,8 +270,7 @@ export default class WindowHandler {
                 const data = event.data;
                 try {
                     // Load the module class from the passed module path
-                    const moduleExport = Registry._loadModule(data.modulePath);
-                    const ModuleClass = moduleExport.default;
+                    const ModuleClass = Registry._loadModule(data.modulePath);
 
                     // Instanciate the module from the class
                     const module = new ModuleClass(data.request);

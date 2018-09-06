@@ -23,8 +23,6 @@ export default class ExtendedJSON {
      * @public
      */
     static encode(object) {
-        // return object; //TODO: remove (just for testing);
-        const start = process.hrtime()[1];
         /**
          * Goes through an object and returns the object in the encoded format
          * @param {Object} object - The object to convert
@@ -143,7 +141,6 @@ export default class ExtendedJSON {
         this.__cleanObject(object, pathSymbol);
 
         // Return the encoded data
-        global.encode += process.hrtime()[1] - start;
         return encodedObject;
     }
     /**
@@ -153,8 +150,6 @@ export default class ExtendedJSON {
      * @public
      */
     static decode(object) {
-        const start = process.hrtime()[1];
-        // return object; //TODO: remove (just for testing);
         /**
          * Goes through an encoded object and returns the object in its original format
          * @param {Object} value - The value to decode
@@ -197,8 +192,7 @@ export default class ExtendedJSON {
                                 .default;
 
                             // Load the module from its path
-                            const moduleData = Registry._loadModule(m[1]);
-                            const module = moduleData.default;
+                            const module = Registry._loadModule(m[1]);
 
                             // Load the module from its path and return it
                             return module;
@@ -256,9 +250,7 @@ export default class ExtendedJSON {
         };
 
         // Decode the object and return the result
-        const value = decodeValue(object);
-        global.decode += process.hrtime()[1] - start;
-        return value;
+        return decodeValue(object);
     }
 
     /**

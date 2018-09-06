@@ -118,7 +118,7 @@ class Registry {
      * @public
      */
     static requestModule(request) {
-        // Get all the requests that were passed (multiple are allowed) TODO: indicate in JSdoc
+        // Get all the requests that were passed (multiple are allowed) TODO: indicate multiple in JSdoc
         var requests = (0, _from2.default)(arguments);
 
         // Normalize the format of the requests
@@ -199,18 +199,25 @@ class Registry {
                     if (!config.filter) config.filter = () => true;
 
                     // Attach the location of the module to the config
-                    config.module = modulePath;
+                    config.modulePath = modulePath;
                 });
 
                 // Return the configs
                 return configs;
             } else {
+                // Indicate that we have started requiring this module
+                this.requiringModules.push(path);
+
                 // Require module
                 const moduleImport = require(this.__getModulesPath(path));
 
+                // Indicate that we are no longer in the process of loading this module
+                const index = this.requiringModules.indexOf(path);
+                if (index != -1) this.requiringModules.splice(index, 1);
+
                 if (moduleImport) {
                     // Register the module itself
-                    this.moduleClasses[path] = moduleImport;
+                    this.moduleClasses[path] = moduleImport.default;
 
                     // Attach the location to the class
                     const module = moduleImport.default;
@@ -366,10 +373,11 @@ class Registry {
     /**
      * Retrieves the modules that can handle the passed request
      * @param {Registry~Request} request - The request to find module classes for
+     * @param {string[]} loadingModules - A list of module paths that are currently being required
      * @returns {(Class<Module>|Array<Class<Module>>)} The module classes that have been chosen to handle the request
      * @private
      */
-    static __getModules(request) {
+    static __getModules(request, loadingModules) {
         // Get the module listeners to handle this type of request
         const listenerType = this.__getListeners(request.type);
 
@@ -379,7 +387,7 @@ class Registry {
                 priority: config.filter(request),
                 config: config
             };
-        }).filter(priority => priority.priority > 0);
+        }).filter(priority => priority.priority > 0 && loadingModules.indexOf(priority.config.modulePath) == -1);
 
         // Sort the results
         priorities.sort((a, b) => b.priority - a.priority);
@@ -406,26 +414,14 @@ class Registry {
     static __GetModulesFromConfigs(configs) {
         return configs.map(config => {
             // Require the module from its path if this hasn't happened yet
-            if (typeof config.module == "string") {
-                const modulePath = config.module;
+            if (!(config.module instanceof _module2.default)) {
+                const modulePath = config.modulePath;
 
                 // Load the module from the path
-                const moduleImport = require(this.__getModulesPath(modulePath));
+                const module = this._loadModule(modulePath);
 
-                if (moduleImport) {
-                    // Assign the config the actual module
-                    const module = moduleImport.default;
-                    config.module = module;
-
-                    // Set the location of the module
-                    module.modulePath = modulePath;
-
-                    // Register the module itself
-                    this.moduleClasses[modulePath] = moduleImport;
-                } else {
-                    // If no module could be found, just set it to null TODO: throw a proper error
-                    config.module = null;
-                }
+                // Store the module
+                config.module = module;
             }
 
             // Return the module itself, which should now in no situation be a path
@@ -446,23 +442,31 @@ class Registry {
             if (_isMain2.default) {
                 // Directly resolve the request as we have access to all modules
                 return requests.map(request => {
-                    return this.__getModules(request);
+                    return this.__getModules(request, this.requiringModules);
                 });
             } else {
                 // Send a command to the main window to look for modules to resolve the request
-                return _IPC2.default.sendSync("Registry.request", requests)[0];
+                const modules = _IPC2.default.sendSync("Registry.request", {
+                    requests: requests,
+                    requiringModules: this.requiringModules
+                });
+
+                return modules[0];
             }
         } else {
             // Retrieve the modules to resolve the request
             if (_isMain2.default) {
                 // Directly resolve the request as we have access to all modules
                 const requestsModules = requests.map(request => {
-                    return this.__getModules(request);
+                    return this.__getModules(request, this.requiringModules);
                 });
                 return this.__finishRequest(type, requests, requestsModules);
             } else {
                 // Send a command to the main window to look for modules to resolve the request
-                const requestsModules = _IPC2.default.sendSync("Registry.request", requests, 0);
+                const requestsModules = _IPC2.default.sendSync("Registry.request", {
+                    requests: requests,
+                    requiringModules: this.requiringModules
+                }, 0);
                 return this.__finishRequest(type, requests, requestsModules);
             }
         }
@@ -579,15 +583,19 @@ class Registry {
         // Stores instances of modules registered in this window/process
         this.moduleInstances = [];
 
+        // Keep track of modules that are currently being required
+        this.requiringModules = [];
+
         // Set up the IPC listeners in the renderers and main process to allow renderers to request modules
         if (_isMain2.default) {
             // Filter out possible modules in this window to handle the handle request
             _IPC2.default.on("Registry.request", event => {
-                const requests = event.data;
+                const requests = event.data.requests;
+                const requiringModules = event.data.requiringModules;
 
                 // Retrieve the priority mapping for every request
                 const requestsModules = requests.map(request => {
-                    return this.__getModules(request);
+                    return this.__getModules(request, requiringModules);
                 });
 
                 // Return the mapping of modules and their priorities

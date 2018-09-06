@@ -33,4 +33,5 @@ function scanDir(path) {
 }
 scanDir(__dirname);
 
+Object.assign(exports, classes);
 export default classes;

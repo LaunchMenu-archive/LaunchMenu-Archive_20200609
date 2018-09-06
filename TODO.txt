@@ -6,6 +6,8 @@ short-term:
     // -automatically load modules in the main thread
     -allow modules to run in a negative window number to run in a windowless thread
 
+    -allow module handles to open in a specified element
+
     -clean up code:
         // -turn from promises to async methods
         // -separate all classes into dedicated files

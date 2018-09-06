@@ -6,7 +6,7 @@
     "scripts": {
         "test": "node \"dev/test launcher.js\"",
         "start": "node dev/launcher.js",
-        "watch-dev": "npx babel dev/src --watch --out-dir dev/dist --source-maps",
+        "watch-dev": "npx babel --no-babelrc --presets=es2015 dev/src --watch --out-dir dev/dist --source-maps --plugins=transform-runtime,transform-react-jsx,source-map-support",
         "watch": "node-sass src/ -o dist/ & concurrently \"node-sass src/ -o dist/ -w\" \"cpx \\\"src/**/*.{html,png,jpg,json}\\\" \\\"dist\\\" --watch --verbose\" \"cpx \\\"dist/core/**/*\\\" \\\"node_modules/lm\\\" --watch --verbose\" \"npx babel src --watch --out-dir dist --source-maps\"",
         "clean": "rimraf dist/*",
         "jsdoc": "jsdoc src -r -c \".jsdocrc.json\"",

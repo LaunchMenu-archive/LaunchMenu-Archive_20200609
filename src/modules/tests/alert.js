@@ -1,6 +1,5 @@
-import LM from "LM";
-
-export default class Alert extends LM.Module {
+import Module from "LM:Module";
+export default class Alert extends Module {
     constructor(request) {
         super(request);
     }
@@ -12,9 +11,3 @@ export default class Alert extends LM.Module {
         // })
     }
 }
-export const config = {
-    type: "alert",
-    filter: request => {
-        return true;
-    },
-};

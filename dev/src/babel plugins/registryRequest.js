@@ -19,9 +19,12 @@ export default function({types: t}) {
                     t.VariableDeclarator(
                         t.Identifier("Registry"),
                         t.MemberExpression(
-                            t.CallExpression(t.Identifier("require"), [
-                                t.StringLiteral("LM"),
-                            ]),
+                            t.MemberExpression(
+                                t.CallExpression(t.Identifier("require"), [
+                                    t.StringLiteral("LM"),
+                                ]),
+                                t.Identifier("default")
+                            ),
                             t.Identifier("Registry")
                         )
                     ),
@@ -32,7 +35,7 @@ export default function({types: t}) {
 
                 // Add the requireDeclaration to the document
                 const firstNode = path.get("body")[0];
-                // if (firstNode) firstNode.insertBefore(requireDeclaration);
+                if (firstNode) firstNode.insertBefore(requireDeclaration);
             },
             CallExpression(path) {
                 const node = path.node;

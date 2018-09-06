@@ -1,12 +1,13 @@
-import LM from "LM";
-export default class StressTest extends LM.Module {
+import {IPC, isMain} from "LM";
+import TestModule2 from "LM:test2";
+import Module from "LM:Module";
+
+export default class StressTest extends Module {
     constructor(request) {
         super(request, true);
     }
     $test() {
         if (true) {
-            const TestModule2 = LM.Registry.requestModule({type: "test2"});
-
             const modules = [];
             const promises = [];
             let count = 100;
@@ -31,10 +32,6 @@ export default class StressTest extends LM.Module {
                         .then(channel => {
                             if (--count == 0) {
                                 console.timeEnd("Done");
-                                console.log(
-                                    global.encode / 1e6,
-                                    global.decode / 1e6
-                                );
                             }
                             // channel.alert("single alert").then(() => {
                             //     return channel.close();
@@ -46,7 +43,7 @@ export default class StressTest extends LM.Module {
             });
         } else {
             const sendTest = n =>
-                LM.IPC.send("Stress.test", "", 0).then(() => {
+                IPC.send("Stress.test", "", 0).then(() => {
                     if (n - 1 > 0) return sendTest(n - 1);
                     else console.timeEnd("start");
                 });
@@ -57,8 +54,8 @@ export default class StressTest extends LM.Module {
     }
 }
 
-if (LM.isMain) {
-    LM.IPC.on("Stress.test", event => {
+if (isMain) {
+    IPC.on("Stress.test", event => {
         return "test";
     });
 }

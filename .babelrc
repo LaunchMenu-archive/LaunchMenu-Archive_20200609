@@ -1,6 +1,7 @@
 {
     "presets": ["node6", "es2016"],
     "plugins": [
+        "./dev/dist/babel plugins/registryRequest",
         "transform-runtime",
         "transform-react-jsx",
         "source-map-support"

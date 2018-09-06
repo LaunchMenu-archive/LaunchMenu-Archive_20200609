@@ -1,10 +1,10 @@
-import LM from "LM";
+import Module from "LM:Module";
 import {
     serializeSymbol,
     deserializeSymbol,
 } from "../../core/communication/extendedJSON";
 
-export default class TestModule2 extends LM.Module {
+export default class TestModule2 extends Module {
     constructor(request, name) {
         super(request, true);
         this.name = name;

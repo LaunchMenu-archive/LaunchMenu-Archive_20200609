@@ -1,5 +1,16 @@
 "use strict";
 
+var Registry = require("LM").default.Registry; //this is merely some test code
+
+// import url from "url";
+// import path from "path";
+// import IPC from "../core/communication/IPC";
+// import Registry from "../core/registry/registry";
+// import RequestPath from "../core/registry/requestPath";
+// import SettingsHandler from "../core/communication/data/settings/settingsHandler";
+// import WindowHandler from "../core/window/windowHandler";
+
+
 require("source-map-support/register");
 
 var _electron = require("electron");
@@ -45,7 +56,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 // Open a window
 // console.log(LM);
-//this is merely some test code
 _electron.app.on("ready", function () {
     _LM2.default.Registry._loadAllModules().then(data => {
         const TestModule2 = _LM2.default.Registry.requestModule({ type: "test2" });
@@ -75,19 +85,19 @@ _electron.app.on("ready", function () {
         //             return channel.close();
         //         });
         //     });
-        // testModule2instance2
-        //     .requestHandle({
-        //         type: "alert",
-        //     })
-        //     .then(channel => {
-        //         channel.alert("single alert").then(() => {
-        //             return channel.close();
-        //         });
-        //     });
-
-        testModule2instance.requestHandle({ type: "stress" }).then(channel => {
-            channel.test();
+        testModule2instance2.requestHandle({
+            type: "alert"
+        }).then(channel => {
+            channel.alert("single alert").then(() => {
+                return channel.close();
+            });
         });
+
+        // testModule2instance
+        //     .requestHandle({type: "stress"})
+        //     .then(channel => {
+        //         channel.test();
+        //     });
 
         // WindowHandler.open(1).then(data=>{
         //     console.log("Window opened", data);
@@ -100,13 +110,8 @@ _electron.app.on("ready", function () {
         // }).catch(err=>{
         //     console.error(err);
         // });
+    }).catch(e => {
+        console.error(e);
     });
 });
-// import url from "url";
-// import path from "path";
-// import IPC from "../core/communication/IPC";
-// import Registry from "../core/registry/registry";
-// import RequestPath from "../core/registry/requestPath";
-// import SettingsHandler from "../core/communication/data/settings/settingsHandler";
-// import WindowHandler from "../core/window/windowHandler";
 //# sourceMappingURL=main.js.map
