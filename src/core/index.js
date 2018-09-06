@@ -12,7 +12,10 @@ function scanDir(path) {
         const filePath = Path.join(path, file);
 
         // Check if path is a directory
-        if (FS.lstatSync(filePath).isDirectory()) {
+        if (
+            FS.lstatSync(filePath).isDirectory() &&
+            !file.match(/\bnode_modules\b/)
+        ) {
             // Recurse if this path is also a directory
             scanDir(filePath);
         } else if (filePath.match(/\.js(x?)$/)) {

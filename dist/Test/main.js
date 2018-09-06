@@ -85,25 +85,8 @@ _electron.app.on("ready", function () {
         //         });
         //     });
 
-        const modules = [];
-        let count = 1000;
-        for (var i = 0; i < count; i++) modules.push(new TestModule2());
-
-        // Load the first instance and window
-        testModule2instance.requestHandle({
-            type: "multiAlert"
-        }).then(channel => {
-            console.time("Done");
-            modules.forEach(module => {
-                module.requestHandle({
-                    type: "alert"
-                }).then(channel => {
-                    if (--count == 0) console.timeEnd("Done");
-                    // channel.alert("single alert").then(() => {
-                    //     return channel.close();
-                    // });
-                });
-            });
+        testModule2instance.requestHandle({ type: "stress" }).then(channel => {
+            channel.test();
         });
 
         // WindowHandler.open(1).then(data=>{

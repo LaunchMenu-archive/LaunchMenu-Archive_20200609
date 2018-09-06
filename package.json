@@ -2,7 +2,7 @@
     "name": "launchmenu",
     "version": "1.0.0",
     "description": "An open source utility program focusing on file searches",
-    "main": "dest/main.s",
+    "main": "dist/test/main.js",
     "scripts": {
         "test": "node \"dev/test launcher.js\"",
         "start": "node dev/launcher.js",
@@ -28,7 +28,7 @@
     },
     "homepage": "https://github.com/LaunchMenu/LaunchMenu#readme",
     "dependencies": {
-        "electron": "2.0.4",
+        "electron": "2.0.8",
         "react": "^16.4.1",
         "react-dom": "^16.4.1",
         "LM": "file:./dist/core",

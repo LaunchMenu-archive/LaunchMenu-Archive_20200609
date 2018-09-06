@@ -1,8 +1,8 @@
-var electron = require('electron');
+var electron = require("electron");
 
-var proc = require('child_process');
+var proc = require("child_process");
 
-var child = proc.spawn(electron, ["dist/test/main.js"], {stdio:'inherit'})
-child.on('close', function(code){
+var child = proc.spawn(electron, ["dist/test/main.js"], {stdio: "inherit"});
+child.on("close", function(code) {
     process.exit(code);
 });

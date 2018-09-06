@@ -46,7 +46,7 @@ export default class WindowHandler {
         // Check if this code is ran in the main process
         if (!isMain) {
             // If it is not ran in the main process, forward the call to the main process
-            return IPC.send("WindowHandler.open", {
+            return IPC.sendSync("WindowHandler.open", {
                 ID: windowID,
             });
         } else {

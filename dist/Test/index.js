@@ -2,129 +2,117 @@
 
 require("source-map-support/register");
 
-var _react = require("react");
+var _electron = require("electron");
 
-var _react2 = _interopRequireDefault(_react);
+console.log("Detect");
+var _LM = require("LM");
 
-var _reactDom = require("react-dom");
+var _LM2 = _interopRequireDefault(_LM);
 
-var _reactDom2 = _interopRequireDefault(_reactDom);
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : {default: obj};
+}
 
-var _importTest = require("./importTest");
+//this is merely some test code
+// var {app, BrowserWindow} = require('electron');
+// var mainWindow;
+// app.on('window-all-closed', function() {
+//   	if (process.platform != 'darwin') {
+//     	app.quit();
+//   	}
+// });
+// app.on('ready', function() {
+// 	mainWindow = new BrowserWindow({width: 1360, height: 800});
+// 	// mainWindow.loadURL(url.format({
+// 	//   pathname: "www.google.com",
+// 	//   protocol: 'https:',
+// 	//   slashes: true
+// 	// }));
+// 	mainWindow.loadURL(url.format({
+// 		pathname: path.join(process.cwd(), "dist", "Test", "index.html"),
+// 		protocol: 'file:',
+// 		slashes: true
+// 	}))
+// 	mainWindow.openDevTools();
+// 	mainWindow.on('closed', function() {
+// 		mainWindow = null;
+// 	});
+//
+// 	// Register window
+// 	IPC._registerWindow(mainWindow);
+// });
 
-var _importTest2 = _interopRequireDefault(_importTest);
+// Module registry
+// Registry._loadModule("alerts.config");
+// Registry._loadModule("multiAlert");
+// Registry._loadModule("testModule2.config");
 
-var _channel = require("../core/communication/channel");
+// Open a window
+// console.log(LM);
 
-var _channel2 = _interopRequireDefault(_channel);
-
-var _IPC = require("../core/communication/IPC");
-
-var _IPC2 = _interopRequireDefault(_IPC);
-
-var _LMTest = require("LM:test");
-
-var _LMTest2 = _interopRequireDefault(_LMTest);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-(0, _importTest2.default)();
-
-var el = _react2.default.createElement(
-  "div",
-  { className: "test" },
-  "Click me (though nothing will happen)"
-);
-_reactDom2.default.render(el, document.getElementById('root'));
-
-// IPC testing
-
-_IPC2.default.sendSync("loaded", null);
-
-// Module registry test
+// import url from "url";
+// import path from "path";
+// import IPC from "../core/communication/IPC";
 // import Registry from "../core/registry/registry";
-// const {test:something, crap:somethingElse} = Registry.requestModule("test", "crap");
+// import RequestPath from "../core/registry/requestPath";
+// import SettingsHandler from "../core/communication/data/settings/settingsHandler";
+// import WindowHandler from "../core/window/windowHandler";
+_electron.app.on("ready", function() {
+    _LM2.default.Registry._loadAllModules().then(data => {
+        const TestModule2 = _LM2.default.Registry.requestModule({
+            type: "test2",
+        });
+        const testModule2instance = new TestModule2();
+        const testModule2instance2 = new TestModule2();
 
-console.log(_LMTest2.default);
+        // testModule2instance
+        //     .requestHandle({
+        //         type: "multiAlert",
+        //     })
+        //     .then(channel => {
+        //         channel
+        //             .alert("poooopy pants")
+        //             .then(() => {
+        //                 return channel.alert("Nuts");
+        //             })
+        //             .then(() => {
+        //                 return channel.close();
+        //             });
+        //     });
+        // testModule2instance2
+        //     .requestHandle({
+        //         type: "multiAlert",
+        //     })
+        //     .then(channel => {
+        //         channel.alert("testing").then(() => {
+        //             return channel.close();
+        //         });
+        //     });
+        // testModule2instance2
+        //     .requestHandle({
+        //         type: "alert",
+        //     })
+        //     .then(channel => {
+        //         channel.alert("single alert").then(() => {
+        //             return channel.close();
+        //         });
+        //     });
 
-const something = new _LMTest2.default();
+        testModule2instance.requestHandle({type: "stress"}).then(channel => {
+            channel.test();
+        });
 
-// import SettingsHandler from "../core/communication/data/settingsHandler";
-// SettingsHandler.create(something, {stuff:1}).then(settings=>{
-//     settings.change({
-//         crap: 3
-//     }).then(()=>{
-//         settings.save();
-//     })
-// });
-
-//
-// // ExtendedJSON testing
-// import ExtendedJSON from "../core/communication/ExtendedJSON";
-// var obj = {
-//     test: 5,
-//     stuff: "test",
-//     obj: {
-//         value: 3
-//     },
-// };
-// obj.obj.n = obj.obj;
-// console.log(ExtendedJSON.decode(ExtendedJSON.encode(obj)), obj);
-// // IPC.send("ping", {data:1});
-// IPC.on("pong", (event)=>{
-//     console.log("pong", event);
-//     return 4;
-// });
-// IPC.on("ping", (event)=>{
-//     console.log("ping", event);
-// });
-// IPC.send("pong", null).then(data=>console.log("pong response", data));
-//
-// // Module instance transfer test
-// console.log(module);
-// var instance = new module("itsName");
-// instance.setSomething("someValue");
-//
-// IPC.send("moduleInstanceTransfer", instance, 0);
-//
-// // Channel test
-// Channel.createSender("TestName", "getColor", "crap").then(channel=>{
-//     console.log("set up connection");
-//     channel.doSomething("cheese");
-//     channel.doSomethingElse("crap");
-//     channel.onColor("purple");
-// });
-// var channel = Channel.createReceiver("crap", {
-//     smth: event=>{
-//         console.log("smth", event);
-//     }
-// });
-//
-// // GlobalData testing
-// import GlobalData from "../core/communication/data/globalData";
-// GlobalData.create("test", {
-//
-// }).then(globalData=>{
-//     console.log(globalData, globalData.get());
-//     globalData.on("someStuff.update", event=>{
-//         console.log(event);
-//     });
-//     globalData.change({
-//         someField: {
-//             someOtherData: false
-//         }
-//     });
-//     globalData.on("change.update", event=>{
-//         console.log(event);
-//     });
-//     globalData.change({
-//         change: {
-//             1: "test",
-//             2: 4
-//         }
-//     });
-// });
-//
-// // Error message test with source mapping:
-// console.log(somethingThatDoesntExist.poop());
+        // WindowHandler.open(1).then(data=>{
+        //     console.log("Window opened", data);
+        //     Registry.requestHandle({
+        //         type: "test",
+        //         source: testModule2,
+        //     }).then(result=>{
+        //         console.log(result);
+        //     });
+        // }).catch(err=>{
+        //     console.error(err);
+        // });
+    });
+});
 //# sourceMappingURL=index.js.map

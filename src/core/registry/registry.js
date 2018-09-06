@@ -418,6 +418,45 @@ export default class Registry {
     }
 
     /**
+     * Handles one or more requests and serves the responses
+     * @param {Registry~Request[]} requests - The requests to make
+     * @param {('module'|'handle')} type - The type of request that was made (either to handle data, or to get modules)
+     * @param {boolean} synced - Whether or not to request data synchronously (can only be synced if type=='module')
+     * @returns {(Promise<Array<Array<Class<Module>>>>|Promise<ChannelSender[]>|Promise<ChannelSender>)} The data that the request results in
+     * @private
+     */
+    static __request(requests, type, synced) {
+        if (synced) {
+            if (isMain) {
+                // Directly resolve the request as we have access to all modules
+                return requests.map(request => {
+                    return this.__getModules(request);
+                });
+            } else {
+                // Send a command to the main window to look for modules to resolve the request
+                return IPC.sendSync("Registry.request", requests)[0];
+            }
+        } else {
+            // Retrieve the modules to resolve the request
+            if (isMain) {
+                // Directly resolve the request as we have access to all modules
+                const requestsModules = requests.map(request => {
+                    return this.__getModules(request);
+                });
+                return this.__finishRequest(type, requests, requestsModules);
+            } else {
+                // Send a command to the main window to look for modules to resolve the request
+                const requestsModules = IPC.sendSync(
+                    "Registry.request",
+                    requests,
+                    0
+                );
+                return this.__finishRequest(type, requests, requestsModules);
+            }
+        }
+    }
+
+    /**
      * Finishes the request by serving the correct data based on the module classes that were found
      * @param {('module'|'handle')} type - The type of request that was made (either to handle data, or to get modules)
      * @param {Registry~Request[]} requests - The requests that are being finished (only contains 1 if type=='handle')
@@ -488,50 +527,6 @@ export default class Registry {
                 return channels[0];
             } else {
                 return channels.filter(channel => channel); // Remove failed instanciations
-            }
-        }
-    }
-
-    /**
-     * Handles one or more requests and serves the responses
-     * @param {Registry~Request[]} requests - The requests to make
-     * @param {('module'|'handle')} type - The type of request that was made (either to handle data, or to get modules)
-     * @param {boolean} synced - Whether or not to request data synchronously (can only be synced if type=='module')
-     * @returns {(Promise<Array<Array<Class<Module>>>>|Promise<ChannelSender[]>|Promise<ChannelSender>)} The data that the request results in
-     * @private
-     */
-    static __request(requests, type, synced) {
-        if (synced) {
-            if (isMain) {
-                // Directly resolve the request as we have access to all modules
-                return requests.map(request => {
-                    return this.__getModules(request);
-                });
-            } else {
-                // Send a command to the main window to look for modules to resolve the request
-                return IPC.sendSync("Registry.request", requests)[0];
-            }
-        } else {
-            // Retrieve the modules to resolve the request
-            if (isMain) {
-                // Directly resolve the request as we have access to all modules
-                const requestsModules = requests.map(request => {
-                    return this.__getModules(request);
-                });
-                return this.__finishRequest(type, requests, requestsModules);
-            } else {
-                // Send a command to the main window to look for modules to resolve the request
-                return IPC.send("Registry.request", requests, 0).then(
-                    responses => {
-                        const requestsModules = responses[0];
-
-                        return this.__finishRequest(
-                            type,
-                            requests,
-                            requestsModules
-                        );
-                    }
-                );
             }
         }
     }

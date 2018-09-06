@@ -99,13 +99,23 @@ class Module {
                 source.requestPath = requestPath.augmentPath(this.getClass().modulePath, 0);
 
                 // Register this module in the registry (which will automatically assign a unique module ID)
-                await _registry2.default._registerModuleInstance(this);
 
+                // const start = process.hrtime()[1];
+                await _registry2.default._registerModuleInstance(this);
+                // console.log((process.hrtime()[1] - start) / 1000000);
+
+                const promises = [];
                 // Create a channel receiver that can be used to receive messages from other modules
-                this.core.channelReceiver = await _channelHandler2.default.createReceiver(source.requestPath.toString(true), this.__createChannelMethods());
+                promises.push(_channelHandler2.default.createReceiver(source.requestPath.toString(true), this.__createChannelMethods()));
 
                 // Creat a channel sender to the module that requested this module
-                source.channel = await _channelHandler2.default.createSender(source.request.source, source.request.type, source.requestPath.toString(true));
+                promises.push(_channelHandler2.default.createSender(source.request.source, source.request.type, source.requestPath.toString(true)));
+
+                // Wait for both to finish
+                await _promise2.default.all(promises).then(results => {
+                    this.core.channelReceiver = results[0];
+                    source.channel = results[1];
+                });
 
                 // Indicate that registering has finished and resolve the promise
                 this.core.registration.registered.true(true);
