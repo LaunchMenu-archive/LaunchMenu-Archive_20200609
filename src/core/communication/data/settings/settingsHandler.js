@@ -6,7 +6,10 @@ import Path from "path";
 import FS from "fs";
 
 function escapePath(path) {
-    return path.replace(/\>/g, "").replace(/\\\//g, "_");
+    return path
+        .replace(/\>/g, "")
+        .replace(/[\\\/]/g, "_")
+        .replace(/\..*$/, "");
 }
 const dataDir = Path.resolve(__dirname, "../../../../../data/settings");
 const prefix = "Settings:";
