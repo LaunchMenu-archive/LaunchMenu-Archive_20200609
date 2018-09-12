@@ -4,6 +4,7 @@
     "description": "An open source utility program focusing on file searches",
     "main": "dist/test/main.js",
     "scripts": {
+        "setup": "npm install --only=dev --ignore-scripts && npx babel --no-babelrc --presets=es2015 dev/src --out-dir dev/dist --source-maps --plugins=transform-runtime,transform-react-jsx,source-map-support && npm rebuild node-sass && node-sass src/ -o dist/ && cpx \"src/**/*.{html,png,jpg,json}\" \"dist\" --verbose && cpx \"dist/core/**/*\" \"node_modules/lm\" --verbose && npx babel src --out-dir dist --source-maps && npm install",
         "test": "node \"dev/test launcher.js\"",
         "start": "node dev/launcher.js",
         "watch-dev": "npx babel --no-babelrc --presets=es2015 dev/src --watch --out-dir dev/dist --source-maps --plugins=transform-runtime,transform-react-jsx,source-map-support",
@@ -31,8 +32,7 @@
         "electron": "2.0.8",
         "react": "^16.4.1",
         "react-dom": "^16.4.1",
-        "LM": "file:./dist/core",
-        "source-map-support": "^0.5.6"
+        "LM": "file:./dist/core"
     },
     "devDependencies": {
         "ava": "^0.25.0",
@@ -57,7 +57,8 @@
         "madge": "^3.2.0",
         "node-sass": "^4.9.2",
         "npx": "^10.2.0",
-        "rimraf": "^2.6.2"
+        "rimraf": "^2.6.2",
+        "source-map-support": "^0.5.6"
     },
     "electron-ava": {
         "files": [
