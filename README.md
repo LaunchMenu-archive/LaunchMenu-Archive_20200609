@@ -54,6 +54,7 @@ The require system is almost done.
 ## Installation
 
 `npm install`
+Tested with npm version 6.4.1 and node version 8.12.0
 
 ## Commands
 
