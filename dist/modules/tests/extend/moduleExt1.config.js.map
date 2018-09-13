@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../../src/modules/tests/extend/moduleExt1.config.js"],"names":["type","filter"],"mappings":";;;;;;;;;;kBAAe;AACXA,UAAM,QADK;AAEXC,YAAQ,MAAM;AACV,eAAO,CAAP;AACH;AAJU,C","file":"moduleExt1.config.js","sourcesContent":["export default {\r\n    type: \"Module\",\r\n    filter: () => {\r\n        return 2;\r\n    },\r\n};\r\n"]}

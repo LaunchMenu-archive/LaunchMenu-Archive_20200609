@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../src/modules/core/module.js"],"names":["Module"],"mappings":";;;;;;;;;;;;eACQA,M","file":"module.js","sourcesContent":["// export {Module as default} from \"LM\";\r\nexport {Module as default} from \"LM\";\r\n"]}

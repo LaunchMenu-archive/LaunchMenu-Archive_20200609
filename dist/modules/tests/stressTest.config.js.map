@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../src/modules/tests/stressTest.config.js"],"names":["type","filter","request"],"mappings":";;;;;;;;;;kBAAe;AACXA,UAAM,QADK;AAEXC,YAAQC,WAAW;AACf,eAAO,IAAP;AACH;AAJU,C","file":"stressTest.config.js","sourcesContent":["export default {\r\n    type: \"stress\",\r\n    filter: request => {\r\n        return true;\r\n    },\r\n};\r\n"]}

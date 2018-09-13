@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../../../src/modules/core/GUI/docking/dockingContainer.jsx"],"names":["DockingContainer","LM","Module"],"mappings":";;;;;;;;AAAA;;;;;;AACe,MAAMA,gBAAN,SAA+BC,aAAGC,MAAlC,CAAyC;kBAAnCF,gB","file":"dockingContainer.js","sourcesContent":["import LM from \"LM\";\r\nexport default class DockingContainer extends LM.Module {}\r\n"]}
