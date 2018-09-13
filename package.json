@@ -4,11 +4,11 @@
     "description": "An open source utility program focusing on file searches",
     "main": "dist/test/main.js",
     "scripts": {
-        "setup": "npm install --only=dev --ignore-scripts && npx babel --no-babelrc --presets=es2015 dev/src --out-dir dev/dist --source-maps --plugins=transform-runtime,transform-react-jsx,source-map-support && npm rebuild node-sass && node-sass src/ -o dist/ && cpx \"src/**/*.{html,png,jpg,json}\" \"dist\" --verbose && cpx \"dist/core/**/*\" \"node_modules/lm\" --verbose && npx babel src --out-dir dist --source-maps && npm install",
+        "postinstall": "npx babel --no-babelrc --presets=es2015 dev/src --out-dir dev/dist --source-maps --plugins=transform-runtime,transform-react-jsx,source-map-support && npm rebuild node-sass && node-sass src/ -o dist/ && cpx \"src/**/*.{html,png,jpg,json}\" \"dist\" --verbose && npx babel src --out-dir dist --source-maps && rmdir-cli node_modules/electron && npm install electron && npm install ./dist/core",
         "test": "node \"dev/test launcher.js\"",
         "start": "node dev/launcher.js",
         "watch-dev": "npx babel --no-babelrc --presets=es2015 dev/src --watch --out-dir dev/dist --source-maps --plugins=transform-runtime,transform-react-jsx,source-map-support",
-        "watch": "node-sass src/ -o dist/ & concurrently \"node-sass src/ -o dist/ -w\" \"cpx \\\"src/**/*.{html,png,jpg,json}\\\" \\\"dist\\\" --watch --verbose\" \"cpx \\\"dist/core/**/*\\\" \\\"node_modules/lm\\\" --watch --verbose\" \"npx babel src --watch --out-dir dist --source-maps\"",
+        "watch": "node-sass src/ -o dist/ & concurrently \"node-sass src/ -o dist/ -w\" \"cpx \\\"src/**/*.{html,png,jpg,json}\\\" \\\"dist\\\" --watch --verbose\"  \"npx babel src --watch --out-dir dist --source-maps\"",
         "clean": "rimraf dist/*",
         "jsdoc": "jsdoc src -r -c \".jsdocrc.json\"",
         "babel": "npx babel src/modules/testModule2.js --out-file dist/modules/testModule2.js --source-maps --plugins \"../../dist/dev/babelRequest.js\""
@@ -29,10 +29,11 @@
     },
     "homepage": "https://github.com/LaunchMenu/LaunchMenu#readme",
     "dependencies": {
-        "electron": "2.0.8",
+        "LM": "file:./dist/core",
+        "electron": "^2.0.9",
+        "lm": "file:dist/core",
         "react": "^16.4.1",
-        "react-dom": "^16.4.1",
-        "LM": "file:./dist/core"
+        "react-dom": "^16.4.1"
     },
     "devDependencies": {
         "ava": "^0.25.0",
@@ -58,7 +59,8 @@
         "node-sass": "^4.9.2",
         "npx": "^10.2.0",
         "rimraf": "^2.6.2",
-        "source-map-support": "^0.5.6"
+        "source-map-support": "^0.5.6",
+        "rmdir-cli": "^2.0.6"
     },
     "electron-ava": {
         "files": [

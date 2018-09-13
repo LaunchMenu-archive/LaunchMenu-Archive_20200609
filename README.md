@@ -53,9 +53,7 @@ The require system is almost done.
 
 ## Installation
 
-`npm run setup`
-
-This will do some initial setup, and call npm install afterwards to install all dependencies.
+`npm install`
 
 ## Commands
 
