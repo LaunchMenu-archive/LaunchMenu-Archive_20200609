@@ -12,7 +12,7 @@ export default function({types: t}) {
                 const filename = data.file.opts.filename;
 
                 // Don't require the registry in any core module
-                if (filename.match(/\bcore\//)) return;
+                if (filename.match(/src\/core\//)) return;
 
                 // Create a require statement for the registry
                 const requireDeclaration = t.VariableDeclaration("var", [

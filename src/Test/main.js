@@ -73,15 +73,29 @@ app.on("ready", function() {
             //             return channel.close();
             //         });
             //     });
+            // testModule2instance2
+            //     .requestHandle({
+            //         type: "alert",
+            //     })
+            //     .then(channel => {
+            //         channel.alert("single alert").then(() => {
+            //             return channel.close();
+            //         });
+            //     });
+
             testModule2instance2
                 .requestHandle({
-                    type: "alert",
+                    type: "testElement",
+                    data: {
+                        repeat: true,
+                    },
                 })
                 .then(channel => {
-                    channel.alert("single alert").then(() => {
-                        return channel.close();
-                    });
-                });
+                    setTimeout(() => {
+                        channel.setName("Poopy Pants");
+                    }, 2000);
+                })
+                .catch(e => console.error(e));
 
             // testModule2instance
             //     .requestHandle({type: "stress"})

@@ -5,6 +5,8 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = undefined;
 
+var Registry = require("LM").default.Registry;
+
 var _LM = require("LM");
 
 Object.defineProperty(exports, "default", {

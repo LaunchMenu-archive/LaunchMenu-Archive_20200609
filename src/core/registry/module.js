@@ -44,8 +44,11 @@ export default class Module {
             throw Error(
                 "This module can only be instantiated from a handle request"
             );
+        } else {
+            this.core.initPromise = Promise.resolve();
         }
     }
+
     /**
      * Registers the module if it wasn't registered already
      * @returns {Module} A reference to itself
@@ -71,10 +74,7 @@ export default class Module {
                 );
 
                 // Register this module in the registry (which will automatically assign a unique module ID)
-
-                // const start = process.hrtime()[1];
                 await Registry._registerModuleInstance(this);
-                // console.log((process.hrtime()[1] - start) / 1000000);
 
                 const promises = [];
                 // Create a channel receiver that can be used to receive messages from other modules

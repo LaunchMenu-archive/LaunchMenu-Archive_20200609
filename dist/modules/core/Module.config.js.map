@@ -1,1 +1,1 @@
-{"version":3,"sources":["../../../src/modules/core/module.config.js"],"names":["type"],"mappings":";;;;;;;;kBAAe;AACXA,UAAM;AADK,C","file":"module.config.js","sourcesContent":["export default {\r\n    type: \"Module\",\r\n};\r\n"]}
+{"version":3,"sources":["../../../src/modules/core/module.config.js"],"names":["type"],"mappings":";;;;;;;;;;kBAAe;AACXA,UAAM;AADK,C","file":"module.config.js","sourcesContent":["export default {\r\n    type: \"Module\",\r\n};\r\n"]}

@@ -4,6 +4,7 @@
         "./dev/dist/babel plugins/registryRequest",
         "transform-runtime",
         "transform-react-jsx",
+        "transform-react-require",
         "source-map-support"
     ]
 }

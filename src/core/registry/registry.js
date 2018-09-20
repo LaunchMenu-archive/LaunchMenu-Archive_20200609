@@ -23,6 +23,9 @@ const defaultModuleData = {
  * @property {Object} [data] - Any extra data you want to pass that modules can use to determine if they can answer the request
  * @property {Module} [source] - The module that sent out the request (can be left out when usimg Module.requestHandle)
  * @property {Object} [methods] - Extra methods that can get called by the handle (is only used by Module.requestHandle)
+ * @property {boolean} [embedGUI] - Whether the module GUI will be embeded into another module
+ * @property {number} [_destinationWindowID] - The window that the module answering this request should be instanciated in (only used to force a value)
+ * @property {number} [_destinationSectionID] - The section in the window that the module answering this request should be instanciated in (only used to force a value)
  */
 
 /**
@@ -63,6 +66,12 @@ export default class Registry {
                 !request.use.match(/^(one|all)$/g));
         if (hasInvalidUse) request.use = "one";
 
+        // Ensure at least an empty data object is present in the request
+        if (!request.data) request.data = {};
+
+        // Make sure that when embeding GUI, the result element is opened in the same window
+        if (request.embedGUI) request._destinationWindowID = WindowHandler.ID;
+
         // Check if the request source type is a module, if so, get its string identifier
         if (request.source instanceof Module)
             request.source = request.source.getPath().toString(true);
@@ -92,6 +101,9 @@ export default class Registry {
                 (typeof request.use == "string" ||
                     !request.use.match(/^(one|all)$/g));
             if (hasInvalidUse) request.use = "one";
+
+            // Ensure at least an empty data object is present in the request
+            if (!request.data) request.data = {};
 
             // Return the new request variable
             return request;
@@ -321,12 +333,28 @@ export default class Registry {
     }
 
     /**
-     * Returns the amount of modules that are currently registered
-     * @returns {number} The amount of modules are currently registered
+     * Returns the modules that are currently registered
+     * @returns {Module[]} The modules are currently registered
      * @protected
      */
-    static _getModuleInstanceCount() {
-        return this.moduleInstances.length;
+    static _getModuleInstances() {
+        return this.moduleInstances;
+    }
+
+    /**
+     * Returns the module with a certain request path if available in the window
+     * @param {(string|RequestPath)} path - The unique request path of the module you are looking for
+     * @returns {(Module|null)} The modules that got found
+     * @protected
+     */
+    static _getModuleInstance(path) {
+        // Normalize the path to a string
+        if (typeof path != "string") path = path.toString(true);
+
+        // Go through all instances to find a module that matches this path
+        return this.moduleInstances.find(
+            module => module.core.source.requestPath.toString(true) == path
+        );
     }
 
     /**

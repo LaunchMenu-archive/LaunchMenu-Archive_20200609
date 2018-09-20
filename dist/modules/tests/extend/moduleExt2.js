@@ -18,7 +18,7 @@ class ModuleExt1 extends _LMModule2.default {
     constructor(request, canBeDirectlyInstantiated) {
         super(request, canBeDirectlyInstantiated);
         try {
-            alert("Git rekt");
+            // alert("Git rekt");
         } catch (e) {}
     }
 }

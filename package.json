@@ -30,6 +30,7 @@
     "homepage": "https://github.com/LaunchMenu/LaunchMenu#readme",
     "dependencies": {
         "LM": "file:./dist/core",
+        "babel-plugin-transform-react-require": "^1.0.1",
         "electron": "^2.0.9",
         "lm": "file:dist/core",
         "react": "^16.4.1",

@@ -74,7 +74,7 @@ export default class IPC {
             this.off(type, handleMiddleware);
 
             // Call the handler itself with the same data
-            handler.apply(this, arguments);
+            return handler.apply(this, arguments);
         };
 
         // Add the handler middleware event listener

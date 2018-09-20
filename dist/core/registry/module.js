@@ -75,8 +75,11 @@ class Module {
         } else if (!canBeDirectlyInstantiated) {
             // Throw an error if this module was instanciated without a request but isn't allowed to
             throw Error("This module can only be instantiated from a handle request");
+        } else {
+            this.core.initPromise = _promise2.default.resolve();
         }
     }
+
     /**
      * Registers the module if it wasn't registered already
      * @returns {Module} A reference to itself
@@ -99,10 +102,7 @@ class Module {
                 source.requestPath = requestPath.augmentPath(this.getClass().modulePath, 0);
 
                 // Register this module in the registry (which will automatically assign a unique module ID)
-
-                // const start = process.hrtime()[1];
                 await _registry2.default._registerModuleInstance(this);
-                // console.log((process.hrtime()[1] - start) / 1000000);
 
                 const promises = [];
                 // Create a channel receiver that can be used to receive messages from other modules

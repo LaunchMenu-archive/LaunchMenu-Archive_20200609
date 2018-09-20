@@ -20,6 +20,10 @@ var _path = require("path");
 
 var _path2 = _interopRequireDefault(_path);
 
+var _reactDom = require("react-dom");
+
+var _reactDom2 = _interopRequireDefault(_reactDom);
+
 var _settingsHandler = require("../communication/data/settings/settingsHandler");
 
 var _settingsHandler2 = _interopRequireDefault(_settingsHandler);
@@ -40,7 +44,25 @@ var _isMain = require("../isMain");
 
 var _isMain2 = _interopRequireDefault(_isMain);
 
+var _requestPath = require("../registry/requestPath");
+
+var _requestPath2 = _interopRequireDefault(_requestPath);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+    GUI module instanciation abstract algorithm:
+        -If the window in which the module should appear hasn't finished opening
+                and the request doesn't come from the same window, open the window:
+            -Set up the registry
+            -Set up the docking system:
+                -Use the registry and module instanciation system to get GUI components,
+                        No infinite recursion will occur because the request came from the same window
+        -Open the module instance
+        -If the module has GUI, set it up:
+            -If the request is an embed request: attach GUI to the returned channel
+            -Else: Open the module's GUI in the window by sending it to the docking system
+ */
 
 let windowSettings;
 let settingsPromise;
@@ -232,8 +254,18 @@ class WindowHandler {
         const windowID = moduleData.location.window;
         const sectionID = moduleData.location.section;
 
-        // Open the window that the module should be instanciated in
-        await this.__open(windowID);
+        // If the request defines a windowID, use that instead
+        if (request.destinationWindowID != null) {
+            windowID = request._destinationWindowID;
+            sectionID = request._destinationSectionID || 0;
+        }
+
+        // Check if the request was made by the window
+        const sourceRequestPath = new _requestPath2.default(request.source);
+        if (windowID != this.ID) {
+            // If this wasn't an internal requestCall, make sure to open the window that the module should be instanciated in
+            await this.__open(windowID);
+        }
 
         // Send a request to main to create the instance, and return its unique request path
         const requestPath = (await _IPC2.default.send("WindowHandler.openModule", {
@@ -245,10 +277,31 @@ class WindowHandler {
         // Check if a request path is returned, if it wasn't, it could be that the window was just closing
         if (requestPath) {
             // Create a channel sender to this module instance and return it
-            return _channelHandler2.default.createSender(requestPath, undefined, request.source);
-        } else {
+            const channelSender = await _channelHandler2.default.createSender(requestPath, undefined, request.source);
+
+            // If the request want to embed the GUI, attach the element creator to the channel
+            if (request.embedGUI) {
+                // Find the requested module instance in this window
+                const module = _registry2.default._getModuleInstance(requestPath);
+
+                // Check if the module exists, and if so extract its element creator
+                if (module) {
+                    const elementCreator = module.core.elementCreator;
+
+                    // Attach the elementCreator to the channel
+                    channelSender.__data.elementCreator = elementCreator;
+                } else {
+                    // TODO: Do some error handling when no elementCreator could be found
+                }
+            }
+
+            // Return the channelSender
+            return channelSender;
+
+            //Make sure the requestPath wasn't not returned because of an error
+        } else if (requestPath !== false) {
             // Try again
-            await openModuleInstance.apply(this, arguments);
+            await this.openModuleInstance.apply(this, arguments);
         }
     }
 
@@ -293,8 +346,25 @@ class WindowHandler {
                     // Wait for the module to finish initialising
                     await module.onInit();
 
+                    // Retrieve the unique path to the module
+                    const path = module.getPath().toString(true);
+
+                    // If the module is an GUI module, do something with that GUI
+                    if (module.core.elementCreator) {
+                        // Check whether we are requesting a module to be embeded directly to the page
+                        if (!data.request.embedGUI) {
+                            //TODO: replace test code with proper code
+                            this.dockingContainer.openModule(path, 0);
+                            // const ReactDOM = require("react-dom");
+                            // ReactDOM.render(
+                            //     module.core.elementCreator,
+                            //     document.body
+                            // );
+                        }
+                    }
+
                     // Return the the unique path to the module
-                    return module.getPath().toString(true);
+                    return path;
                 } catch (e) {
                     // TODO: properply handle the error when something goes wrong
                     console.error(`Something went wrong while trying to instantiate ${data.modulePath}`, e);
@@ -320,8 +390,27 @@ class WindowHandler {
                 const settings = windowSettings.get(`windows.${windowID}`);
                 window.settings = settings;
 
+                /* Set up docking systen */
+
+                // Create a Window channel for the dockingContainer to communicate with
+                const windowChannelReceiver = await _channelHandler2.default.createReceiver(">Window", {});
+
+                // Create a subchannel on the window receiver, that answers DockingContainer
+                windowChannelReceiver.createSubChannel("DockingContainer", {});
+
+                // Retrieve the class for the docking system
+                this.dockingContainer = await _registry2.default.requestHandle({
+                    type: "DockingContainer",
+                    source: ">Window",
+                    embedGUI: true,
+                    data: settings.sections
+                });
+
+                // Render the docking container's GUI in the window
+                _reactDom2.default.render(this.dockingContainer.__data.elementCreator, document.getElementById("body"));
+
                 // TODO: setup GUI sections and load the modules
-                console.log(settings);
+                console.log(settings, this.dockingContainer);
             });
         }
     }
