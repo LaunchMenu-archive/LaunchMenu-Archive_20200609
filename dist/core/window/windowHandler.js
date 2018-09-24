@@ -244,7 +244,7 @@ class WindowHandler {
      * Opens a module in the proper window, will automatically open the window if it isn't already
      * @param {object} moduleData - The settings data for the module to open
      * @param {Registry~Request} request - The request that caused this module to be opened
-     * @param {strubg} modulePath - The path to the class of the module to be instantiated
+     * @param {string} modulePath - The path to the class of the module to be instantiated
      * @returns {Promise<ChannelSender>} A channel to the module that has been created
      * @async
      * @public
@@ -276,27 +276,8 @@ class WindowHandler {
 
         // Check if a request path is returned, if it wasn't, it could be that the window was just closing
         if (requestPath) {
-            // Create a channel sender to this module instance and return it
-            const channelSender = await _channelHandler2.default.createSender(requestPath, undefined, request.source);
-
-            // If the request want to embed the GUI, attach the element creator to the channel
-            if (request.embedGUI) {
-                // Find the requested module instance in this window
-                const module = _registry2.default._getModuleInstance(requestPath);
-
-                // Check if the module exists, and if so extract its element creator
-                if (module) {
-                    const elementCreator = module.core.elementCreator;
-
-                    // Attach the elementCreator to the channel
-                    channelSender.__data.elementCreator = elementCreator;
-                } else {
-                    // TODO: Do some error handling when no elementCreator could be found
-                }
-            }
-
-            // Return the channelSender
-            return channelSender;
+            // Return the channelSender to cummonicate with the instanciated module
+            return await _registry2.default.getModuleChannel(requestPath, undefined, request.source);
 
             //Make sure the requestPath wasn't not returned because of an error
         } else if (requestPath !== false) {

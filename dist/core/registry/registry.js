@@ -4,6 +4,10 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
+var _keys = require("babel-runtime/core-js/object/keys");
+
+var _keys2 = _interopRequireDefault(_keys);
+
 var _promise = require("babel-runtime/core-js/promise");
 
 var _promise2 = _interopRequireDefault(_promise);
@@ -320,9 +324,6 @@ class Registry {
      * @protected
      */
     static async _registerModuleInstance(moduleInstance) {
-        // Store the instance in this module/process
-        this.moduleInstances.push(moduleInstance);
-
         // Get the a unique ID for the request path
         const requestPath = moduleInstance.getPath();
         const ID = (await _IPC2.default.send("Registry.registerModuleInstance", {
@@ -331,6 +332,11 @@ class Registry {
 
         // Assign the ID to this request path and return it
         requestPath.getModuleID().ID = ID;
+
+        // Store the instance in this module/process
+        this.moduleInstances[moduleInstance.getPath().toString(true)] = moduleInstance;
+
+        // Return the obtained ID
         return ID;
     }
 
@@ -349,11 +355,10 @@ class Registry {
         }, 0);
 
         // Remove the instance from this process/window
-        const index = this.moduleInstances.indexOf(moduleInstance);
-        if (index !== -1) this.moduleInstances.splice(index, 1);
+        delete this.moduleInstances[moduleInstance.getPath().toString(true)];
 
         // Close this window if there are no more modules in it
-        if (this.moduleInstances.length == 0) _windowHandler2.default._close();
+        if ((0, _keys2.default)(this.moduleInstances).length == 0) _windowHandler2.default._close();
     }
 
     /**
@@ -367,16 +372,47 @@ class Registry {
 
     /**
      * Returns the module with a certain request path if available in the window
-     * @param {(string|RequestPath)} path - The unique request path of the module you are looking for
+     * @param {(string|RequestPath)} requestPath - The unique request path of the module you are looking for
      * @returns {(Module|null)} The modules that got found
      * @protected
      */
-    static _getModuleInstance(path) {
+    static _getModuleInstance(requestPath) {
         // Normalize the path to a string
-        if (typeof path != "string") path = path.toString(true);
+        if (typeof requestPath != "string") requestPath = requestPath.toString(true);
 
         // Go through all instances to find a module that matches this path
-        return this.moduleInstances.find(module => module.core.source.requestPath.toString(true) == path);
+        return this.moduleInstances[requestPath];
+    }
+
+    /**
+     * Establishes a connection with a module with the defined requestPath
+     * @param {(string|requestPath)} requestPath - The unique request path of the module you are trying to conenct to
+     * @param {string} [subChannelType=undefined] - The sub channel to connect with
+     * @param {string} [senderID=undefined] - The channel ID to send messages back to for communication
+     * @returns {ChannelSender} A channel set up for communication with the specified module
+     * @async
+     * @public
+     */
+    static async getModuleChannel(requestPath, subChannelType, senderID) {
+        // Normalize the path to a string
+        if (typeof requestPath != "string") requestPath = requestPath.toString(true);
+
+        // Create a channel sender to this module instance and return it
+        const channelSender = await _channelHandler2.default.createSender(requestPath, subChannelType, senderID);
+
+        // Find the requested module instance in this window (if present in this window)
+        const module = Registry._getModuleInstance(requestPath);
+
+        // Check if the module exists, and if so extract its element creator
+        if (module) {
+            const elementCreator = module.core.elementCreator;
+
+            // Attach the elementCreator to the channel
+            channelSender.__data.elementCreator = elementCreator;
+        }
+
+        // Return the channelSender
+        return channelSender;
     }
 
     /**
@@ -606,8 +642,8 @@ class Registry {
         // Stores the registered modules themselves, indexed by path
         this.moduleClasses = {};
 
-        // Stores instances of modules registered in this window/process
-        this.moduleInstances = [];
+        // Stores instances of modules registered in this window/process by requestPath
+        this.moduleInstances = {};
 
         // Keep track of modules that are currently being required
         this.requiringModules = [];

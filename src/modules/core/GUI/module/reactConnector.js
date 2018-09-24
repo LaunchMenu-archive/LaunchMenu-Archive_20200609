@@ -1,5 +1,11 @@
 import React from "React";
-export default class Component extends React.Component {
+
+/**
+ * Creates a ReactConnector which is a React Component which will connect a module and use it's render method to determine the GUI
+ * @class
+ * @public
+ */
+export default class ReactConnector extends React.Component {
     componentDidMount() {
         // When this component mounts, connect to the attached module
         this.props.module._setElement(this);

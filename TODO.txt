@@ -17,6 +17,15 @@ short-term:
         -The module has any GUI
         -The module doesn't care where it gets instanciated
 
+    -GUI system:
+        -Make dockingContainers that can store and manage dockingElements
+        -Make dockingElements that are resizable and moveable in their dockingContainer
+        -Make tabContainers that can store an manage multiple tabs:
+            -Make tab groups such that if GUI defines the same tab group, it will show up under the same tab and pop to the front when requesting focus
+        -Make tabElements that can be put into these tabContainers
+        -Make module GUI moveable, such that you can drag it into a specific tab, or to the side of a dockingElement, to create a new dockingElement
+        -Get rid of Sass, and create an style helper module instead
+
     -clean up code:
         // -turn from promises to async methods
         // -separate all classes into dedicated files
@@ -24,4 +33,5 @@ short-term:
         -consider to pull apart front end and backend in classes
         // -properly comment all code
         // -properly type classes, fields and methods
-        // -seperate setup methods and place at relevant areas
+        -seperate setup methods and place at relevant areas
+        -make all method descriptions "verb phrases(?)" E.G. "opens a module", "loads the settings", etc

@@ -3,6 +3,7 @@
     "plugins": [
         "./dev/dist/babel plugins/registryRequest",
         "transform-runtime",
+        "transform-object-rest-spread",
         "transform-react-jsx",
         "transform-react-require",
         "source-map-support"

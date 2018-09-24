@@ -5,17 +5,52 @@
             "height": 600,
             "sections": {
                 "0": {
-                    "width": 50,
-                    "height": 100,
-                    "x": 0,
-                    "y": 0,
+                    "xBegin": 0,
+                    "xEnd": 50,
+                    "yBegin": 0,
+                    "yEnd": 100,
                     "module": "none"
                 },
                 "1": {
-                    "width": 50,
-                    "height": 100,
-                    "x": 0,
-                    "y": 0,
+                    "xBegin": 50,
+                    "xEnd": 100,
+                    "yBegin": 25,
+                    "yEnd": 50,
+                    "module": "none"
+                },
+                "6": {
+                    "xBegin": 50,
+                    "xEnd": 100,
+                    "yBegin": 0,
+                    "yEnd": 25,
+                    "module": "none"
+                },
+                "2": {
+                    "xBegin": 50,
+                    "xEnd": 80,
+                    "yBegin": 70,
+                    "yEnd": 100,
+                    "module": "none"
+                },
+                "5": {
+                    "xBegin": 50,
+                    "xEnd": 80,
+                    "yBegin": 50,
+                    "yEnd": 70,
+                    "module": "none"
+                },
+                "3": {
+                    "xBegin": 80,
+                    "xEnd": 100,
+                    "yBegin": 50,
+                    "yEnd": 75,
+                    "module": "none"
+                },
+                "4": {
+                    "xBegin": 80,
+                    "xEnd": 100,
+                    "yBegin": 75,
+                    "yEnd": 100,
                     "module": "none"
                 }
             }
@@ -25,10 +60,10 @@
             "height": 600,
             "sections": {
                 "0": {
-                    "width": 100,
-                    "height": 100,
-                    "x": 0,
-                    "y": 0,
+                    "xBegin": 0,
+                    "xEnd": 100,
+                    "yBegin": 0,
+                    "yEnd": 100,
                     "module": "none"
                 }
             }
@@ -38,10 +73,10 @@
             "height": 900,
             "sections": {
                 "0": {
-                    "width": 100,
-                    "height": 100,
-                    "x": 0,
-                    "y": 0,
+                    "xBegin": 0,
+                    "xEnd": 100,
+                    "yBegin": 0,
+                    "yEnd": 100,
                     "module": "none"
                 }
             }

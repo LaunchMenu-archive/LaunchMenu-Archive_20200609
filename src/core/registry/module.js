@@ -188,6 +188,7 @@ export default class Module {
      * @public
      */
     getPath() {
+        // Get the channel sender that has been created in the __register method
         return this.core.source.requestPath;
     }
 
@@ -208,6 +209,15 @@ export default class Module {
      */
     static toString() {
         return this.getPath();
+    }
+
+    /**
+     * Returns the channelSender to communicate with the module that instanciated this module
+     * @returns {ChannelSender} The channelSender to communicate with the module
+     * @public
+     */
+    getSource() {
+        return this.core.source.channel;
     }
 
     // Channel-related methods
