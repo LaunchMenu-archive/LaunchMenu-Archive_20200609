@@ -1,4 +1,5 @@
 import IPC from "../IPC";
+import Registry from "../../registry/registry";
 
 export default class ChannelSender {
     /**
@@ -16,6 +17,13 @@ export default class ChannelSender {
             subChannelID: subChannelID,
             senderID: senderID,
         };
+
+        // Check if there is a module in the window with this channel ID
+        const module = Registry._getModuleInstance(ID);
+        if (module) {
+            // If there is a module, make direct connection for faster communication
+            this.__data.channelReceiver = module.core.channelReceiver;
+        }
 
         // Listen for the available message types being send
         this.__setupChannelMessageTypeListener();
@@ -39,6 +47,8 @@ export default class ChannelSender {
             } else {
                 // Broadcast a request for all message types of this channel
                 IPC.send("channel.requestMessageTypes:" + this.__data.ID);
+
+                // Returned a promise that will be resolved once this method is called with the methods provided as an argument (will happen automatically)
                 return new Promise((resolve, reject) => {
                     this.__data.finishSetup = resolve;
                 });
@@ -103,24 +113,50 @@ export default class ChannelSender {
             }
         });
     }
+
     /**
      * Send a message to the channel receiver
      * @param  {string} message - The message type
      * @param  {Object[]} args - The data to send as an argument array
      * @returns {undefined}
+     * @async
      * @private
      */
     __sendMessage(message, args) {
-        // Send the message and relevant data to the process/window that contains the channel receiver
-        return IPC.send(
-            "channel.message:" + this.__data.ID,
-            {
-                message: message,
-                subChannelID: this.__data.subChannelID,
-                senderID: this.__data.senderID,
-                data: args,
-            },
-            this.__data.destProcessID
-        );
+        // Check whether to make an IPC call or direct message to a module
+        if (this.__data.channelReceiver) {
+            // Emit an event on the channel sender directly
+            const response = this.__data.channelReceiver._emitEvent(
+                message,
+                {
+                    senderID: this.__data.senderID,
+                    data: args,
+                },
+                this.__data.subChannelID
+            );
+
+            // Check if the response is a promise already
+            if (response instanceof Promise) {
+                return response.then(data => {
+                    // Mimick the expected IPC response
+                    return [data];
+                });
+            } else {
+                // Mimick the expected IPC response
+                return Promise.resolve([response]);
+            }
+        } else {
+            // Send the message and relevant data to the process/window that contains the channel receiver
+            return IPC.send(
+                "channel.message:" + this.__data.ID,
+                {
+                    message: message,
+                    subChannelID: this.__data.subChannelID,
+                    senderID: this.__data.senderID,
+                    data: args,
+                },
+                this.__data.destProcessID
+            );
+        }
     }
 }

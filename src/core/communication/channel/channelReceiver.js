@@ -33,7 +33,7 @@ export default class ChannelReceiver {
                 data = data.data;
 
                 // Emit the event
-                return this.__emitEvent(
+                return this._emitEvent(
                     message,
                     {
                         senderID: sender,
@@ -107,9 +107,9 @@ export default class ChannelReceiver {
      * @param  {ChannelReceiver~ChannelEvent} event - The event data to pass to the listener
      * @param  {(string|undefined)} subChannelID - The subchannel of which to take the listener if available
      * @returns {undefined}
-     * @private
+     * @protected
      */
-    __emitEvent(message, event, subChannelID) {
+    _emitEvent(message, event, subChannelID) {
         if (subChannelID) {
             // Attempt to find message listeners on this subchannel
             const subChannel = this.subChannelListeners[subChannelID];
@@ -125,6 +125,7 @@ export default class ChannelReceiver {
         // If listeners exist, call them
         if (listener) return listener.call(this, event);
     }
+
     /**
      * Broadcast all available message types to the specified processes/windows
      * @param  {(string|string[])} [processes="*"] The processes/windows to send the message types to
@@ -132,6 +133,23 @@ export default class ChannelReceiver {
      * @private
      */
     __broadCastMessageTypes(processes = "*") {
+        // Get the message types
+        const messageTypes = this._getMessageTypes();
+
+        // Broadcast the messages
+        IPC.send(
+            "channel.sendMessageTypes:" + this.ID,
+            messageTypes,
+            processes
+        );
+    }
+
+    /**
+     * Get a single object with all available messages types
+     * @returns {Object} The object containing all the available message types
+     * @protected
+     */
+    _getMessageTypes() {
         // Create object to broadcast to the requesting renderer/process
         const messageTypes = {
             globalListeners: Object.keys(this.globalListeners),
@@ -146,11 +164,7 @@ export default class ChannelReceiver {
                 this.subChannelListeners[key]
             );
 
-        // Broadcast the messages
-        IPC.send(
-            "channel.sendMessageTypes:" + this.ID,
-            messageTypes,
-            processes
-        );
+        // Return the message types
+        return messageTypes;
     }
 }
