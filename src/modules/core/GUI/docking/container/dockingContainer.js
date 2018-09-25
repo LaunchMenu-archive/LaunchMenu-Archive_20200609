@@ -49,7 +49,7 @@ import GUIModule from "LM:GUIModule";
 
 export default class DockingContainer extends GUIModule {
     /**
-     * Create a DockingContainer which is a container that can hold DockingElements
+     * Create a DockingContainer which is a container that can hold DockingSections
      * @param {Request} request - The request that caused this module to be instantiated
      * @constructs DockingContainer
      * @public
@@ -66,12 +66,8 @@ export default class DockingContainer extends GUIModule {
                 var section = sections[sectionID];
                 section.ID = sectionID;
 
-                // Request an element for this section
-                return this.requestHandle({
-                    type: "DockingElement",
-                    data: section,
-                    embedGUI: true,
-                });
+                // Create docking section
+                return this.__createDockingSection(section);
             });
 
             // Wait for all modules to return
@@ -81,8 +77,84 @@ export default class DockingContainer extends GUIModule {
         // Store a reference to the container element in order to get its position
         this.elementRef = React.createRef();
 
+        // Store the size in pixels of the actual element (values will be assigned in the _setElement method)
+        this.shape = {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+        };
+
         // // Elements that require a GUI update
         // this.dirtySections = [];
+    }
+
+    // Section setup related methods
+    /**
+     * Creates a dockingSection that will get placed in this dockingContainer
+     * @param {DockingSection~Data} sectionData - The data to create a sectuib
+     * @returns {undefined}w
+     * @async
+     * @private
+     */
+    async __createDockingSection(sectionData) {
+        // Request a section for this sectionData
+        return this.requestHandle({
+            type: "DockingSection",
+            data: {
+                sectionData,
+                containerShape: this.shape,
+            },
+            embedGUI: true,
+        });
+    }
+
+    /**
+     * Attaches the React component to this module, will get called by ReactConnecter once a connection is established
+     * @param {React.Component} element - The element instance that will render this module's GUI
+     * @return {undefined}
+     * @protected
+     */
+    _setElement(element) {
+        // Set the element
+        super._setElement(element);
+
+        // Update the shape data
+        this.__retrieveElementShape(true);
+    }
+
+    /**
+     * Updates and retrieves the data that describes the shape of the element
+     * @param {boolean} [updateSections=false] - Whether to send the newly retrieved shape to the dockingSections
+     * @returns {Object} The shape described by a x, y, width and height value
+     * @private
+     */
+    __retrieveElementShape(updateSections) {
+        // Get the container element
+        const container = this.elementRef.current;
+
+        // Check if the container exists
+        if (container) {
+            // Get the top left corner of the element
+            const offset = container.getBoundingClientRect();
+            this.shape.x = offset.left;
+            this.shape.y = offset.top;
+
+            // Get the size of the element
+            this.shape.width = container.offsetWidth;
+            this.shape.height = container.offsetHeight;
+        }
+
+        // Check whether we want to send this data to the sections
+        if (updateSections) {
+            // Iterate through all the sections and send the new shape
+            this.sections.forEach(section => {
+                section._updateContainerShape(this.shape);
+            });
+        }
+
+        // Return this data (may also be accessed directly if there was no change)
+        return this.shape;
     }
 
     /**
@@ -104,25 +176,31 @@ export default class DockingContainer extends GUIModule {
 
     // Resize related methods
     /**
+     * Tells all sections that they should udpate their elastic shapes
+     * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
+     * @returns {undefined}
+     * @async
+     * @protected
+     */
+    async $_storeElasticShapes(event) {
+        // Tell all sections to update their elastic shapes
+        const promises = this.sections.map(section => {
+            return section._storeElasticShape();
+        });
+
+        // Return a promise that waits for all shapes to be updated
+        return Promise.all(promises);
+    }
+
+    /**
      * Checks how far the passed edge can at most move
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {DockingElement~EdgeID} edgeID - The edge to move
+     * @param {DockingSection~EdgeID} edgeID - The edge to move
      * @returns {number} The position that the edge can at most be moved to (When making element smaller)
      * @async
      * @public
      */
     async $checkMaxEdgeMove(event, edge) {
-        return this.checkMaxEdgeMove(edge);
-    }
-
-    /**
-     * Checks how far the passed edge can at most move
-     * @param {DockingElement~EdgeID} edgeID - The edge to move
-     * @returns {number} The position that the edge can at most be moved to (When making element smaller)
-     * @async
-     * @public
-     */
-    async checkMaxEdgeMove(edge) {
         // Get all the adjacent edges to check
         const edges = await this.__getAdjacentEdges(edge, edge.ID);
 
@@ -133,15 +211,6 @@ export default class DockingContainer extends GUIModule {
 
         // Wait for the promises to resolve
         const maxPositions = await Promise.all(promises);
-
-        // // Go through all edges and check their maximum move
-        // const maxPositions = [];
-        // for (let data of edges) {
-        //     const maxPosition = await data.section._checkMaxOwnEdgeMove(
-        //         data.edge.ID
-        //     );
-        //     maxPositions.push(maxPosition);
-        // }
 
         // Check whether to get the min or max value
         let max;
@@ -166,115 +235,49 @@ export default class DockingContainer extends GUIModule {
     /**
      * Moves the specified edge to the given position, and also moves all adjacent edges
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {DockingElement~Edge} edge - The edge to move
+     * @param {DockingSection~Edge} edge - The edge to move
      * @param {number} position - The position to move the edge to
      * @returns {undefined}
      * @async
      * @protected
      */
     async $_moveEdgeUnbounded(event, edge, position) {
-        return this.__moveEdgeUnbounded(edge, position);
-    }
-
-    /**
-     * Moves the specified edge to the given position, and also moves all adjacent edges
-     * @param {DockingElement~Edge} edge - The edge to move
-     * @param {number} position - The position to move the edge to
-     * @returns {undefined}
-     * @async
-     * @private
-     */
-    async __moveEdgeUnbounded(edge, position) {
         // Get all the adjacent edges to move
         const edges = await this.__getAdjacentEdges(edge);
 
+        // Create a variable to store the lists of promises for parallel computation
+        let promises;
+
+        // Move all opposite edges outwards if needed such that there is enough space to move the edge
+        promises = edges.map(data => {
+            return data.section._stretchOppositeEdge(data.edge.ID, position);
+        });
+
+        // Wait for all edges to move
+        await Promise.all(promises);
+
         // Move all edges
-        const promises = edges.map(data => {
+        promises = edges.map(data => {
             return data.section._moveOwnEdgeUnbounded(data.edge.ID, position);
         });
 
         // Wait for all edges to move
         await Promise.all(promises);
 
-        // // Move all edges
-        // for (let data of edges) {
-        //     await data.section._moveOwnEdgeUnbounded(data.edge.ID, position);
-        // }
+        // Move all opposite edges inwards back to their initial location if possible, now that the edge has moved
+        promises = edges.map(data => {
+            return data.section._contractOppositeEdge(data.edge.ID);
+        });
 
-        // // Make all elements dirty
-        // edges.forEach(data => {
-        //     // Get the section
-        //     const section = data.section;
-
-        //     // Mark the element as dirty
-        //     if (this.dirtySections.indexOf(section) == -1)
-        //         this.dirtySections.push(section);
-        // });
-    }
-
-    /**
-     * Moves the specified edge to the given position, and also moves all adjacent edges
-     * And bounds the passed position to a position that wouldn't allow elements to be smaller than their min size
-     * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {DockingElement~Edge} edge - The edge to move
-     * @param {number} position - The position to move the edge to
-     * @param {boolean} [pixelPosition] - Whether the passed position is a percentage or pixel value
-     * @returns {number} The position that the edge was moved to
-     * @async
-     * @public
-     */
-    async $moveEdge(event, edge, position, pixelPosition) {
-        // Convert position to percentage if required
-        if (pixelPosition) {
-            // Get the container element
-            const container = this.elementRef.current;
-
-            // Get the top left corner of the element
-            const offset = container.getBoundingClientRect();
-
-            // Get the size of the element
-            const width = container.offsetWidth;
-            const height = container.offsetHeight;
-
-            // Check whether to use the x axis
-            if (edge.ID < 2) {
-                // Convert pixel position to percentage
-                position = ((position - offset.left) / width) * 100;
-            } else {
-                // Convert pixel position to percentage
-                position = ((position - offset.top) / height) * 100;
-            }
-        }
-
-        // Check what the highest position value to move the edge to can be
-        const maxEdgeID = Math.floor(edge.ID / 2) * 2;
-        edge.ID = maxEdgeID;
-        const maxMove = await this.checkMaxEdgeMove(edge);
-
-        // Check what the lowest position value to move the edge to can be
-        edge.ID = maxEdgeID + 1;
-        const minMove = await this.checkMaxEdgeMove(edge);
-
-        // Limit the position to move the edge to
-        position = Math.max(Math.min(maxMove, position), minMove);
-
-        // Move the edge
-        await this.__moveEdgeUnbounded(edge, position);
-
-        // // update the dirty elements
-        // await Promise.all(
-        //     this.dirtySections.map(section => {
-        //         return section._requestElementUpdate();
-        //     })
-        // );
-        // this.dirtySections = [];
+        // Wait for all edges to move
+        await Promise.all(promises);
     }
 
     /**
      * Retrieves all the edges that are adjacent to the spacified edge
-     * @param {DockingElement~Edge} edge - The edge to check connections with
-     * * @param {DockingElement~EdgeID} [edgeTypeID] - The type of edge to return
-     * @returns {Object[]} An array of tuples of edges and dockingElements
+     * @param {DockingSection~Edge} edge - The edge to check connections with
+     * * @param {DockingSection~EdgeID} [edgeTypeID] - The type of edge to return
+     * @returns {Object[]} An array of tuples of edges and dockingSections
      * @async
      * @private
      */
@@ -316,13 +319,14 @@ export default class DockingContainer extends GUIModule {
                     // As we have found a connection with this section, don't continue checking it
                     sections.splice(sections.indexOf(data.section), 1);
 
-                    // Extebd the searching edge by the edge we found
-                    edge = {
-                        xBegin: Math.min(edge.xBegin, data.edge.xBegin),
-                        xEnd: Math.max(edge.xEnd, data.edge.xEnd),
-                        yBegin: Math.min(edge.yBegin, data.edge.yBegin),
-                        yEnd: Math.max(edge.yEnd, data.edge.yEnd),
-                    };
+                    // Extend the searching edge by the edge we found
+                    if (edge.xBegin == edge.xEnd) {
+                        edge.yBegin = Math.min(edge.yBegin, data.edge.yBegin);
+                        edge.yEnd = Math.max(edge.yEnd, data.edge.yEnd);
+                    } else {
+                        edge.xBegin = Math.min(edge.xBegin, data.edge.xBegin);
+                        edge.xEnd = Math.max(edge.xEnd, data.edge.xEnd);
+                    }
 
                     // Store the type of the section and the edge we found
                     edges.push(data);
