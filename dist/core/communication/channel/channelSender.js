@@ -140,33 +140,31 @@ class ChannelSender {
      * @async
      * @private
      */
-    __sendMessage(message, args) {
+    async __sendMessage(message, args) {
         // Check whether to make an IPC call or direct message to a module
         if (this.__data.channelReceiver) {
             // Emit an event on the channel sender directly
-            const response = this.__data.channelReceiver._emitEvent(message, {
+            let response = this.__data.channelReceiver._emitEvent(message, {
                 senderID: this.__data.senderID,
                 data: args
             }, this.__data.subChannelID);
 
-            // Check if the response is a promise already
-            if (response instanceof _promise2.default) {
-                return response.then(data => {
-                    // Mimick the expected IPC response
-                    return [data];
-                });
-            } else {
-                // Mimick the expected IPC response
-                return _promise2.default.resolve([response]);
-            }
+            // Normalize the response to a promise
+            if (!(response instanceof _promise2.default)) response = _promise2.default.resolve(response);
+
+            // Return the result
+            return response;
         } else {
             // Send the message and relevant data to the process/window that contains the channel receiver
-            return _IPC2.default.send("channel.message:" + this.__data.ID, {
+            const responses = await _IPC2.default.send("channel.message:" + this.__data.ID, {
                 message: message,
                 subChannelID: this.__data.subChannelID,
                 senderID: this.__data.senderID,
                 data: args
             }, this.__data.destProcessID);
+
+            // We should only get a response from a single receiver, so return that
+            return responses[0];
         }
     }
 }
