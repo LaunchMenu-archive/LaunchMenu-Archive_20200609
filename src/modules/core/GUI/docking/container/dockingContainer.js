@@ -2,49 +2,62 @@ import React from "react";
 import GUIModule from "LM:GUIModule";
 
 /*
-    Get connected edges to edge `e` algorithm:
-        -Create copy `k`, of the list of docking elements
-        -Create edge list `edges`
-        -Loop:
-            -For each element `e1ement` in `k`:
-                -Check for alignment between `e1ement` and `e`:
-                    -If a connected edge `e2` is found:
-                        -Remove `el` from `k`
-                        -Add tuple of `e1ement` and `e2` edge to `edges`
-                        -Extend the length of `e` by `e2`s length
-                    -If there was the possibility to connect if `e` had been longer:
-                        -Do nothing
-                    -Else:
-                        -Remove `element` from `k`
-            -If no connected edge was found at all:
-                -Break the loop
-        -return `edges`
+    [Algorithm:] Resize:
+        -Resize initiation (when grabbing handle):
+            -For all sections:
+                -Store current shape as elastic shape
+            -Caclulate max edge position `max` using `max position` algorithm
+            -Caclulate min edge position `min` using `max position` algorithm
+        -Resizing itself (when moving handle):
+            -limit movement to the calculated min and max
+            -snap to snap value if found by the `snap` algorithm
+            -Apply `move edge` algorithm on selected edge
 
-    Recursive 'Check maximum move algorithm':
-        -Get connected edges as `edges`
-        -Go through all tuples in `edges`:
-            -If the edge is opposite to the movement direction (E.G. when moving right, the west edge):
-                -Check how far the edge can move:
-                    -Check where the opposite edge can at most move to and store in `opposite`:
-                        -If the opposite edge is at the container edge:
-                            -Return it's current position
+        [Algorithm:] maxPosition(edge):
+            -Get connected edges as `edges` using `connected edges` on edge
+            -Go through all tuples in `edges`:
+                -If the edge is opposite to the movement direction (E.G. when moving right, the west edge):
+                    -Check how far the edge can move:
+                        -Check where the opposite edge can at most move to and store in `opposite`:
+                            -If the opposite edge is at the container edge:
+                                -Return it's current position
+                            -Else:
+                                -Execute 'check maximum move algorithm' on this edge
+                        -Perform simple calculation with the element's min size and `opposite`
+            -Return the min of how far each edge can move
+
+        [Algorithm:] connectedEdges(edge):
+            -Create copy `k`, of the list of docking elements
+            -Create edge list `edges`
+            -Loop:
+                -For each element `e1ement` in `k`:
+                    -Check for alignment between `e1ement` and `edge`:
+                        -If a connected edge `e` is found:
+                            -Remove `el` from `k`
+                            -Add tuple of `e1ement` and `e` edge to `edges`
+                            -Extend the length of `edge` by `e`s length
+                        -If there was the possibility to connect if `edge` had been longer:
+                            -Do nothing
                         -Else:
-                            -Execute 'check maximum move algorithm' on this edge
-                    -Perform simple calculation with the element's min size and `opposite`
-        -Return the min of how far each edge can move
+                            -Remove `element` from `k`
+                -If no connected edge was found at all:
+                    -Break the loop
+            -return `edges`
 
-    Recursive 'Move algorithm':
-        -Get connected edges as `edges`
-        -Go through all tuples in `edges`:
-            -Move the edge
-            -If the element size would become smaller than the min element size:
-                -Apply the 'move algorithm' on the opposite edge
-
-
-    Resize abstract algorithm:
-        -Check how far the edge can at most move using the 'check maximum move algorithm'
-        -Move the edge at most to this max position using the 'Move algorithm'
-            
+        [Algorithm] moveEdge(edge):
+            -Get connected edges as `edges` using `connected edges` on edge
+            -Go through all tuples in `edges`:
+                -Move the edge
+                -If the element size would become smaller than the min element size:
+                    -Apply the 'move algorithm' on the opposite edge         
+        
+        [Algorithm] snap(edge, position):
+            -For all sections:
+                -Check if the section's the edge lines up with `edge`
+                -Check if the section's edge is close enough to `position`
+                -If both conditions above are satisfied, return the section's edge position
+            -Compute the distance to all the returned edge positions
+            -Return the edge position with the lowest distance
 */
 
 export default class DockingContainer extends GUIModule {
@@ -84,9 +97,6 @@ export default class DockingContainer extends GUIModule {
             width: 0,
             height: 0,
         };
-
-        // // Elements that require a GUI update
-        // this.dirtySections = [];
     }
 
     // Section setup related methods
@@ -188,8 +198,54 @@ export default class DockingContainer extends GUIModule {
             return section._storeElasticShape();
         });
 
-        // Return a promise that waits for all shapes to be updated
-        return Promise.all(promises);
+        // Wait for all shapes to be updated
+        await Promise.all(promises);
+    }
+
+    /**
+     * Checks for values to snap to to give alignment with other edges
+     * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
+     * @param {DockingSection~Edge} edge - The edge to get the snap position for
+     * @param {number} position - The position that the edge will be moved to
+     * @returns {(number|undefined)} The position to snap to, or undefined if there is none
+     * @async
+     * @public
+     */
+    async $getSnapValue(event, edge, position) {
+        // Get snapping properties from the settings, hardcoded for now
+        let range = 3;
+        const indirectAlignment = false;
+
+        // Convert the range from a pixel value into a percentage value
+        const horizontalMove = edge.xEnd == edge.xBegin;
+        range *= 100 / (horizontalMove ? this.shape.width : this.shape.height);
+
+        // Check for alignment in all sections
+        const promises = this.sections.map(section => {
+            return section.getAlignment(
+                edge,
+                position,
+                range,
+                indirectAlignment
+            );
+        });
+
+        // Wait for their responses
+        let values = await Promise.all(promises);
+
+        // Filter out undefined values (if no alignment could be found)
+        values = values.filter(val => val);
+
+        // Don't return anything if no alignment values could be found
+        if (values.length == 0) return;
+
+        // Get the value closest to the edge position
+        const value = values.reduce((a, b) => {
+            return Math.abs(a - position) > Math.abs(b - position) ? b : a;
+        }, Infinity);
+
+        // Return the value
+        return value;
     }
 
     /**
@@ -217,13 +273,13 @@ export default class DockingContainer extends GUIModule {
         if (edge.ID % 2 == 0) {
             // Get the lowest value
             max = maxPositions.reduce(
-                (max, resp) => Math.min(max, resp[0]),
+                (max, resp) => Math.min(max, resp),
                 Infinity
             );
         } else {
             // Get the highest value
             max = maxPositions.reduce(
-                (max, resp) => Math.max(max, resp[0]),
+                (max, resp) => Math.max(max, resp),
                 -Infinity
             );
         }
@@ -304,7 +360,7 @@ export default class DockingContainer extends GUIModule {
 
             // Turn connections array into a tuple array
             connections = connections.map((edgeResp, index) => {
-                return {section: sections[index], edge: edgeResp[0]};
+                return {section: sections[index], edge: edgeResp};
             });
 
             // Check whether there is alignment for any of the sections

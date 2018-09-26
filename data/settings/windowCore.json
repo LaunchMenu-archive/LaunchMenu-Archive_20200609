@@ -20,6 +20,13 @@
                 },
                 "6": {
                     "xBegin": 50,
+                    "xEnd": 75,
+                    "yBegin": 0,
+                    "yEnd": 25,
+                    "module": "none"
+                },
+                "7": {
+                    "xBegin": 75,
                     "xEnd": 100,
                     "yBegin": 0,
                     "yEnd": 25,

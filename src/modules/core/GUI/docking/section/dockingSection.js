@@ -178,7 +178,7 @@ export default class DockingSection extends GUIModule {
     $checkConnection(event, edge, edgeTypeID) {
         // Check whether the edge to align with is a vertical line
         if (edge.xBegin == edge.xEnd) {
-            // Check whether the line aligns with the left element
+            // Check whether the line aligns with the left edge
             if (
                 Math.abs(edge.xBegin - this.shape.xBegin) < 1e-2 &&
                 (edgeTypeID == null || edgeTypeID == 0)
@@ -195,7 +195,7 @@ export default class DockingSection extends GUIModule {
                     return true;
                 }
             }
-            // Check whether the line aligns with the right element
+            // Check whether the line aligns with the right edge
             if (
                 Math.abs(edge.xBegin - this.shape.xEnd) < 1e-2 &&
                 (edgeTypeID == null || edgeTypeID == 1)
@@ -215,7 +215,7 @@ export default class DockingSection extends GUIModule {
 
             // Check whether the edge to align with is a horizontal line
         } else if (edge.yBegin == edge.yEnd) {
-            // Check whether the line aligns with the top element
+            // Check whether the line aligns with the top edge
             if (
                 Math.abs(edge.yBegin - this.shape.yBegin) < 1e-2 &&
                 (edgeTypeID == null || edgeTypeID == 2)
@@ -232,7 +232,7 @@ export default class DockingSection extends GUIModule {
                     return true;
                 }
             }
-            // Check whether the line aligns with the bottom element
+            // Check whether the line aligns with the bottom edge
             if (
                 Math.abs(edge.yBegin - this.shape.yEnd) < 1e-2 &&
                 (edgeTypeID == null || edgeTypeID == 3)
@@ -253,6 +253,68 @@ export default class DockingSection extends GUIModule {
 
         // If no connection could be found
         return false;
+    }
+
+    /**
+     * Checks whether there is an edge that nearly aligns, and return it
+     * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
+     * @param {DockingSection~Edge} edge - The edge to check alignment with
+     * @param {number} position - The position that the edge will be moved to
+     * @param {number} range - The maximum distance that the edge may be in order to be returned
+     * @param {boolean} [indirectAlignment=false] - Whether to also allow to align with edges that can't connect
+     * @returns {number} The position that the passed edge should have for perfect alignment with one of this section's edges
+     * @public
+     */
+    $getAlignment(event, edge, position, range, indirectAlignment) {
+        // Check if the edge isn't contained in this shape
+        if (
+            edge.xBegin >= this.shape.xBegin &&
+            edge.xEnd <= this.shape.xEnd &&
+            edge.yBegin >= this.shape.yBegin &&
+            edge.yEnd <= this.shape.yEnd
+        )
+            return;
+
+        // Check whether the edge to align with is a vertical line
+        if (edge.xBegin == edge.xEnd) {
+            // Check whether the line connects with the element
+            if (
+                indirectAlignment ||
+                (edge.yBegin == this.shape.yEnd ||
+                    edge.yEnd == this.shape.yBegin)
+            ) {
+                // Check if the line aligns with the left edge
+                if (Math.abs(position - this.shape.xBegin) < range) {
+                    // Return the position of the edge that almost aligns
+                    return this.shape.xBegin;
+
+                    // Check if the line aligns with the right edge
+                } else if (Math.abs(position - this.shape.xEnd) < range) {
+                    // Return the position of the edge that almost aligns
+                    return this.shape.xEnd;
+                }
+            }
+
+            // Check whether the edge to align with is a horizontal line
+        } else if (edge.yBegin == edge.yEnd) {
+            // Check whether the line connects with the element
+            if (
+                indirectAlignment ||
+                (edge.xBegin == this.shape.xEnd ||
+                    edge.xEnd == this.shape.xBegin)
+            ) {
+                // Check if the line aligns with the top edge
+                if (Math.abs(position - this.shape.yBegin) < range) {
+                    // Return the position of the edge that almost aligns
+                    return this.shape.yBegin;
+
+                    // Check if the line aligns with the bottom edge
+                } else if (Math.abs(position - this.shape.yEnd) < range) {
+                    // Return the position of the edge that almost aligns
+                    return this.shape.yEnd;
+                }
+            }
+        }
     }
 
     /**
@@ -338,7 +400,7 @@ export default class DockingSection extends GUIModule {
         edge.ID = edgeID % 2 == 0 ? edgeID + 1 : edgeID - 1;
 
         // Then ask the container to check how far this edge could at most be moved
-        return (await this.dockingContainer.checkMaxEdgeMove(edge))[0];
+        return this.dockingContainer.checkMaxEdgeMove(edge);
     }
 
     /**
@@ -509,6 +571,13 @@ export default class DockingSection extends GUIModule {
             this.moveRange.min,
             Math.min(position, this.moveRange.max)
         );
+
+        // Check if there is a position to snap to
+        const snapPos = await this.dockingContainer.getSnapValue(
+            edge,
+            position
+        );
+        if (snapPos) position = snapPos;
 
         // Tell the container to resize any elements touching this edge
         return this.dockingContainer._moveEdgeUnbounded(edge, position);
