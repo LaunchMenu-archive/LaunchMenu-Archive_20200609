@@ -251,9 +251,7 @@ export default class Module {
 
                 if (isChannelMethod) {
                     // If the method should be avaiable, remove the prefix and store it in the output
-                    output[varName.replace(regexFilter, "")] = this.__proto__[
-                        varName
-                    ];
+                    output[varName] = this.__proto__[varName];
                 }
             });
         }
@@ -272,7 +270,7 @@ export default class Module {
         const output = {};
 
         // Get the methpds that are available for the channel
-        const methods = this.__getMethods(/^\$/g);
+        const methods = this.__getMethods(/^\$/);
 
         // Go through all the methods to correctly map the channel data
         Object.keys(methods).forEach(methodName => {

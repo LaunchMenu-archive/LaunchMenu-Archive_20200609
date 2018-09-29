@@ -1,6 +1,7 @@
 import IPC from "../IPC";
 
 /**
+ * An object to store data of a sent message
  * @typedef {object} ChannelReceiver~ChannelEvent
  * @property {number} senderID - The ID of the channel that sent the message
  * @property {*} data - The data that was sent with the event

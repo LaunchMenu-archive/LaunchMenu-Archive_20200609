@@ -33,7 +33,7 @@ export default class StressTest extends Module {
                             if (--count == 0) {
                                 console.timeEnd("Done");
                             }
-                            // channel.alert("single alert").then(() => {
+                            // channel.$alert("single alert").then(() => {
                             //     return channel.close();
                             // });
                         });

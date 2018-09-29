@@ -335,7 +335,7 @@ class WindowHandler {
                         // Check whether we are requesting a module to be embeded directly to the page
                         if (!data.request.embedGUI) {
                             //TODO: replace test code with proper code
-                            this.dockingContainer.openModule(path, 0);
+                            this.dockingContainer.$openModule(path, 0);
                             // const ReactDOM = require("react-dom");
                             // ReactDOM.render(
                             //     module.core.elementCreator,

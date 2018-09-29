@@ -17,6 +17,7 @@ var _IPC2 = _interopRequireDefault(_IPC);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
+ * An object to store data of a sent message
  * @typedef {object} ChannelReceiver~ChannelEvent
  * @property {number} senderID - The ID of the channel that sent the message
  * @property {*} data - The data that was sent with the event

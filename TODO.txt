@@ -19,6 +19,8 @@ short-term:
 
     Add the settings system to the module system
 
+    Test if making module's __getMethods method static improves performance
+
     -GUI system:
         -Make dockingContainers that can store and manage dockingElements
         -Make dockingElements that are resizable and moveable in their dockingContainer

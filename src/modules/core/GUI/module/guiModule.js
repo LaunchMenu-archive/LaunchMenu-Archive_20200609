@@ -34,6 +34,18 @@ export default class GUIModule extends Module {
     }
 
     /**
+     * Checks the settings for associated styling data
+     * @param {Object} style - The json representation of the default style
+     * @param {ReactConnector~ElementIdentifier} [identifier] - The identifier of the element
+     * @returns {Object} The customised json representation of the style
+     * @protected
+     */
+    _getStyle(style, identifier) {
+        //TODO: customise the style by checking settings
+        return style;
+    }
+
+    /**
      * Attaches the React component to this module, will get called by ReactConnecter once a connection is established
      * @param {React.Component} element - The element instance that will render this module's GUI
      * @return {undefined}
@@ -93,6 +105,9 @@ React.createElement = function(type, props, child) {
             });
         }
     }
+
+    // Create a copy of the style, such that the original style won't be altered if transformed
+    props.style = Object.assign({}, props.style);
 
     // Apply the arguments with channelSenders replaced with their elements, to the original createElement method
     return originalCreateElement.apply(this, arguments);

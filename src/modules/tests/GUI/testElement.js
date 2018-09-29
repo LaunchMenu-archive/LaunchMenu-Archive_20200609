@@ -18,7 +18,7 @@ export default class TestElement extends GUIModule {
     }
     $setName(event, name) {
         this.name = name;
-        if (this.childElement) this.childElement.setName(name);
+        if (this.childElement) this.childElement.$setName(name);
         this.requestElementUpdate();
     }
     render() {

@@ -26,8 +26,8 @@ class MultiAlert extends _LMModule2.default {
         });
     }
     $alert(event, text) {
-        return this.alertChannel.alert(text).then(() => {
-            return this.alertChannel.alert(text);
+        return this.alertChannel.$alert(text).then(() => {
+            return this.alertChannel.$alert(text);
         });
     }
 }

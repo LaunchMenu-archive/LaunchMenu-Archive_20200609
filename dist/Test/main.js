@@ -68,9 +68,9 @@ _electron.app.on("ready", function () {
         //     })
         //     .then(channel => {
         //         channel
-        //             .alert("poooopy pants")
+        //             .$alert("poooopy pants")
         //             .then(() => {
-        //                 return channel.alert("Nuts");
+        //                 return channel.$alert("Nuts");
         //             })
         //             .then(() => {
         //                 return channel.close();
@@ -81,7 +81,7 @@ _electron.app.on("ready", function () {
         //         type: "multiAlert",
         //     })
         //     .then(channel => {
-        //         channel.alert("testing").then(() => {
+        //         channel.$alert("testing").then(() => {
         //             return channel.close();
         //         });
         //     });
@@ -90,7 +90,7 @@ _electron.app.on("ready", function () {
         //         type: "alert",
         //     })
         //     .then(channel => {
-        //         channel.alert("single alert").then(() => {
+        //         channel.$alert("single alert").then(() => {
         //             return channel.close();
         //         });
         //     });
@@ -102,7 +102,7 @@ _electron.app.on("ready", function () {
             }
         }).then(channel => {
             setTimeout(() => {
-                channel.setName("Poopy Pants");
+                channel.$setName("Poopy Pants");
             }, 2000);
         }).catch(e => console.error(e));
 

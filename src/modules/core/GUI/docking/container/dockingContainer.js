@@ -85,6 +85,7 @@ export default class DockingContainer extends GUIModule {
 
             // Wait for all modules to return
             this.sections = await Promise.all(promises);
+            console.log(this.sections);
         });
 
         // Store a reference to the container element in order to get its position
@@ -159,7 +160,7 @@ export default class DockingContainer extends GUIModule {
         if (updateSections) {
             // Iterate through all the sections and send the new shape
             this.sections.forEach(section => {
-                section._updateContainerShape(this.shape);
+                section.$_updateContainerShape(this.shape);
             });
         }
 
@@ -180,7 +181,7 @@ export default class DockingContainer extends GUIModule {
         const section = this.sections.find(section => section.ID == sectionID);
         if (section) {
             // Open the module
-            section.openModule(modulePath);
+            section.$openModule(modulePath);
         }
     }
 
@@ -195,7 +196,7 @@ export default class DockingContainer extends GUIModule {
     async $_storeElasticShapes(event) {
         // Tell all sections to update their elastic shapes
         const promises = this.sections.map(section => {
-            return section._storeElasticShape();
+            return section.$_storeElasticShape();
         });
 
         // Wait for all shapes to be updated
@@ -222,7 +223,7 @@ export default class DockingContainer extends GUIModule {
 
         // Check for alignment in all sections
         const promises = this.sections.map(section => {
-            return section.getAlignment(
+            return section.$getAlignment(
                 edge,
                 position,
                 range,
@@ -262,7 +263,7 @@ export default class DockingContainer extends GUIModule {
 
         // Go through all edges and check their maximum move
         const promises = edges.map(data => {
-            return data.section._checkMaxOwnEdgeMove(data.edge.ID);
+            return data.section.$_checkMaxOwnEdgeMove(data.edge.ID);
         });
 
         // Wait for the promises to resolve
@@ -306,7 +307,7 @@ export default class DockingContainer extends GUIModule {
 
         // Move all opposite edges outwards if needed such that there is enough space to move the edge
         promises = edges.map(data => {
-            return data.section._stretchOppositeEdge(data.edge.ID, position);
+            return data.section.$_stretchOppositeEdge(data.edge.ID, position);
         });
 
         // Wait for all edges to move
@@ -314,7 +315,7 @@ export default class DockingContainer extends GUIModule {
 
         // Move all edges
         promises = edges.map(data => {
-            return data.section._moveOwnEdgeUnbounded(data.edge.ID, position);
+            return data.section.$_moveOwnEdgeUnbounded(data.edge.ID, position);
         });
 
         // Wait for all edges to move
@@ -322,7 +323,7 @@ export default class DockingContainer extends GUIModule {
 
         // Move all opposite edges inwards back to their initial location if possible, now that the edge has moved
         promises = edges.map(data => {
-            return data.section._contractOppositeEdge(data.edge.ID);
+            return data.section.$_contractOppositeEdge(data.edge.ID);
         });
 
         // Wait for all edges to move
@@ -352,7 +353,7 @@ export default class DockingContainer extends GUIModule {
 
             // Go through all sections
             const promises = sections.map(section => {
-                return section.checkConnection(edge, edgeTypeID);
+                return section.$checkConnection(edge, edgeTypeID);
             });
 
             // Wait for the promises to resolve

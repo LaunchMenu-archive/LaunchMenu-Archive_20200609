@@ -12,8 +12,8 @@ export default class MultiAlert extends Module {
         });
     }
     $alert(event, text) {
-        return this.alertChannel.alert(text).then(() => {
-            return this.alertChannel.alert(text);
+        return this.alertChannel.$alert(text).then(() => {
+            return this.alertChannel.$alert(text);
         });
     }
 }

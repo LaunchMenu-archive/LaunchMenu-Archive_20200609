@@ -400,7 +400,7 @@ export default class DockingSection extends GUIModule {
         edge.ID = edgeID % 2 == 0 ? edgeID + 1 : edgeID - 1;
 
         // Then ask the container to check how far this edge could at most be moved
-        return this.dockingContainer.checkMaxEdgeMove(edge);
+        return this.dockingContainer.$checkMaxEdgeMove(edge);
     }
 
     /**
@@ -546,7 +546,7 @@ export default class DockingSection extends GUIModule {
             const edge = this.getEdge(edgeID);
 
             // Tell the container to resize any elements touching this edge
-            await this.dockingContainer._moveEdgeUnbounded(edge, position);
+            await this.dockingContainer.$_moveEdgeUnbounded(edge, position);
 
             // Indicate that we are no longer in the process of moving this edge
             delete this.movingEdges[edgeID];
@@ -573,14 +573,14 @@ export default class DockingSection extends GUIModule {
         );
 
         // Check if there is a position to snap to
-        const snapPos = await this.dockingContainer.getSnapValue(
+        const snapPos = await this.dockingContainer.$getSnapValue(
             edge,
             position
         );
         if (snapPos) position = snapPos;
 
         // Tell the container to resize any elements touching this edge
-        return this.dockingContainer._moveEdgeUnbounded(edge, position);
+        return this.dockingContainer.$_moveEdgeUnbounded(edge, position);
     }
 
     /**
@@ -627,18 +627,22 @@ export default class DockingSection extends GUIModule {
      */
     async __startResize() {
         // Tell the container that it should request all sections to store their elastic shapes
-        await this.dockingContainer._storeElasticShapes();
+        await this.dockingContainer.$_storeElasticShapes();
 
         // Check how far the edge can be moved in either direction
         this.moveRange = {};
 
         // Check what the max position is that the edge can be moved to the right/down
         const edge = this.getEdge(this.draggingEdgeID);
-        this.moveRange.min = await this.dockingContainer.checkMaxEdgeMove(edge);
+        this.moveRange.min = await this.dockingContainer.$checkMaxEdgeMove(
+            edge
+        );
 
         // Check what the max position is that the edge can be moved to the left/up
         edge.ID--; // The direction is based on the ID
-        this.moveRange.max = await this.dockingContainer.checkMaxEdgeMove(edge);
+        this.moveRange.max = await this.dockingContainer.$checkMaxEdgeMove(
+            edge
+        );
 
         // Add the event listener to do the resizing
         window.addEventListener("mousemove", this.__dragEdge);
@@ -686,6 +690,7 @@ export default class DockingSection extends GUIModule {
      * @public
      */
     render() {
+        // The static style to apply to the elements
         const style = this.getStyle();
 
         // A method to increase the size a tiny bit, to prevent html rounding errors from showing

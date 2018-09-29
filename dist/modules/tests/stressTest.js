@@ -54,7 +54,7 @@ class StressTest extends _LMModule2.default {
                         if (--count == 0) {
                             console.timeEnd("Done");
                         }
-                        // channel.alert("single alert").then(() => {
+                        // channel.$alert("single alert").then(() => {
                         //     return channel.close();
                         // });
                     });
