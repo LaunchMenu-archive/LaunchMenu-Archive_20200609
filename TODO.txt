@@ -31,11 +31,13 @@ short-term:
         -Get rid of Sass, and create an style helper module instead
 
     -clean up code:
+        -Clean up the registry __request method to be less confusing
         // -turn from promises to async methods
         // -separate all classes into dedicated files
         // -consistently name classes
         -consider to pull apart front end and backend in classes
         // -properly comment all code
         // -properly type classes, fields and methods
+        -update jsdoc such that async methods always return a promise of some type
         -seperate setup methods and place at relevant areas
         -make all method descriptions "verb phrases(?)" E.G. "opens a module", "loads the settings", etc

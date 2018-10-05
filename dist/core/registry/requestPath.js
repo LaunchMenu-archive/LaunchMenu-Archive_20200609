@@ -3,12 +3,9 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.IDseperator = exports.moduleSeperator = undefined;
 
 require("source-map-support/register");
-
-var _IPC = require("../communication/IPC");
-
-var _IPC2 = _interopRequireDefault(_IPC);
 
 var _module = require("./module");
 
@@ -17,15 +14,18 @@ var _module2 = _interopRequireDefault(_module);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
+ * An identifier for a module, where ID make sure that the request path with all IDs left out except for this one, would be unique.
  * @typedef {Object} RequestPath~ModuleID
  * @property {string} module - The path to the module class
  * @property {number} ID - The unique ID of the module instance
  */
 
+const moduleSeperator = exports.moduleSeperator = "->";
+const IDseperator = exports.IDseperator = ":";
 class RequestPath {
     /**
      * Create a request path that can be used to uniquely identifying module instances
-     * @param {string} path - The string representation of the request path
+     * @param {(string|RequestPath|Array)} path - The string representation of the request path
      * @constructs RequestPath
      */
     constructor(path) {
@@ -34,8 +34,8 @@ class RequestPath {
 
         // Extract the moduleIDs if the path is a string
         if (typeof path == "string") {
-            path = path.split("->").map(module => {
-                module = module.split(":");
+            path = path.split(moduleSeperator).map(module => {
+                module = module.split(IDseperator);
                 return {
                     module: module[0],
                     ID: Number(module[1] || 0)
@@ -55,9 +55,9 @@ class RequestPath {
      */
     toString(unique) {
         return this.modules.map(module => {
-            if (unique) return module.module + ":" + module.ID;
+            if (unique) return module.module + IDseperator + module.ID;
             return module.module + "";
-        }).join("->");
+        }).join(moduleSeperator);
     }
 
     /**
@@ -115,6 +115,27 @@ class RequestPath {
 
         // Return the moduleID
         return this.modules[index];
+    }
+
+    /**
+     * Returns a module path at the specified index, with negative indices starting at the end
+     * @param {(string|requestPath)} requestPath - The path to get the module path from
+     * @param {number} [index=-1] - The index to get the module path from
+     * @returns {string} The module path
+     * @public
+     */
+    static getModulePath(requestPath, index = -1) {
+        // Normalize the request path to a string
+        if (typeof requestPath != "string") requestPath = requestPath.toString();
+
+        // Split the request path into pieces
+        const parts = requestPath.split(moduleSeperator);
+
+        // Get the specified index
+        const part = parts[index % parts.length];
+
+        // Extract just the module path from the part
+        return part.split(IDseperator)[0];
     }
 }
 exports.default = RequestPath;

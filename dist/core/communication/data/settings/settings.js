@@ -23,11 +23,13 @@ class Settings extends _globalData2.default {
      * @hideconstructor
      * @param {string} ID - The ID of the settings to synchronise with
      * @param {string} fileName - The file name in which to save the settings
+     * @param {boolean} isModuleFile - Whether or not the file to store the settings in is a module file
      * @extends GlobalData
      */
-    constructor(ID, fileName) {
+    constructor(ID, fileName, isModuleFile) {
         super(ID);
         this.fileName = fileName;
+        this.isModuleFile = isModuleFile;
     }
 
     /**
@@ -53,7 +55,8 @@ class Settings extends _globalData2.default {
         // Send a request to the Settings Handler to save this data
         return _IPC2.default.send("Settings.save", {
             ID: this.ID,
-            fileName: this.fileName
+            fileName: this.fileName,
+            isModuleFile: this.isModuleFile
         });
     }
 
@@ -67,7 +70,8 @@ class Settings extends _globalData2.default {
         // Send a request to the Settings Handler to reload this data
         return _IPC2.default.send("Settings.reload", {
             ID: this.ID,
-            fileName: this.fileName
+            fileName: this.fileName,
+            isModuleFile: this.isModuleFile
         });
     }
 }

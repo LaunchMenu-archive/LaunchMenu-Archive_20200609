@@ -1,6 +1,6 @@
 import ChannelHandler from "../communication/channel/channelHandler";
 import Registry from "./registry";
-import RequestPath from "./requestPath";
+import RequestPath from "./requestPath/requestPath";
 import BooleanProcess from "../utils/booleanProcess";
 
 export default class Module {

@@ -8,7 +8,7 @@ import ChannelHandler from "../communication/channel/channelHandler";
 import IPC from "../communication/IPC";
 import Registry from "../registry/registry";
 import isMain from "../isMain";
-import RequestPath from "../registry/requestPath";
+import RequestPath from "../registry/requestPath/requestPath";
 
 /**
     GUI module instanciation abstract algorithm:
@@ -214,23 +214,19 @@ export default class WindowHandler {
 
     /**
      * Opens a module in the proper window, will automatically open the window if it isn't already
-     * @param {object} moduleData - The settings data for the module to open
+     * @param {object} moduleLocation - The location that the module should open at
+     * @param {number} moduleLocation.window - The window that the module should open in
+     * @param {number} moduleLocation.section - The section of the window that the module should open in
      * @param {Registry~Request} request - The request that caused this module to be opened
      * @param {string} modulePath - The path to the class of the module to be instantiated
      * @returns {Promise<ChannelSender>} A channel to the module that has been created
      * @async
      * @public
      */
-    static async openModuleInstance(moduleData, request, modulePath) {
+    static async openModuleInstance(moduleLocation, request, modulePath) {
         // Retrieve the infoormation for where to instanciate the module
-        const windowID = moduleData.location.window;
-        const sectionID = moduleData.location.section;
-
-        // If the request defines a windowID, use that instead
-        if (request.destinationWindowID != null) {
-            windowID = request._destinationWindowID;
-            sectionID = request._destinationSectionID || 0;
-        }
+        const windowID = moduleLocation.window;
+        const sectionID = moduleLocation.section;
 
         // Check if the request was made by the window
         const sourceRequestPath = new RequestPath(request.source);
@@ -245,7 +241,6 @@ export default class WindowHandler {
             {
                 request: request,
                 modulePath: modulePath,
-                moduleData: moduleData,
             },
             windowID
         ))[0];

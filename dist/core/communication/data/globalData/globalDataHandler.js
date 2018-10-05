@@ -52,6 +52,27 @@ class GlobalDataHandler {
     }
 
     /**
+     * Sets the data of a instance with a specific ID, without informing the channels
+     * @param {string} ID - The identifier of the globalData that this data belongs to
+     * @param {Object} data - The data to store
+     * @returns {undefined}
+     * @protected
+     */
+    static _setData(ID, data) {
+        if (this.globalDataInstances) this.globalDataInstances[ID] = data;
+    }
+
+    /**
+     * Gets the data of a instance with a specific ID
+     * @param {string} ID - The identifier of the globalData that this data belongs to
+     * @returns {Object} The data stored for a specific instance
+     * @protected
+     */
+    static _getData(ID) {
+        return this.globalDataInstances && this.globalDataInstances[ID];
+    }
+
+    /**
      * Changes a field of for all instances of a specific globalData object
      * @param {string} ID - The identifier of the globalData that this data belongs to
      * @param {*} currentData - The data that is currently located at this path
@@ -162,10 +183,10 @@ class GlobalDataHandler {
             // Listen for global data being requested
             _IPC2.default.on("GlobalData.retrieve", event => {
                 // Check if an instance of this global data already exists, if not created it
-                if (!this.globalDataInstances[event.data.ID]) this.globalDataInstances[event.data.ID] = event.data.defaultData;
+                if (!this._getData(event.data.ID)) this._setData(event.data.ID, event.data.defaultData);
 
                 // Return the instance of this global data
-                return this.globalDataInstances[event.data.ID];
+                return this._getData(event.data.ID);
             });
         }
     }

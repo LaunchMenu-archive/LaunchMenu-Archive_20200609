@@ -3,16 +3,18 @@ import GlobalData from "../globalData/globalData";
 
 export default class Settings extends GlobalData {
     /**
-     * Create a new globalData object allowing you to share data between different modules
+     * Create a new Settings object allowing you to share data between different modules, and store the data
      * @constructs Settings
      * @hideconstructor
      * @param {string} ID - The ID of the settings to synchronise with
      * @param {string} fileName - The file name in which to save the settings
+     * @param {boolean} isModuleFile - Whether or not the file to store the settings in is a module file
      * @extends GlobalData
      */
-    constructor(ID, fileName) {
+    constructor(ID, fileName, isModuleFile) {
         super(ID);
         this.fileName = fileName;
+        this.isModuleFile = isModuleFile;
     }
 
     /**
@@ -39,6 +41,7 @@ export default class Settings extends GlobalData {
         return IPC.send("Settings.save", {
             ID: this.ID,
             fileName: this.fileName,
+            isModuleFile: this.isModuleFile,
         });
     }
 
@@ -53,6 +56,7 @@ export default class Settings extends GlobalData {
         return IPC.send("Settings.reload", {
             ID: this.ID,
             fileName: this.fileName,
+            isModuleFile: this.isModuleFile,
         });
     }
 }

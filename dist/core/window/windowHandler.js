@@ -44,7 +44,7 @@ var _isMain = require("../isMain");
 
 var _isMain2 = _interopRequireDefault(_isMain);
 
-var _requestPath = require("../registry/requestPath");
+var _requestPath = require("../registry/requestPath/requestPath");
 
 var _requestPath2 = _interopRequireDefault(_requestPath);
 
@@ -242,23 +242,19 @@ class WindowHandler {
 
     /**
      * Opens a module in the proper window, will automatically open the window if it isn't already
-     * @param {object} moduleData - The settings data for the module to open
+     * @param {object} moduleLocation - The location that the module should open at
+     * @param {number} moduleLocation.window - The window that the module should open in
+     * @param {number} moduleLocation.section - The section of the window that the module should open in
      * @param {Registry~Request} request - The request that caused this module to be opened
      * @param {string} modulePath - The path to the class of the module to be instantiated
      * @returns {Promise<ChannelSender>} A channel to the module that has been created
      * @async
      * @public
      */
-    static async openModuleInstance(moduleData, request, modulePath) {
+    static async openModuleInstance(moduleLocation, request, modulePath) {
         // Retrieve the infoormation for where to instanciate the module
-        const windowID = moduleData.location.window;
-        const sectionID = moduleData.location.section;
-
-        // If the request defines a windowID, use that instead
-        if (request.destinationWindowID != null) {
-            windowID = request._destinationWindowID;
-            sectionID = request._destinationSectionID || 0;
-        }
+        const windowID = moduleLocation.window;
+        const sectionID = moduleLocation.section;
 
         // Check if the request was made by the window
         const sourceRequestPath = new _requestPath2.default(request.source);
@@ -270,8 +266,7 @@ class WindowHandler {
         // Send a request to main to create the instance, and return its unique request path
         const requestPath = (await _IPC2.default.send("WindowHandler.openModule", {
             request: request,
-            modulePath: modulePath,
-            moduleData: moduleData
+            modulePath: modulePath
         }, windowID))[0];
 
         // Check if a request path is returned, if it wasn't, it could be that the window was just closing

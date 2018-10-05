@@ -34,7 +34,7 @@ var _module = require("./module");
 
 var _module2 = _interopRequireDefault(_module);
 
-var _requestPath = require("./requestPath");
+var _requestPath = require("./requestPath/requestPath");
 
 var _requestPath2 = _interopRequireDefault(_requestPath);
 
@@ -210,6 +210,9 @@ class Registry {
                     } else {
                         modulePath = path.replace(/\.?config/, "");
                     }
+
+                    // Normalize the path's seperators
+                    modulePath = modulePath.replace(/\\/g, "/");
 
                     // Add a filter to the config if not present
                     if (!config.filter) config.filter = () => true;
@@ -569,13 +572,23 @@ class Registry {
                         source = new _requestPath2.default(module);
                     }
 
-                    // Attempt to retrieve the correct startup settings
-                    let moduleData = _settingsHandler2.default._getModuleFile(source);
-                    if (!moduleData) moduleData = _settingsHandler2.default._getModuleFile(new _requestPath2.default(module));
-                    if (!moduleData) moduleData = defaultModuleData;
+                    // Attempt to retrieve the correct startup location
+                    let moduleLocation;
+
+                    // Check if the request defined a location
+                    if (request._destinationWindowID != null) {
+                        // If it did, use this
+                        moduleLocation = {
+                            window: request._destinationWindowID,
+                            section: request._destinationSectionID || 0
+                        };
+                    } else {
+                        // Otherwise load the location from the settings
+                        moduleLocation = _settingsHandler2.default._getModuleLocation(source);
+                    }
 
                     // Open the window that the module should appear in
-                    instantiatePromises.push(_windowHandler2.default.openModuleInstance(moduleData, request, module.toString()));
+                    instantiatePromises.push(_windowHandler2.default.openModuleInstance(moduleLocation, request, module.toString()));
                 } catch (e) {
                     // TODO: properply handle the error if something goes wrong
                     console.error(`Something went wrong while trying to instantiate ${module}: `, e);

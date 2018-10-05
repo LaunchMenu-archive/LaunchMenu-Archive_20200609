@@ -2,7 +2,7 @@ import Path from "path";
 import FS from "fs";
 import isMain from "../isMain";
 import Module from "./module";
-import RequestPath from "./requestPath";
+import RequestPath from "./requestPath/requestPath";
 import SettingsHandler from "../communication/data/settings/settingsHandler";
 import WindowHandler from "../window/windowHandler";
 import ChannelHandler from "../communication/channel/channelHandler";
@@ -169,6 +169,9 @@ export default class Registry {
                     } else {
                         modulePath = path.replace(/\.?config/, "");
                     }
+
+                    // Normalize the path's seperators
+                    modulePath = modulePath.replace(/\\/g, "/");
 
                     // Add a filter to the config if not present
                     if (!config.filter) config.filter = () => true;
@@ -569,18 +572,27 @@ export default class Registry {
                         source = new RequestPath(module);
                     }
 
-                    // Attempt to retrieve the correct startup settings
-                    let moduleData = SettingsHandler._getModuleFile(source);
-                    if (!moduleData)
-                        moduleData = SettingsHandler._getModuleFile(
-                            new RequestPath(module)
+                    // Attempt to retrieve the correct startup location
+                    let moduleLocation;
+
+                    // Check if the request defined a location
+                    if (request._destinationWindowID != null) {
+                        // If it did, use this
+                        moduleLocation = {
+                            window: request._destinationWindowID,
+                            section: request._destinationSectionID || 0,
+                        };
+                    } else {
+                        // Otherwise load the location from the settings
+                        moduleLocation = SettingsHandler._getModuleLocation(
+                            source
                         );
-                    if (!moduleData) moduleData = defaultModuleData;
+                    }
 
                     // Open the window that the module should appear in
                     instantiatePromises.push(
                         WindowHandler.openModuleInstance(
-                            moduleData,
+                            moduleLocation,
                             request,
                             module.toString()
                         )

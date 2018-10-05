@@ -709,16 +709,20 @@ export default class DockingSection extends GUIModule {
                 <div className="content" style={style.content}>
                     {this.getPath().getModuleID().ID}
                 </div>
-                <div
-                    className="verticalHandle"
-                    style={style.verticalHandle}
-                    onMouseDown={this.__startHorizontalResize.bind(this)}
-                />
-                <div
-                    className="horizontalHandle"
-                    style={style.horizontalHandle}
-                    onMouseDown={this.__startVerticalResize.bind(this)}
-                />
+                {this.shape.xEnd != 100 && (
+                    <div
+                        className="verticalHandle"
+                        style={style.verticalHandle}
+                        onMouseDown={this.__startHorizontalResize.bind(this)}
+                    />
+                )}
+                {this.shape.yEnd != 100 && (
+                    <div
+                        className="horizontalHandle"
+                        style={style.horizontalHandle}
+                        onMouseDown={this.__startVerticalResize.bind(this)}
+                    />
+                )}
             </div>
         );
     }

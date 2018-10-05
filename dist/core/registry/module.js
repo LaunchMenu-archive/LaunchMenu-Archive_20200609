@@ -26,7 +26,7 @@ var _registry = require("./registry");
 
 var _registry2 = _interopRequireDefault(_registry);
 
-var _requestPath = require("./requestPath");
+var _requestPath = require("./requestPath/requestPath");
 
 var _requestPath2 = _interopRequireDefault(_requestPath);
 
