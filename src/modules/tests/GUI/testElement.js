@@ -4,7 +4,10 @@ export default class TestElement extends GUIModule {
     constructor(request) {
         super(...arguments);
         this.name = "test";
+        this.isCool = false;
+        this.childElement = false;
 
+        // Embed child for fun/testing
         if (request.data.repeat) {
             this.__init(async () => {
                 return this.requestHandle({
@@ -15,6 +18,24 @@ export default class TestElement extends GUIModule {
                 });
             });
         }
+
+        // Listen for changes in the settings
+        this.__init(() => {
+            const settings = this.getSettings();
+
+            // Listen for settings changes
+            settings.on("isCool", event => {
+                this.isCool = event.value;
+                this.requestElementUpdate();
+            });
+
+            // Load the default current settings
+            this.isCool = settings.get("isCool");
+            this.requestElementUpdate();
+
+            // Log the settings for console debug interaction
+            console.log(settings);
+        });
     }
     $setName(event, name) {
         this.name = name;
@@ -22,14 +43,12 @@ export default class TestElement extends GUIModule {
         this.requestElementUpdate();
     }
     render() {
-        if (this.childElement) {
-            return (
-                <div>
-                    <h1>{this.name}</h1>
-                    {this.childElement}
-                </div>
-            );
-        }
-        return <span>{this.name}</span>;
+        return (
+            <div>
+                <h1>{this.name}</h1>
+                {this.isCool && <span>I am cool man</span>}
+                {this.childElement}
+            </div>
+        );
     }
 }

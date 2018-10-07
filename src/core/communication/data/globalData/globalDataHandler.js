@@ -90,6 +90,18 @@ export default class GlobalDataHandler {
                     }
                 }
 
+                // Check whether the new object is empty
+                if (Object.keys(currentData).length == 0) {
+                    // If it is empty, it should be deleted
+                    IPC.send("GlobalData.notifyChange." + ID, {
+                        type: "delete",
+                        path: path,
+                    });
+
+                    // Return undefined to indicate this object no longer exists
+                    return undefined;
+                }
+
                 // Return the now altered data
                 return currentData;
             } else {

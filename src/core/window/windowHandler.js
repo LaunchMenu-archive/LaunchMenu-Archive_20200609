@@ -218,22 +218,25 @@ export default class WindowHandler {
      * @param {number} moduleLocation.window - The window that the module should open in
      * @param {number} moduleLocation.section - The section of the window that the module should open in
      * @param {Registry~Request} request - The request that caused this module to be opened
-     * @param {string} modulePath - The path to the class of the module to be instantiated
+     * @param {Class<Module>} moduleClass - The module class to be instantiated
      * @returns {Promise<ChannelSender>} A channel to the module that has been created
      * @async
      * @public
      */
-    static async openModuleInstance(moduleLocation, request, modulePath) {
+    static async openModuleInstance(moduleLocation, request, moduleClass) {
         // Retrieve the infoormation for where to instanciate the module
         const windowID = moduleLocation.window;
         const sectionID = moduleLocation.section;
 
         // Check if the request was made by the window
-        const sourceRequestPath = new RequestPath(request.source);
         if (windowID != this.ID) {
             // If this wasn't an internal requestCall, make sure to open the window that the module should be instanciated in
             await this.__open(windowID);
         }
+
+        // Extract the paths from the module
+        const modulePath = moduleClass.getPath();
+        const configPath = moduleClass.getConfig().path;
 
         // Send a request to main to create the instance, and return its unique request path
         const requestPath = (await IPC.send(
@@ -241,6 +244,8 @@ export default class WindowHandler {
             {
                 request: request,
                 modulePath: modulePath,
+                configPath: configPath,
+                section: sectionID,
             },
             windowID
         ))[0];
@@ -293,8 +298,14 @@ export default class WindowHandler {
             IPC.on("WindowHandler.openModule", async event => {
                 const data = event.data;
                 try {
+                    // Load the module config from the passed path
+                    const ModuleConfig = Registry._loadConfig(
+                        data.configPath,
+                        data.modulePath
+                    );
+
                     // Load the module class from the passed module path
-                    const ModuleClass = Registry._loadModule(data.modulePath);
+                    const ModuleClass = Registry._loadModule(ModuleConfig);
 
                     // Instanciate the module from the class
                     const module = new ModuleClass(data.request);
@@ -310,7 +321,10 @@ export default class WindowHandler {
                         // Check whether we are requesting a module to be embeded directly to the page
                         if (!data.request.embedGUI) {
                             //TODO: replace test code with proper code
-                            this.dockingContainer.$openModule(path, 0);
+                            this.dockingContainer.$openModule(
+                                path,
+                                data.section
+                            );
                             // const ReactDOM = require("react-dom");
                             // ReactDOM.render(
                             //     module.core.elementCreator,

@@ -1,4 +1,6 @@
 import ModuleSequence from "./moduleSequence";
+import RequestPath from "./requestPath";
+
 export default class RequestPathPattern extends ModuleSequence {
     /**
      * Create a request path pattern that can be used to uniquely identifying module instances
@@ -90,63 +92,102 @@ export default class RequestPathPattern extends ModuleSequence {
         if (typeof requestPath == "string")
             requestPath = new RequestPath(requestPath);
 
-        // The part of the pattern we are currently considering
-        let patternIndex = 0;
+        // Treat the pattern as sort of a NFA with multiple states,
+        //  where every state is the pattern that could next be matched
+        let states = [];
 
-        // Track how often the current pattern has been matched
-        let matchedTimes = 0;
+        // Helper method to insert only unique states
+        const addState = (states, state) => {
+            // Check if the state isn't already in there
+            const containsState = !!states.find(
+                s => s.index == state.index && s.matched == state.matched
+            );
+
+            // Don't insert if it is already present
+            if (containsState) return;
+
+            // Augment the state with the pattern
+            state.pattern = this.modules[state.index];
+            if (!state.matched) state.matched = 0;
+
+            // Add the state
+            states.push(state);
+
+            // Check if the pattern could match 0 times, if so also add the subsequent state
+            if (
+                state.pattern.matchTimes == -1 &&
+                state.index + 1 != this.modules.length
+            )
+                addState(states, {index: state.index + 1, matched: 0});
+        };
+
+        // Add the first state
+        addState(states, {index: 0});
+
+        // Keep track of whether we are in a final state or not,
+        //  if we just matched a final pattern, we are
+        let finalStateReached = false;
 
         // Go through each module of the request path, and check if it matches
         for (var i = 0; i < requestPath.modules.length; i++) {
             const module = requestPath.modules[i];
 
-            // The pattern we are considering
-            const pattern = this.modules[patternIndex];
-            // Check if this pattern exists, if not, the requestPath is too long
-            if (!pattern) return false;
+            // Compute the next states
+            const nextStates = [];
 
-            // Check if the pattern must match the module
-            if (pattern.matchTimes == -1) {
-                // Check if the next pattern matches
-                const nextPattern = this.modules[patternIndex + 1];
-                if (
-                    nextPattern &&
-                    this.__moduleMatchesPattern(nextPattern, module)
-                ) {
-                    // Go to the next pattern, and check this module again
-                    patternIndex++;
-                    matchedTimes = 0;
-                    i--;
-                    continue;
+            // Indicate that we are not in a final state
+            finalStateReached = false;
+
+            // Go through all states to determine the next state set
+            states.forEach(state => {
+                // Check the pattern
+                const pattern = state.pattern;
+
+                // Check if the pattern matches this module
+                if (!this.__moduleMatchesPattern(pattern, module)) {
+                    // The module failed to match, so this state leads to a dead end
+                    return;
                 }
-            }
 
-            // Check if the pattern matches this module
-            if (!this.__moduleMatchesPattern(pattern, module)) {
-                // The module failed to match, so return false
-                return false;
-            }
+                // Check if this state was a final state
+                const isFinalState = state.index == this.modules.length - 1;
 
-            // Check if the matchedTimes reached the pattern's matchTimes
-            if (++matchedTimes == pattern.matchTimes) {
-                // If this is the case, go to the next pattern
-                patternIndex++;
-                matchedTimes = 0;
-            }
+                // Check if the pattern could match a random amount of times
+                if (pattern.matchTimes == -1) {
+                    // If so, indicate that we can match this pattern more often,
+                    //  which will automatically also add the next state
+                    //  (as this state might match 0 times)
+                    addState(nextStates, {
+                        index: state.index,
+                        matched: state.matched + 1,
+                    });
+                } else {
+                    // Check if the pattern matched the correct number of times
+                    if (pattern.matchTimes == state.matched + 1) {
+                        // If so, go to the next pattern if there is any
+                        if (!isFinalState)
+                            addState(nextStates, {
+                                index: state.index + 1,
+                            });
+                    } else {
+                        // Otherwise match the pattern more
+                        addState(nextStates, {
+                            index: state.index,
+                            matched: state.matched + 1,
+                        });
+                    }
+                }
+
+                // If this was a final state, mark finalStateReached to be true
+                if (isFinalState) finalStateReached = true;
+            });
+
+            // Replace the current state by the next state
+            states = nextStates;
         }
 
-        // Skip any patterns that don't need matching
-        while (
-            this.modules[patternIndex] &&
-            this.modules[patternIndex].matchTimes == -1
-        )
-            patternIndex++;
-
-        // If the pattern index hasn't reached the end, return false
-        if (patternIndex != this.modules.length) return false;
-
-        // If all checks above were successfull, the pattern matches
-        return true;
+        // Return whether we stopped in a final state
+        return finalStateReached;
     }
 
     /**
@@ -158,11 +199,11 @@ export default class RequestPathPattern extends ModuleSequence {
     comparePriority(pattern) {
         // First check what the number of exact module matches for both patterns is
         const thisMatchCount = this.modules.reduce(
-            (module, number) => (module.module ? 1 : 0) + number,
+            (number, module) => (module.module ? 1 : 0) + number,
             0
         );
         const otherMatchCount = pattern.modules.reduce(
-            (module, number) => (module.module ? 1 : 0) + number,
+            (number, module) => (module.module ? 1 : 0) + number,
             0
         );
 
@@ -182,8 +223,18 @@ export default class RequestPathPattern extends ModuleSequence {
             const otherPattern = pattern.modules[i];
 
             // Check what pattern is more precise
-            if (thisPattern.module && !otherPattern.module) return 1;
-            if (!thisPattern.module && otherPattern.module) return -1;
+            if (
+                thisPattern &&
+                thisPattern.module &&
+                (!otherPattern || !otherPattern.module)
+            )
+                return 1;
+            if (
+                (!thisPattern || !thisPattern.module) &&
+                otherPattern.module &&
+                otherPattern
+            )
+                return -1;
         }
 
         // The patterns are exaaactly as precise

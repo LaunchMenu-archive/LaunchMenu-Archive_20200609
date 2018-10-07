@@ -106,21 +106,32 @@ class ExtendedJSON {
                     // If object is a module and serializable, serialize it
                     const Module = require("../registry/module").default;
                     if (object instanceof Module && object[serializeSymbol] && object[deserializeSymbol]) {
-                        const module = object.getClass().modulePath;
+                        // Get relevant information
+                        const modulePath = object.getClass().getPath();
+                        const configPath = object.getClass().getConfig().path;
                         const data = object[serializeSymbol]();
+
+                        // Encode the information
                         return {
                             type: "object",
-                            subType: "moduleInstance:" + module,
+                            subType: `moduleInstance:${modulePath};${configPath}`,
                             value: data
                         };
                     }
 
                     // If object is a module class, return the path of the class
-                    if (typeof object == "function" && object.modulePath) return {
-                        type: "object",
-                        subType: "module:" + object.modulePath,
-                        value: undefined
-                    };
+                    if (typeof object == "function" && object.getPath) {
+                        // Get relevant information
+                        const modulePath = object.getPath();
+                        const configPath = object.getConfig().path;
+
+                        // Encode the information
+                        return {
+                            type: "object",
+                            subType: `module:${modulePath};${configPath}`,
+                            value: undefined
+                        };
+                    }
 
                     // If none of the previous conditions apply, there is nothing left but ignore this value
                     return {
@@ -193,25 +204,30 @@ class ExtendedJSON {
 
                         let m;
                         // If object is a module class, retrieve said class
-                        if (m = value.subType.match(/module\:(.*)/)) {
+                        if (m = value.subType.match(/module\:(.*);(.*)/)) {
                             // Retrieve the Registry at runtime, as the registry also uses this module (cross link)
                             const Registry = require("../registry/registry").default;
 
+                            // Load the module config
+                            const config = Registry._loadConfig(m[2], m[1]);
+
                             // Load the module from its path
-                            const module = Registry._loadModule(m[1]);
+                            const module = Registry._loadModule(config);
 
                             // Load the module from its path and return it
                             return module;
                         }
 
                         // If object is a module instance, retrieve its class, instatiate it, and load the data
-                        if (m = value.subType.match(/moduleInstance\:(.*)/)) {
+                        if (m = value.subType.match(/moduleInstance\:(.*);(.*)/)) {
                             // Retrieve the Registry  at runtime, as the registry also uses this module (cross link)
                             const Registry = require("../registry/registry").default;
 
+                            // Load the module config
+                            const config = Registry._loadConfig(m[2], m[1]);
+
                             // Load the module from its path
-                            const moduleData = Registry._loadModule(m[1]);
-                            const module = moduleData.default;
+                            const module = Registry._loadModule(config);
 
                             // Instanciate the module with the correct arguments, and call the deserializer
                             const data = value.value;

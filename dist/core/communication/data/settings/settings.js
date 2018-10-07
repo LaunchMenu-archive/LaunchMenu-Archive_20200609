@@ -18,7 +18,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 class Settings extends _globalData2.default {
     /**
-     * Create a new globalData object allowing you to share data between different modules
+     * Create a new Settings object allowing you to share data between different modules, and store the data
      * @constructs Settings
      * @hideconstructor
      * @param {string} ID - The ID of the settings to synchronise with

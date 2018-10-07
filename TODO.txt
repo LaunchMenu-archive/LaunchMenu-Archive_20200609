@@ -17,9 +17,9 @@ short-term:
         -The module has any GUI
         -The module doesn't care where it gets instanciated
 
-    Add the settings system to the module system
+    //-Add the settings system to the module system
 
-    Test if making module's __getMethods method static improves performance
+    -Test if making module's __getMethods method static improves performance
 
     -GUI system:
         -Make dockingContainers that can store and manage dockingElements

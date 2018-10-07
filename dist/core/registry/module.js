@@ -22,6 +22,10 @@ var _channelHandler = require("../communication/channel/channelHandler");
 
 var _channelHandler2 = _interopRequireDefault(_channelHandler);
 
+var _settingsHandler = require("../communication/data/settings/settingsHandler");
+
+var _settingsHandler2 = _interopRequireDefault(_settingsHandler);
+
 var _registry = require("./registry");
 
 var _registry2 = _interopRequireDefault(_registry);
@@ -106,16 +110,25 @@ class Module {
 
                 const promises = [];
                 // Create a channel receiver that can be used to receive messages from other modules
-                promises.push(_channelHandler2.default.createReceiver(source.requestPath.toString(true), this.__createChannelMethods()));
+                promises.push(_channelHandler2.default.createReceiver(source.requestPath.toString(true), this.__createChannelMethods()).then(receiver => {
+                    // Store the channel receiver
+                    this.core.channelReceiver = receiver;
+                }));
 
-                // Creat a channel sender to the module that requested this module
-                promises.push(_channelHandler2.default.createSender(source.request.source, source.request.type, source.requestPath.toString(true)));
+                // Create a channel sender to the module that requested this module
+                promises.push(_channelHandler2.default.createSender(source.request.source, source.request.type, source.requestPath.toString(true)).then(channel => {
+                    // Store the channel sender
+                    source.channel = channel;
+                }));
+
+                // Load the settings of the module
+                promises.push(_settingsHandler2.default.createModuleSettings(source.requestPath, this.getClass().getConfig().settings || {}).then(settings => {
+                    // Store the settings
+                    this.core.settings = settings;
+                }));
 
                 // Wait for both to finish
-                await _promise2.default.all(promises).then(results => {
-                    this.core.channelReceiver = results[0];
-                    source.channel = results[1];
-                });
+                await _promise2.default.all(promises);
 
                 // Indicate that registering has finished and resolve the promise
                 this.core.registration.registered.true(true);
@@ -204,6 +217,16 @@ class Module {
     }
 
     /**
+     * Returns the config file of this class
+     * @returns {Config} The module config
+     * @public
+     */
+    static getConfig() {
+        // Get the config that has been assigned by the registry when loading the module class
+        return this.config;
+    }
+
+    /**
      * Returns the path to this module class
      * @returns {string} The path to this module class
      * @public
@@ -231,7 +254,16 @@ class Module {
         return this.core.source.channel;
     }
 
-    // Channel-related methods
+    /**
+     * Returns the settings of the module
+     * @returns {ModuleSettings} The settings that apply to this module instance
+     * @public
+     */
+    getSettings() {
+        return this.core.settings;
+    }
+
+    // Channel related methods
     /**
      * Gets all the methods of this module that are available for channels
      * @param {Regex} regexFilter - The filter to apply to determine whether or not the method should be returned

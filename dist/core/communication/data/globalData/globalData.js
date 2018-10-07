@@ -38,6 +38,15 @@ class GlobalData {
     }
 
     /**
+     * Returns the ID of the data
+     * @returns {string} The ID of the data
+     * @public
+     */
+    getID() {
+        return this.ID;
+    }
+
+    /**
      * Changes the data by providing an object with the field you want to alter,
      * The value 'undefined' can be used to delete a field
      * @param {Object} data - The object with the altered fields
@@ -55,18 +64,18 @@ class GlobalData {
 
     /**
      * Gets a specific property by specifying the path to said property
-     * @param {string} [path] - The path to the property
-     * @returns {*} The data saved under the specified field
+     * @param {string} [path=""] - The path to the property
+     * @returns {*} The data saved under the specified path
      * @public
      */
-    get(path) {
-        if (!path) path = "";
-
+    get(path = "") {
         // Get field list from the path
         let pathParts = path.split(".");
 
+        // Define some variables to use in the loop
         let data = this.data;
         let field;
+
         // Get the next field as long as there is a next field
         while ((field = pathParts.shift()) && data && field.length > 0) data = data[field];
 
@@ -148,15 +157,21 @@ class GlobalData {
         // Get the object that contains the field
         const data = this.get(pathParts.join("."));
         if (data) {
+            // Get the previous value
+            const curValue = data[field];
+
             // Check if the event type was a deletion
             if (type == "delete") {
                 // Delete the attribute
                 delete data[field];
 
                 // Send event to delete and update listeners
-                this.__emitEvent(type, path);
+                this.__emitEvent(type, path, {
+                    previousValue: curValue
+                });
                 this.__emitEvent("update", path, {
-                    type: "delete"
+                    type: "delete",
+                    previousValue: curValue
                 });
             } else {
                 // Set the field to the new value
@@ -164,15 +179,18 @@ class GlobalData {
 
                 // Send event to (change or create) and update listeners
                 this.__emitEvent(type, path, {
-                    value: value
+                    value: value,
+                    previousValue: curValue
                 });
                 this.__emitEvent("update", path, {
                     type: type,
-                    value: value
+                    value: value,
+                    previousValue: curValue
                 });
             }
         }
     }
+
     /**
      * Sends an event to the correct listeners with the correct data
      * @param {('update'|'delete'|'create'|'change')} type - The type of event to emit

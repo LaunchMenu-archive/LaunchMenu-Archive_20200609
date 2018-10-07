@@ -1,4 +1,5 @@
 import ChannelHandler from "../communication/channel/channelHandler";
+import SettingsHandler from "../communication/data/settings/settingsHandler";
 import Registry from "./registry";
 import RequestPath from "./requestPath/requestPath";
 import BooleanProcess from "../utils/booleanProcess";
@@ -82,23 +83,37 @@ export default class Module {
                     ChannelHandler.createReceiver(
                         source.requestPath.toString(true),
                         this.__createChannelMethods()
-                    )
+                    ).then(receiver => {
+                        // Store the channel receiver
+                        this.core.channelReceiver = receiver;
+                    })
                 );
 
-                // Creat a channel sender to the module that requested this module
+                // Create a channel sender to the module that requested this module
                 promises.push(
                     ChannelHandler.createSender(
                         source.request.source,
                         source.request.type,
                         source.requestPath.toString(true)
-                    )
+                    ).then(channel => {
+                        // Store the channel sender
+                        source.channel = channel;
+                    })
+                );
+
+                // Load the settings of the module
+                promises.push(
+                    SettingsHandler.createModuleSettings(
+                        source.requestPath,
+                        this.getClass().getConfig().settings || {}
+                    ).then(settings => {
+                        // Store the settings
+                        this.core.settings = settings;
+                    })
                 );
 
                 // Wait for both to finish
-                await Promise.all(promises).then(results => {
-                    this.core.channelReceiver = results[0];
-                    source.channel = results[1];
-                });
+                await Promise.all(promises);
 
                 // Indicate that registering has finished and resolve the promise
                 this.core.registration.registered.true(true);
@@ -193,6 +208,16 @@ export default class Module {
     }
 
     /**
+     * Returns the config file of this class
+     * @returns {Config} The module config
+     * @public
+     */
+    static getConfig() {
+        // Get the config that has been assigned by the registry when loading the module class
+        return this.config;
+    }
+
+    /**
      * Returns the path to this module class
      * @returns {string} The path to this module class
      * @public
@@ -220,7 +245,16 @@ export default class Module {
         return this.core.source.channel;
     }
 
-    // Channel-related methods
+    /**
+     * Returns the settings of the module
+     * @returns {ModuleSettings} The settings that apply to this module instance
+     * @public
+     */
+    getSettings() {
+        return this.core.settings;
+    }
+
+    // Channel related methods
     /**
      * Gets all the methods of this module that are available for channels
      * @param {Regex} regexFilter - The filter to apply to determine whether or not the method should be returned

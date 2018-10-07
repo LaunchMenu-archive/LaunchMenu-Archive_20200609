@@ -140,20 +140,21 @@ export default class DockingSection extends GUIModule {
      * @private
      */
     __getGUIFromPath(requestPath) {
-        const module = Registry._getModuleInstance(modulePath);
+        const module = Registry._getModuleInstance(requestPath);
         return module && module.core.elementCreator;
     }
 
     /**
      * Opens the GUI of a module in this section
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {string} modulePath - The requestPath to the module to open
+     * @param {string} requestPath - The requestPath to the module to open
      * @returns {undefined}
      * @public
      */
-    $openModule(event, modulePath) {
-        const element = this.__getGUIFromPath(modulePath);
+    $openModule(event, requestPath) {
+        const element = this.__getGUIFromPath(requestPath);
         this.content = [element];
+        this.requestElementUpdate();
     }
 
     // Resize related methods
@@ -707,7 +708,7 @@ export default class DockingSection extends GUIModule {
                     height: roundFix(this.shape.yEnd - this.shape.yBegin) + "%",
                 }}>
                 <div className="content" style={style.content}>
-                    {this.getPath().getModuleID().ID}
+                    {this.content}
                 </div>
                 {this.shape.xEnd != 100 && (
                     <div

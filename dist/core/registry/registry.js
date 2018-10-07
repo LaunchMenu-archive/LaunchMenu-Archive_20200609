@@ -174,74 +174,35 @@ class Registry {
     /**
      * Loads a module at the specified path relative to the modules folder
      * @param {string} path - The path to the module class
-     * @returns {(Class<Module>|Config[])} The module class that was loaded, or the config that was loaded
+     * @returns {Class<Module>} The module class that was loaded
      * @protected
      */
-    static _loadModule(path) {
+    static _loadModule(config) {
+        // Get the path from the config
+        const path = config.modulePath;
+
         // Only load the module if it hadn't been loaded already
         if (!this.moduleClasses[path]) {
-            // Check if importing the module itself, or the module from a config
-            if (path.match(/\bconfig\b/)) {
-                // Require the config
-                let configs = require(this.__getModulesPath(path)).default;
+            // Indicate that we have started requiring this module
+            this.requiringModules.push(path);
 
-                // Normalize it into an array of configs if needed
-                if (!(configs instanceof Array)) configs = [configs];
+            // Require module
+            const moduleImport = require(this.__getModulesPath(path));
 
-                // Go through all configs
-                configs.forEach(config => {
-                    // Add listener to the list of listeners for this request type
-                    const listeners = this.__getListeners(config.type);
-                    const index = listeners.configs.indexOf(config);
-                    if (index != -1) return; // Don't add it, if it was already added
+            // Indicate that we are no longer in the process of loading this module
+            const index = this.requiringModules.indexOf(path);
+            if (index != -1) this.requiringModules.splice(index, 1);
 
-                    listeners.configs.push(config);
+            if (moduleImport) {
+                // Register the module itself
+                this.moduleClasses[path] = moduleImport.default;
 
-                    // Get the module path
-                    let modulePath;
-                    if (config.module) {
-                        // Get the directory of the config path
-                        let dir = path.split(_path2.default.sep);
-                        dir.pop();
-                        dir = dir.join("/");
+                // Attach the location to the class
+                const module = moduleImport.default;
+                module.modulePath = path;
 
-                        // Get the module path relative to this dir
-                        modulePath = _path2.default.join(dir, config.module);
-                    } else {
-                        modulePath = path.replace(/\.?config/, "");
-                    }
-
-                    // Normalize the path's seperators
-                    modulePath = modulePath.replace(/\\/g, "/");
-
-                    // Add a filter to the config if not present
-                    if (!config.filter) config.filter = () => true;
-
-                    // Attach the location of the module to the config
-                    config.modulePath = modulePath;
-                });
-
-                // Return the configs
-                return configs;
-            } else {
-                // Indicate that we have started requiring this module
-                this.requiringModules.push(path);
-
-                // Require module
-                const moduleImport = require(this.__getModulesPath(path));
-
-                // Indicate that we are no longer in the process of loading this module
-                const index = this.requiringModules.indexOf(path);
-                if (index != -1) this.requiringModules.splice(index, 1);
-
-                if (moduleImport) {
-                    // Register the module itself
-                    this.moduleClasses[path] = moduleImport.default;
-
-                    // Attach the location to the class
-                    const module = moduleImport.default;
-                    module.modulePath = path;
-                }
+                // Attach the config to the class
+                module.config = config;
             }
         }
 
@@ -250,12 +211,69 @@ class Registry {
     }
 
     /**
+     * Loads a module config at the specified path relative to the modules folder
+     * @param {string} path - The path to the config
+     * @param {string} [modulePath] - The modulePath for the config to return
+     * @returns {Config[]} The config that was loaded
+     * @protected
+     */
+    static _loadConfig(path, modulePath) {
+        // Require the config
+        let configs = require(this.__getModulesPath(path)).default;
+
+        // Normalize it into an array of configs if needed
+        if (!(configs instanceof Array)) configs = [configs];
+
+        // Go through all configs
+        configs.forEach(config => {
+            // Add listener to the list of listeners for this request type
+            const listeners = this.__getListeners(config.type);
+            const index = listeners.configs.indexOf(config);
+            if (index != -1) return; // Don't add it, if it was already added
+
+            listeners.configs.push(config);
+
+            // Get the module path
+            let modulePath;
+            if (config.module) {
+                // Get the directory of the config path
+                let dir = path.split(_path2.default.sep);
+                dir.pop();
+                dir = dir.join("/");
+
+                // Get the module path relative to this dir
+                modulePath = _path2.default.join(dir, config.module);
+            } else {
+                modulePath = path.replace(/\.?config/, "");
+            }
+
+            // Normalize the path's seperators
+            modulePath = modulePath.replace(/\\/g, "/");
+
+            // Add a filter to the config if not present
+            if (!config.filter) config.filter = () => true;
+
+            // Attach the location of the module to the config
+            config.modulePath = modulePath;
+
+            // Store the path of the config
+            config.path = path;
+        });
+
+        // If a modulePath was defined, return only the config of said path
+        if (modulePath) return configs.find(config => config.modulePath == modulePath);
+
+        // Return all the retrieved configs
+        return configs;
+    }
+
+    /**
      * Loads all the configs of available modules
-     * @returns {Promise<Array<Class<Module>>>} All the module classes that have been loaded
+     * @returns {Promise<Array<Config>>} All the configs that have been loaded
      * @async
      * @protected
      */
-    static _loadAllModules() {
+    static _loadAllConfigs() {
         const startPath = _path2.default.resolve(__dirname, this.__getModulesPath());
         const readDir = path => {
             return new _promise2.default((resolve, reject) => {
@@ -280,7 +298,7 @@ class Registry {
                                 const relativeFilePath = filePath.substring(startPath.length + 1);
 
                                 // Load the config and add it to the output configs
-                                outConfigs.push.apply(outConfigs, this._loadModule(relativeFilePath));
+                                outConfigs.push.apply(outConfigs, this._loadConfig(relativeFilePath));
                             }
                         }
                     });
@@ -460,13 +478,13 @@ class Registry {
         // Determine what modules to return
         if (request.use == "all") {
             // If all modules should be returned, simply extract the modules from the priority data and return them
-            return this.__GetModulesFromConfigs(priorities.map(a => a.config));
+            return this.__getModulesFromConfigs(priorities.map(a => a.config));
         } else if (typeof request.use == "Function") {
             // If a filter function is provided, apply it and then extract the modules from the data and return them
-            return this.__GetModulesFromConfigs(priorities.filter(request.use).map(a => a.config));
+            return this.__getModulesFromConfigs(priorities.filter(request.use).map(a => a.config));
         } else {
             // Otherwise only a single module should be returned, so simply return this module
-            return priorities[0] && this.__GetModulesFromConfigs([priorities[0].config])[0];
+            return priorities[0] && this.__getModulesFromConfigs([priorities[0].config])[0];
         }
     }
 
@@ -476,14 +494,12 @@ class Registry {
      * @returns {Array<Class<Module>>} The modules that got extracted fromt he configs
      * @private
      */
-    static __GetModulesFromConfigs(configs) {
+    static __getModulesFromConfigs(configs) {
         return configs.map(config => {
             // Require the module from its path if this hasn't happened yet
             if (!(config.module instanceof _module2.default)) {
-                const modulePath = config.modulePath;
-
-                // Load the module from the path
-                const module = this._loadModule(modulePath);
+                // Load the module from the config
+                const module = this._loadModule(config);
 
                 // Store the module
                 config.module = module;
@@ -588,7 +604,7 @@ class Registry {
                     }
 
                     // Open the window that the module should appear in
-                    instantiatePromises.push(_windowHandler2.default.openModuleInstance(moduleLocation, request, module.toString()));
+                    instantiatePromises.push(_windowHandler2.default.openModuleInstance(moduleLocation, request, module));
                 } catch (e) {
                     // TODO: properply handle the error if something goes wrong
                     console.error(`Something went wrong while trying to instantiate ${module}: `, e);

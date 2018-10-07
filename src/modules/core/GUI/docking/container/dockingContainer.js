@@ -80,7 +80,13 @@ export default class DockingContainer extends GUIModule {
                 section.ID = sectionID;
 
                 // Create docking section
-                return this.__createDockingSection(section);
+                return this.__createDockingSection(section).then(section => {
+                    // Make the section identifiable
+                    section.ID = sectionID;
+
+                    // Foward section
+                    return section;
+                });
             });
 
             // Wait for all modules to return
@@ -171,17 +177,17 @@ export default class DockingContainer extends GUIModule {
     /**
      * Opens the GUI of a module in a specific section
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {string} modulePath - The requestPath to the module to open
+     * @param {string} requestPath - The requestPath to the module to open
      * @param {number} sectionID - The ID of the section to open this module in
      * @return {undefined}
      * @public
      */
-    $openModule(event, modulePath, sectionID) {
+    $openModule(event, requestPath, sectionID) {
         // Get the section from the sectionID
         const section = this.sections.find(section => section.ID == sectionID);
         if (section) {
             // Open the module
-            section.$openModule(modulePath);
+            section.$openModule(requestPath);
         }
     }
 

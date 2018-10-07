@@ -4,6 +4,10 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
+var _keys = require("babel-runtime/core-js/object/keys");
+
+var _keys2 = _interopRequireDefault(_keys);
+
 require("source-map-support/register");
 
 var _isMain = require("../../../isMain");
@@ -100,6 +104,18 @@ class GlobalDataHandler {
                     } else {
                         currentData[key] = newValue;
                     }
+                }
+
+                // Check whether the new object is empty
+                if ((0, _keys2.default)(currentData).length == 0) {
+                    // If it is empty, it should be deleted
+                    _IPC2.default.send("GlobalData.notifyChange." + ID, {
+                        type: "delete",
+                        path: path
+                    });
+
+                    // Return undefined to indicate this object no longer exists
+                    return undefined;
                 }
 
                 // Return the now altered data

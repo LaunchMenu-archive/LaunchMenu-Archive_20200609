@@ -3,6 +3,7 @@ import FS from "fs";
 
 import GlobalDataHandler from "../globalData/globalDataHandler";
 import Settings from "./settings";
+import ModuleSettings from "./moduleSettings";
 import RequestPath from "../../../registry/requestPath/requestPath";
 import RequestPathPattern from "../../../registry/requestPath/requestPathPattern";
 import isMain from "../../../isMain";
@@ -19,11 +20,51 @@ const prefix = "Settings:";
 export default class SettingsHandler {
     /**
      * Creates a new moduleSettings instance
+     * @param {RequestPath} requestPath - The request path to create moduleSettings for
+     * @param {ModuleSettings~Config} config - The settings config to use
      * @returns {ModuleSettings} The settings instance
      * @async
      * @public
      */
-    static createModuleSettings(requestPath) {}
+    static async createModuleSettings(requestPath, config) {
+        // Augment the config with default settings that all modules should have
+        config.location = {
+            window: {
+                default: 1,
+                type: "number",
+            },
+            section: {
+                default: 0,
+                type: "number",
+                validation: value => value >= 0,
+            },
+        };
+
+        // Create an instance of the moduleSettings
+        const moduleSettings = new ModuleSettings(requestPath, config);
+
+        // Check what settings files exist for this requestPath
+        const patterns = (await IPC.send(
+            "ModuleSettings.retrieve",
+            {requestPath: requestPath.toString()},
+            0
+        ))[0];
+
+        // Create settings instances for each of these patterns
+        const promises = patterns.map(pattern => {
+            // Create the settings instance
+            return this._create(pattern, {}, pattern, true).then(settings => {
+                // Add the settings to moduleSettings
+                moduleSettings._addSettings(settings);
+            });
+        });
+
+        // Wait for all settings to be created and added
+        await Promise.all(promises);
+
+        // Return the module settings
+        return moduleSettings;
+    }
 
     /**
      * Creates a new settings instance
@@ -289,6 +330,12 @@ export default class SettingsHandler {
             // Get the module that this path would lead to
             const modulePath = requestPath.getModuleID().module;
 
+            // Define a default location
+            const defaultLocation = {
+                window: 1,
+                section: 0,
+            };
+
             // Check if there are UUIDs for this end point
             const patternsData = this.pathPatternUUIDs[modulePath];
             if (patternsData) {
@@ -313,16 +360,15 @@ export default class SettingsHandler {
                     if (!data)
                         data = this.__getFile(this.__getPatternPath(pattern));
 
-                    // Check if the data contains a location, if so, return it
-                    if (data && data.location) return data.location;
+                    // Check if the data contains a location, if so combine it
+                    if (data && data.location) {
+                        return {...defaultLocation, ...data.location};
+                    }
                 }
             }
 
             // If no data could be found return some default
-            return {
-                window: 1,
-                section: 1,
-            };
+            return defaultLocation;
         }
     }
 
@@ -334,7 +380,7 @@ export default class SettingsHandler {
     static __setup() {
         if (isMain) {
             // Listen for settings save events
-            IPC.on("Settings.save", event => {
+            IPC.on("Settings.save", async event => {
                 // Get the data of the settings that want to be saved
                 const ID = event.data.ID;
                 const fileName = event.data.fileName;
@@ -360,22 +406,34 @@ export default class SettingsHandler {
 
                             // Store the data
                             this.__setFile(this.__getUUIDpath(UUID), instance);
-                        } else if (UUID) {
-                            // Make sure the UUID is removed from the files
-                            this.__setPathPatternUUID(fileName, undefined);
+                        } else {
+                            // Dispose the file if present
+                            if (UUID) {
+                                // Make sure the UUID is removed from the files
+                                this.__setPathPatternUUID(fileName, undefined);
 
-                            // Delete the file at the current UUID
-                            this.__deleteFile(this.__getUUIDpath(UUID));
+                                // Delete the file at the current UUID
+                                this.__deleteFile(this.__getUUIDpath(UUID));
 
-                            // Store the updated patterns
-                            this.__storePathPatternUUIDS();
+                                // Store the updated patterns
+                                this.__storePathPatternUUIDS();
+                            }
+
+                            // Notify moduleSettings instances about the deletion
+                            // Get the endpoint module to target
+                            const module = new RequestPathPattern(
+                                fileName
+                            ).getModuleID().module;
+
+                            // Send the removal to all moduleSettings with this module as an endpoint
+                            await IPC.send(
+                                "ModuleSettings.removedSettings." + module,
+                                {pattern: fileName}
+                            );
                         }
                     } else {
                         // Save the data in the correct file
-                        return this.__setFile(
-                            this.__getPath(fileName),
-                            instance
-                        );
+                        this.__setFile(this.__getPath(fileName), instance);
                     }
                 }
 
@@ -444,14 +502,48 @@ export default class SettingsHandler {
                 return GlobalDataHandler._getData(ID);
             });
 
+            // Listen for settings creation events (which firstly check whether the settings don't exist already)
+            IPC.on("ModuleSettings.create", async event => {
+                // Get the pattern to create settings for
+                const pattern = event.data.pattern;
+
+                // Get the end point of the pattern
+                const module = new RequestPathPattern(pattern).getModuleID()
+                    .module;
+
+                // Notify all moduleSettings with this endpoint
+                await IPC.send("ModuleSettings.createdSettings." + module, {
+                    pattern: pattern,
+                });
+            });
+
+            // Listen for available setting instance requests
+            IPC.on("ModuleSettings.retrieve", async event => {
+                // Get the requestPath to get patterns for
+                const requestPath = new RequestPath(event.data.requestPath);
+
+                // Get the endpoint of the path
+                const modulePath = requestPath.getModuleID().module;
+
+                // Check if there are patterns for this end point
+                const patternsData = this.pathPatternUUIDs[modulePath];
+                if (!patternsData) return [];
+
+                // Get the patterns (keys) from the data
+                let patterns = Object.keys(patternsData);
+
+                // Filter out all patterns that don't match this requestPath
+                patterns = patterns.filter(pattern =>
+                    new RequestPathPattern(pattern).test(requestPath)
+                );
+
+                // Return the patterns
+                return patterns;
+            });
+
             // Load initial UUIDs
             this.__loadPathPatternUUIDS();
         }
     }
 }
 SettingsHandler.__setup();
-
-// TODO: remove, just for testing
-try {
-    window.SettingsHandler = SettingsHandler;
-} catch (e) {}

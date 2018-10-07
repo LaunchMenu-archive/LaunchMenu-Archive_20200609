@@ -44,7 +44,7 @@ import LM from "LM";
 // Open a window
 // console.log(LM);
 app.on("ready", function() {
-    LM.Registry._loadAllModules()
+    LM.Registry._loadAllConfigs()
         .then(data => {
             const TestModule2 = LM.Registry.requestModule({type: "test2"});
             const testModule2instance = new TestModule2();

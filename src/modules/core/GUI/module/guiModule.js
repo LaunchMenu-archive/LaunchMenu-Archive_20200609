@@ -106,6 +106,9 @@ React.createElement = function(type, props, child) {
         }
     }
 
+    // Make sure props is defined
+    if (!props) props = arguments[1] = {};
+
     // Create a copy of the style, such that the original style won't be altered if transformed
     props.style = Object.assign({}, props.style);
 

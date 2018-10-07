@@ -1,11 +1,13 @@
 export const moduleSeperator = "->";
 export const IDseperator = ":";
+
 /**
  * An identifier for a module, where ID make sure that the request path with all IDs left out except for this one, would be unique.
  * @typedef {Object} ModuleSequence~ModuleID
  * @property {string} module - The path to the module class
  * @property {number} ID - The unique ID of the module instance
  */
+
 export default class ModuleSequence {
     /**
      * Create a request path that can be used to uniquely identifying module instances

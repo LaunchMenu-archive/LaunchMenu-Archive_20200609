@@ -57,7 +57,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // Open a window
 // console.log(LM);
 _electron.app.on("ready", function () {
-    _LM2.default.Registry._loadAllModules().then(data => {
+    _LM2.default.Registry._loadAllConfigs().then(data => {
         const TestModule2 = _LM2.default.Registry.requestModule({ type: "test2" });
         const testModule2instance = new TestModule2();
         const testModule2instance2 = new TestModule2();
