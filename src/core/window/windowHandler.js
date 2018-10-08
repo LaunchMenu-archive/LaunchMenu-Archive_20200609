@@ -320,16 +320,11 @@ export default class WindowHandler {
                     if (module.core.elementCreator) {
                         // Check whether we are requesting a module to be embeded directly to the page
                         if (!data.request.embedGUI) {
-                            //TODO: replace test code with proper code
+                            // Open the module in the appropriate section
                             this.dockingContainer.$openModule(
                                 path,
                                 data.section
                             );
-                            // const ReactDOM = require("react-dom");
-                            // ReactDOM.render(
-                            //     module.core.elementCreator,
-                            //     document.body
-                            // );
                         }
                     }
 

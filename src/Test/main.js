@@ -46,6 +46,7 @@ import LM from "LM";
 app.on("ready", function() {
     LM.Registry._loadAllConfigs()
         .then(data => {
+            // Request a module to have a start point
             const TestModule2 = LM.Registry.requestModule({type: "test2"});
             const testModule2instance = new TestModule2();
             const testModule2instance2 = new TestModule2();
@@ -83,7 +84,7 @@ app.on("ready", function() {
             //         });
             //     });
 
-            testModule2instance2
+            testModule2instance
                 .requestHandle({
                     type: "testElement",
                     data: {
@@ -91,8 +92,9 @@ app.on("ready", function() {
                     },
                 })
                 .then(channel => {
+                    // Just as an example, change the name after 2 seconds
                     setTimeout(() => {
-                        channel.$setName("Poopy Pants");
+                        channel.$setName("A new name");
                     }, 2000);
                 })
                 .catch(e => console.error(e));

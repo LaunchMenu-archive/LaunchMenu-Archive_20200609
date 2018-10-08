@@ -58,6 +58,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // console.log(LM);
 _electron.app.on("ready", function () {
     _LM2.default.Registry._loadAllConfigs().then(data => {
+        // Request a module to have a start point
         const TestModule2 = _LM2.default.Registry.requestModule({ type: "test2" });
         const testModule2instance = new TestModule2();
         const testModule2instance2 = new TestModule2();
@@ -95,14 +96,15 @@ _electron.app.on("ready", function () {
         //         });
         //     });
 
-        testModule2instance2.requestHandle({
+        testModule2instance.requestHandle({
             type: "testElement",
             data: {
                 repeat: true
             }
         }).then(channel => {
+            // Just as an example, change the name after 2 seconds
             setTimeout(() => {
-                channel.$setName("Poopy Pants");
+                channel.$setName("A new name");
             }, 2000);
         }).catch(e => console.error(e));
 

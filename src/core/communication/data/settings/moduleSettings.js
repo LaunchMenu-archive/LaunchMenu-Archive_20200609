@@ -12,6 +12,7 @@ import IPC from "../../IPC";
  * @typedef {Object} ModuleSettings~Setting
  * @property {*} default The default value of the setting
  * @property {string} type The type of value E.G. 'string'
+ * @property {string} [description] A textual description of the setting
  * @property {function} [validation] A function to check whether the entered value is valid
  * @property {(boolean|function)} [visible=true] Whether the setting will show up in the GUI
  * @property {(boolean|function)} [disable=false] Whether or not changing the value has been blocked
@@ -273,7 +274,54 @@ export default class ModuleSettings {
         return this.data;
     }
 
-    // lifespan methods
+    /**
+     * Returns a plain js object containing all the settings applying to the module
+     * This method is just intended for debugging, to show what is going on
+     * @returns {Object} The object containing all the settings
+     * @public
+     */
+    getPlainObject() {
+        // Create an object to store the settings in
+        const obj = {default: {}};
+
+        // Store the default settings
+        const settingPaths = this.getSettingPaths();
+
+        // Go through all paths, and copy over their value
+        settingPaths.forEach(path => {
+            // Get the setting definition
+            const definition = this.getSettingDefinition(path);
+
+            // Get the parts of the path
+            const parts = path.split(".");
+            const field = parts.pop();
+
+            // Define variables to use in the loop
+            const object = this.__getObjectField(
+                obj.default,
+                parts.join("."),
+                true
+            );
+
+            // Assign the default value to the field
+            object[field] = definition.default;
+        });
+
+        // Go through all patterns
+        this.settingsInstances.forEach(settingsData => {
+            // Get the pattern and the settings
+            const pattern = settingsData.pattern.toString();
+            const settings = settingsData.settings;
+
+            // Store the data of the settings
+            obj[pattern] = settings.get();
+        });
+
+        // Return the obj
+        return obj;
+    }
+
+    // Lifespan methods
     /**
      * Sets up the IPC listeners
      * @returns {undefined}
@@ -355,23 +403,29 @@ export default class ModuleSettings {
     }
 
     /**
+     * Gets all the available setting definitions paths
+     * @returns {string[]} The list of paths leading to settings
+     * @public
+     */
+    getSettingPaths() {
+        // Obtain all paths to settings from the config
+        return this.__getObjectPaths(this.config, (path, value, isObject) => {
+            // Only consider objects
+            if (isObject) {
+                // If the object contains 'default' it is a setting
+                if (value.default !== undefined) return {add: true, stop: true};
+            }
+        });
+    }
+
+    /**
      * Loads all the default values into the current data
      * @returns {undefined}
      * @private
      */
     __loadDefaultSettings() {
         // Obtain all paths to settings
-        const settingPaths = this.__getObjectPaths(
-            this.config,
-            (path, value, isObject) => {
-                // Only consider objects
-                if (isObject) {
-                    // If the object contains 'default' it is a setting
-                    if (value.default !== undefined)
-                        return {add: true, stop: true};
-                }
-            }
-        );
+        const settingPaths = this.getSettingPaths();
 
         // Go through all paths, and copy over their value
         settingPaths.forEach(path => {
@@ -406,11 +460,12 @@ export default class ModuleSettings {
     /**
      * Gets a property from the specified object at the specified path
      * @param {Object} object - The path to get the value from
-     * @param {string} path - The path at which to get the value
+     * @param {string} [path=""] - The path at which to get the value
+     * @param {boolean} [create=false] - Whether to create the path if needed
      * @returns {*} The value at the specified path of the specified object
      * @private
      */
-    __getObjectField(object, path = "") {
+    __getObjectField(object, path = "", create) {
         // Get field list from the path
         let pathParts = path.split(".");
 
@@ -419,8 +474,13 @@ export default class ModuleSettings {
         let field;
 
         // Get the next field as long as there is a next field
-        while ((field = pathParts.shift()) && data && field.length > 0)
+        while ((field = pathParts.shift()) && data && field.length > 0) {
+            // Check if the data exists, if not, create it
+            if (data[field] === undefined && create) data[field] = {};
+
+            // Get the field
             data = data[field];
+        }
 
         // Return the retrieved data
         return data;

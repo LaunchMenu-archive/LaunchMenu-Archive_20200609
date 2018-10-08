@@ -1,12 +1,5 @@
 {
-    "something": {
-        "something->something": "1lm2-spzf-ifet-x3vp-xmmj"
-    },
-    "test": {
-        "**->test": "vk9o-ggpi-jkps-b1yl-qeuw"
-    },
     "tests/GUI/testElement.js": {
-        "**->tests/GUI/testElement.js->tests/GUI/testElement.js": "k74s-euzl-impi-vk7b-zs0d",
-        "*->tests/GUI/testElement.js": "vqdj-aalf-01v5-pfqh-96lq"
+        "**->tests/GUI/testElement.js->tests/GUI/testElement.js": "x2u1-v1ss-fv66-zdaa-bh3q"
     }
 }

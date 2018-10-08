@@ -106,13 +106,21 @@ export default class ReactConnector extends React.Component {
      * @public
      */
     render() {
-        // When the component renders, ask the module what to render
-        const element = this.props.module.render();
+        try {
+            // When the component renders, ask the module what to render
+            const element = this.props.module.render();
 
-        // Replace the element's style by a dynamic style (alterable by the settings)
-        this.__setDynamicStyle(element);
+            // Replace the element's style by a dynamic style (alterable by the settings)
+            this.__setDynamicStyle(element);
 
-        // Return the element to be rendered
-        return element;
+            // Return the element to be rendered
+            return element;
+        } catch (e) {
+            // Show the error in the console
+            console.error(e);
+
+            // Indicate that the element errored
+            return <span style={{backgroundColor: "RED"}}>ERROR</span>;
+        }
     }
 }

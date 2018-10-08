@@ -1,7 +1,7 @@
 export default {
     type: "testElement",
     settings: {
-        isCool: {
+        someSetting: {
             default: true,
             type: "boolean",
         },

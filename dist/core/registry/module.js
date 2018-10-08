@@ -402,6 +402,9 @@ class Module {
             // Dispose the channel receiver properly
             await this.core.channelReceiver.close();
 
+            // Dispose the settings
+            await this.getSettings().dispose();
+
             // Tell the registry that this module no longer exists
             await _registry2.default._deregisterModuleInstance(this);
 
