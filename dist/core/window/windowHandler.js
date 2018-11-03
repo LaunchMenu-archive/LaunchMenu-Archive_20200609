@@ -103,7 +103,7 @@ class WindowHandler {
         // Check if this code is ran in the main process
         if (!_isMain2.default) {
             // If it is not ran in the main process, forward the call to the main process
-            return _IPC2.default.sendSync("WindowHandler.open", {
+            return _IPC2.default.send("WindowHandler.open", {
                 ID: windowID
             });
         } else {
@@ -146,15 +146,15 @@ class WindowHandler {
                     height: settings.height
                 });
 
+                // Open dev tools for debugging TODO: add some option to disable/enable this
+                window.openDevTools();
+
                 // Load the window index path into this window
                 window.loadURL(_url2.default.format({
                     pathname: _path2.default.join(__dirname, "windowIndex.html"),
                     protocol: "file:",
                     slashes: true
                 }));
-
-                // Open dev tools for debugging TODO: add some option to disable/enable this
-                window.openDevTools();
 
                 // Wait for the window to finish loading
                 await new _promise2.default((resolve, reject) => {
@@ -387,9 +387,6 @@ class WindowHandler {
 
                 // Render the docking container's GUI in the window
                 _reactDom2.default.render(this.dockingContainer.__data.elementCreator, document.getElementById("body"));
-
-                // TODO: setup GUI sections and load the modules
-                console.log(settings, this.dockingContainer);
             });
         }
     }

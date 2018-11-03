@@ -1,10 +1,10 @@
 import Path from "path";
 import FS from "fs";
 import isMain from "../isMain";
-import Module from "./module";
 import RequestPath from "./requestPath/requestPath";
 import SettingsHandler from "../communication/data/settings/settingsHandler";
 import WindowHandler from "../window/windowHandler";
+import Module from "./module";
 import ChannelHandler from "../communication/channel/channelHandler";
 import IPC from "../communication/IPC";
 
@@ -59,6 +59,20 @@ export default class Registry {
      * @public
      */
     static requestHandle(request) {
+        // Normalize the request
+        this._normalizeHandleRequest(request);
+
+        // let the private __request method handle the request
+        return this.__request([request], "handle");
+    }
+
+    /**
+     * Normalizes the handle request to a fixed format
+     * @param {Request} request - The request to normalize
+     * @returns {Request} The normalized request (same object as the paramater)
+     * @protected
+     */
+    static _normalizeHandleRequest(request) {
         // Check if the request contains a valid use, if not set it to 'one'
         const hasInvalidUse =
             !request.use ||
@@ -76,8 +90,8 @@ export default class Registry {
         if (request.source instanceof Module)
             request.source = request.source.getPath().toString(true);
 
-        // let the private __request method handle the request
-        return this.__request([request], "handle");
+        // Return the request
+        return request;
     }
 
     /**
@@ -87,6 +101,37 @@ export default class Registry {
      * @public
      */
     static requestModule(request) {
+        // Normalize all the possibly passed requests
+        const requests = this._normalizeModuleRequest.apply(this, arguments);
+
+        // Retrieve the request modules
+        const requestsModules = this.__request(requests, "module", true);
+
+        // Format the response appropriately
+        if (requestsModules.length > 1) {
+            const response = {};
+
+            // Map the modules to their request types
+            for (let i = 0; i < requestsModules.length; i++) {
+                const requestType = requests[i].type;
+                response[requestType] = requestsModules[i];
+            }
+
+            // Return the modules indexed by request type
+            return response;
+        } else {
+            // Directly return the modules from the only request
+            return requestsModules[0];
+        }
+    }
+
+    /**
+     * Normalizes the module request to a fixed format
+     * @param {Request} request - The request to normalize
+     * @returns {Request[]} The normalized requests in array form
+     * @protected
+     */
+    static _normalizeModuleRequest(request) {
         // Get all the requests that were passed (multiple are allowed) TODO: indicate multiple in JSdoc
         var requests = Array.from(arguments);
 
@@ -109,25 +154,8 @@ export default class Registry {
             return request;
         });
 
-        // Retrieve the request modules
-        const requestsModules = this.__request(requests, "module", true);
-
-        // Format the response appropriately
-        if (requestsModules.length > 1) {
-            const response = {};
-
-            // Map the modules to their request types
-            for (let i = 0; i < requestsModules.length; i++) {
-                const requestType = requests[i].type;
-                response[requestType] = requestsModules[i];
-            }
-
-            // Return the modules indexed by request type
-            return response;
-        } else {
-            // Directly return the modules from the only request
-            return requestsModules[0];
-        }
+        // Return the requests
+        return requests;
     }
 
     /**
@@ -228,6 +256,16 @@ export default class Registry {
     }
 
     /**
+     * Loads a module at the specified path relative to the modules folder, should only be used once the module is already properly loaded, and only from the main process
+     * @param {string} modulePath - The modulePath for the module to return
+     * @returns {Class<Module>} The module that is located here
+     * @protected
+     */
+    static _getModule(modulePath) {
+        return require(this.__getModulesPath(modulePath)).default;
+    }
+
+    /**
      * Loads all the configs of available modules
      * @returns {Promise<Array<Config>>} All the configs that have been loaded
      * @async
@@ -305,17 +343,19 @@ export default class Registry {
     /**
      * Registeres the module so the registry knows of its existence
      * @param {Module} moduleInstance - The module to register
+     * @param {number} [uniqueID] - A specific uniqueID that the module should get (only used when moving modules)
      * @returns {number} The unique ID that the module instance has now been assigned
      * @async
      * @protected
      */
-    static async _registerModuleInstance(moduleInstance) {
+    static async _registerModuleInstance(moduleInstance, uniqueID) {
         // Get the a unique ID for the request path
         const requestPath = moduleInstance.getPath();
         const ID = (await IPC.send(
             "Registry.registerModuleInstance",
             {
                 requestPath: requestPath.toString(true),
+                uniqueID: uniqueID,
             },
             0
         ))[0];
@@ -745,9 +785,17 @@ export default class Registry {
                 if (!paths)
                     paths = this.requestPaths[requestPath.toString()] = {};
 
-                // Find a unique ID in this collection
+                // Create a unique ID for the path
                 let ID = 0;
-                while (paths[ID]) ID++;
+
+                // Check if a ID was provided by the event
+                if (event.data.uniqueID) {
+                    // If so, just use that ID
+                    ID = event.data.uniqueID;
+                } else {
+                    // Find a unique ID in this collection
+                    while (paths[ID]) ID++;
+                }
 
                 // Asssign this unique ID to the last module of the request path and store the path
                 requestPath.getModuleID().ID = ID;

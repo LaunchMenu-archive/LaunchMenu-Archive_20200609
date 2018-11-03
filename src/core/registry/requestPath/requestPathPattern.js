@@ -12,9 +12,105 @@ export default class RequestPathPattern extends ModuleSequence {
     }
 
     /**
+     * Returns all the rules for how to interpret each section of the requestPath
+     * @returns {Object[]} A list of parse patterns
+     * @private
+     */
+    __getParseModules() {
+        // Declare the symbols
+        const start = Symbol("start");
+        const recurse = Symbol("recurse");
+
+        // Declare the grammar and semantics
+        return {
+            start: start,
+            [start]: [
+                recurse,
+                {
+                    type: "anything, any number of times",
+                    pattern: ["*"],
+                    matchTimes: [0, Infinity],
+                },
+                {
+                    type: "anything, at least once",
+                    pattern: ["+"],
+                    matchTimes: [1, Infinity],
+                },
+                {
+                    type: "anything, n times",
+                    pattern: ["{", /\d+/, "}"],
+                    matchTimes: pattern => {
+                        const times = pattern[1];
+                        return [times, times];
+                    },
+                },
+                {
+                    type: "anything, between n and m times",
+                    pattern: ["{", /\d+/, ",", /\d+/, "}"],
+                    matchTimes: pattern => {
+                        const min = pattern[1];
+                        const max = pattern[3];
+                        return [min, max];
+                    },
+                },
+                {
+                    type: "pattern, any number of times",
+                    pattern: [recurse, "*"],
+                    matchTimes: [0, Infinity],
+                },
+                {
+                    type: "pattern, at least once",
+                    pattern: [recurse, "+"],
+                    matchTimes: [1, Infinity],
+                },
+                {
+                    type: "pattern, n times",
+                    pattern: [recurse, "{", /\d+/, "}"],
+                    matchTimes: pattern => {
+                        const times = pattern[1];
+                        return [times, times];
+                    },
+                },
+                {
+                    type: "pattern, between n and m times",
+                    pattern: [recurse, "{", /\d+/, ",", /\d+/, "}"],
+                    matchTimes: pattern => {
+                        const min = pattern[1];
+                        const max = pattern[3];
+                        return [min, max];
+                    },
+                },
+            ],
+            [recurse]: [
+                {
+                    type: "group",
+                    pattern: ["(", recurse, ")"],
+                    match: (module, pattern) => pattern[1].match(module),
+                },
+                {
+                    type: "or",
+                    pattern: [recurse, "|", recurse],
+                    match: (module, pattern) =>
+                        pattern[0].match(module) || pattern[2].match(module),
+                },
+                {
+                    type: "not",
+                    pattern: ["!", recurse],
+                    match: (module, pattern) => !pattern[1].match(module),
+                },
+                {
+                    type: "module",
+                    pattern: [/\s*/, /[\w\/\\]*/, /\s*/],
+                    match: (module, pattern) => pattern[1] == module,
+                },
+            ],
+        };
+    }
+
+    /**
      * Gets the object representation of a single module
      * @param {string} text - The string to turn into its object representation
-     * @returns {Object} THe object representation of the module
+     * @returns {Object} The object representation of the module
      * @private
      */
     __getModuleID(text) {

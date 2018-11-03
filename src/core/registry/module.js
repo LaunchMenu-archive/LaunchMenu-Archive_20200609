@@ -1,4 +1,5 @@
 import ChannelHandler from "../communication/channel/channelHandler";
+import WindowHandler from "../window/windowHandler";
 import SettingsHandler from "../communication/data/settings/settingsHandler";
 import Registry from "./registry";
 import RequestPath from "./requestPath/requestPath";
@@ -27,7 +28,10 @@ export default class Module {
                 registerPromiseResolve: registerPromiseResolve,
             },
             initPromise: registerPromise, // Other methods may build upon this promise
-            handlers: {},
+            handlers: {
+                byType: {},
+                byPath: {},
+            },
             source: {},
         };
 
@@ -67,6 +71,9 @@ export default class Module {
 
             // Check if the source contains a request that instanciated it
             if (source.request) {
+                // Store the serializationData if present
+                const serializationData = source.request.serializationData;
+
                 // Store the requestPath to this module by agumenting the request's requestPath by this module
                 const requestPath = new RequestPath(source.request.source);
                 source.requestPath = requestPath.augmentPath(
@@ -74,19 +81,41 @@ export default class Module {
                     0
                 );
 
-                // Register this module in the registry (which will automatically assign a unique module ID)
-                await Registry._registerModuleInstance(this);
+                // Check if the request provided a 'unique' ID that should be used
+                if (serializationData) {
+                    // If there a uniqueID was provided, this means an already existing module is being moved
+                    // Register this module in the registry, and make use of this previously defined ID
+                    await Registry._registerModuleInstance(
+                        this,
+                        serializationData.uniqueID
+                    );
+                } else {
+                    // Register this module in the registry (which will automatically assign a unique module ID)
+                    await Registry._registerModuleInstance(this);
+                }
 
-                const promises = [];
+                let promises = [];
+
                 // Create a channel receiver that can be used to receive messages from other modules
                 promises.push(
                     ChannelHandler.createReceiver(
                         source.requestPath.toString(true),
                         this.__createChannelMethods()
-                    ).then(receiver => {
-                        // Store the channel receiver
-                        this.core.channelReceiver = receiver;
-                    })
+                    )
+                        .then(receiver => {
+                            // Store the channel receiver
+                            this.core.channelReceiver = receiver;
+
+                            // Forward the receiver
+                            return receiver;
+                        })
+                        .then(receiver => {
+                            // Check if this receiver is the receiver for a previously defined channel
+                            if (serializationData) {
+                                // If it is, notify the process ID change
+                                return receiver._broadCastProcessChange();
+                            }
+                        })
                 );
 
                 // Create a channel sender to the module that requested this module
@@ -112,12 +141,30 @@ export default class Module {
                     })
                 );
 
-                // Wait for both to finish
+                // Setup any handlers if provided in the serializationData
+                if (serializationData) {
+                    promises = promises.concat(
+                        this.__loadHandlers(serializationData)
+                    );
+                }
+
+                // Wait for all to finish
                 await Promise.all(promises);
 
                 // Indicate that registering has finished and resolve the promise
                 this.core.registration.registered.true(true);
                 this.core.registration.registerPromiseResolve(this);
+
+                // Check if there is serializationData, I.E. if this module moved
+                if (serializationData) {
+                    // If so, load this data
+                    this.__deserialize(serializationData);
+
+                    // and reenable the channel once the module is initialised
+                    this.__init(() => {
+                        this.core.channelReceiver._broadCastDisabled(false);
+                    });
+                }
             } else {
                 // If the module was not instantiated by a request, the request path is simply this module path
                 source.requestPath = new RequestPath(
@@ -139,6 +186,58 @@ export default class Module {
                 this.core.registration.registerPromiseResolve(this);
             }
         }
+    }
+
+    /**
+     * Sets up receivers for handlers defined in the serialization data of a module instance
+     * @param {object} serializationData - The data to extract the handlers from
+     * @returns {Promise[]} A list of promises that resolve when all channels are created
+     * @async
+     * @private
+     */
+    __loadHandlers(serializationData) {
+        // The promises to return
+        const promises = [];
+
+        // Go through all types of handlers
+        Object.keys(serializationData.handlers).forEach(handlerType => {
+            // Get the handlers for this handler type
+            const handlers = serializationData.handlers[handlerType];
+
+            // Map the handlers and store them
+            this.core.handlers.byType[handlerType] = handlers.map(handler => {
+                // Create an object and store the channels afterwards
+                return {
+                    request: handler.request,
+                    channels: [],
+                };
+            });
+
+            // Create channel receivers for all handlers
+            handlers.forEach((handler, index) => {
+                // Get the channels of the handler
+                handler.channels.forEach(channelData => {
+                    // Create a receiver for the channel
+                    const receiverPromise = ChannelHandler.createSender(
+                        channelData
+                    ).then(receiver => {
+                        // Get the mapped handler, and store it in it
+                        const mappedHandler = this.core.handlers.byType[
+                            handlerType
+                        ][index];
+
+                        // Add the channel
+                        mappedHandler.channels.push(receiver);
+                    });
+
+                    // Store the promise in the promises we want to await
+                    promises.push(receiverPromise);
+                });
+            });
+        });
+
+        // Return the promises that have to be waited for
+        return promises;
     }
 
     /**
@@ -254,6 +353,80 @@ export default class Module {
         return this.core.settings;
     }
 
+    // Module instance transfer related methods
+    /**
+     * Serializes the module instance such that it can be transfered to another window
+     * @returns {Object} All the relevant data in order to rebuild the module instance
+     * @private
+     */
+    __serialize() {
+        // The base serialization data to return
+        const data = {
+            uniqueID: this.getPath().getModuleID().ID,
+            handlers: {},
+        };
+
+        // Go through all handlers and map them
+        Object.keys(this.core.handlers.byType).forEach(handlerType => {
+            const handlers = this.core.handlers.byType[handlerType];
+
+            // Map the handler to something that can be transferred
+            const serializedHandlers = [];
+            handlers.forEach(handler => {
+                // Add the handler to the serialized handler if it is not an embeded request
+                if (!handler.request.embedGUI)
+                    serializedHandlers.push({
+                        request: handler.request,
+                        channels: handler.channels.map(channel =>
+                            channel._getChannelIdentifier()
+                        ),
+                    });
+            });
+
+            // Store the handler in data
+            data.handlers[handlerType] = serializedHandlers;
+        });
+
+        // Return the gathered serialization data
+        return data;
+    }
+
+    /**
+     * Deserializes the data in order to restore the module instance to a previously captured state
+     * @param {Object} data - The data obtained through the serialize method
+     * @returns {undefined}
+     * @private
+     */
+    __deserialize(data) {}
+
+    /**
+     * Moves a module from one section/window to another, will destroy this object and return a channelSender to the new instance
+     * @param {object} moduleLocation - The location that the module should be moved to
+     * @param {number} moduleLocation.window - The window that the module should be moved to
+     * @param {number} moduleLocation.section - The section of the window that the module should be moved to
+     * @returns {ChannelSender} The channelSender to communicate with the new module instance
+     * @public
+     * @async
+     */
+    async move(moduleLocation) {
+        // Get the data that defines this module instance
+        const data = this.__serialize();
+
+        // Create a special request that contains this serialization data
+        const request = this.core.source.request;
+        request.serializationData = data;
+
+        // Dispose the module instance partially
+        await this.dispose(false);
+
+        // Open this same module at the specified location
+        return WindowHandler.openModuleInstance(
+            moduleLocation,
+            request,
+            this.getClass()
+        );
+    }
+
     // Channel related methods
     /**
      * Gets all the methods of this module that are available for channels
@@ -312,9 +485,7 @@ export default class Module {
             const method = methods[methodName];
 
             // Apply the event followed by the channel data as arguments for the method
-            output[methodName] = event => {
-                return method.apply(this, [event].concat(event.data));
-            };
+            output[methodName] = this.__proxyChannelFunction(method);
         });
 
         // Set up a close method for the channel
@@ -332,6 +503,29 @@ export default class Module {
     }
 
     /**
+     * Proxies the function such that the sender channel is inserted if available, and data comes as arguments
+     * @param {function} func - The function that has to be proxied
+     * @returns {function} The wrapper (proxy) around the provided function
+     * @async
+     * @private
+     */
+    __proxyChannelFunction(func) {
+        return event => {
+            // Get the senderID
+            const senderID = event.senderID;
+
+            // Check if the sender is available in our handlers
+            if (this.core.handlers.byPath[senderID]) {
+                // If so, store the sender as a channel
+                event.sender = this.core.handlers.byPath[senderID];
+            }
+
+            // Forward the data
+            return func.apply(this, [event].concat(event.data));
+        };
+    }
+
+    /**
      * Disconnects a module from this module (But doesn't dispose it)
      * @param {RequestPath} requestPath - The request path for the module to disconnect
      * @param {string} type - The type of request that the module was instiated for
@@ -339,29 +533,37 @@ export default class Module {
      * @private
      */
     __disconnectDescendant(requestPath, type) {
-        // Get the handler for this request type if available
-        const handler = this.core.handlers[type];
-        if (handler) {
-            // Extract the channels from this handler
-            const channels = handler.channels;
+        // Get the handlers for this request type if available
+        const handlers = this.core.handlers.byType[type];
+        if (handlers) {
+            // Go through all handlers
+            handlers.forEach(handler => {
+                // Extract the channels from this handler
+                const channels = handler.channels;
 
-            // Remove the channel that matches the requestPath
-            handler.channels = channels.filter(channel => {
-                return channel._getID() != requestPath;
+                // Remove the channel that matches the requestPath
+                handler.channels = channels.filter(channel => {
+                    return channel._getID() != requestPath;
+                });
+
+                // Remove the handler if all channels have been closed
+                if (handler.channels.length == 0)
+                    delete this.core.handlers.byType[type];
             });
-
-            // Remove the handler if all channels have been closed
-            if (handler.channels.length == 0) delete this.core.handlers[type];
         }
+
+        // Remove the handler by path from the object
+        delete this.core.handlers.byPath[requestPath.toString(true)];
     }
 
     /**
      * Disposes this module entirely, also getting rid of its connections to other modules
+     * @param {boolean} [fully=true] - Whether we are also disposing descendants, and indicate that we disposed this module to the parent
      * @returns {Promise} The promise that resolves once disposal has completed
      * @async
      * @public
      */
-    async dispose() {
+    async dispose(fully = true) {
         // Check if the module is not still registering
         if (this.core.registration.registered.turningTrue())
             throw Error("Module is still registering");
@@ -375,33 +577,54 @@ export default class Module {
             const channelDisposalPromises = [];
 
             // Go through all the handlers to dispose them
-            Object.keys(this.core.handlers).forEach(type => {
-                // Get the handler and its channels
-                const handler = this.core.handlers[type];
-                const channels = handler.channels;
+            Object.keys(this.core.handlers.byType).forEach(type => {
+                // Get the handlers of this type
+                const handlers = this.core.handlers.byType[type];
 
-                // Close all the handle modules and track their promises
-                channelDisposalPromises.push.apply(
-                    channelDisposalPromises,
-                    channels.map(channel => {
-                        return channel.close();
-                    })
-                );
+                // Go through all handlers
+                handlers.forEach(handler => {
+                    // Get the channels and request of the handler
+                    const channels = handler.channels;
+                    const request = handler.request;
+
+                    // Either dispose the module if we want to fully dispose or it is an embeded module
+                    if (fully || request.embedGUI) {
+                        // Close all the handle modules and track their promises
+                        channelDisposalPromises.push.apply(
+                            channelDisposalPromises,
+                            channels.map(channel => {
+                                return channel.close();
+                            })
+                        );
+                    }
+
+                    // Dispose the channel senders themselves
+                    channels.forEach(channel => {
+                        channel.dispose();
+                    });
+                });
             });
+
+            // If we aren't fully disposing the module, temporarly disable traffic on the channel receiver
+            if (!fully)
+                await this.core.channelReceiver._broadCastDisabled(true);
 
             // Wait for all modules to finish disposing
             await Promise.all(channelDisposalPromises);
 
             // If this module has a source channel, indicate that this module has been closed by disconnecting it
-            if (this.core.source.channel) {
+            if (this.core.source.channel && fully) {
                 await this.core.source.channel.disconnectDescendant(
                     this.getPath().toString(true),
                     this.core.source.request.type
                 );
             }
 
+            // Dispose the sender to the source
+            await this.getSource().dispose();
+
             // Dispose the channel receiver properly
-            await this.core.channelReceiver.close();
+            await this.core.channelReceiver.dispose();
 
             // Dispose the settings
             await this.getSettings().dispose();
@@ -440,12 +663,15 @@ export default class Module {
         // If no extra methods have been assigned to the request, assign it an empty object
         if (!request.methods) request.methods = {};
 
+        // Map the methods such that it replaces senderID by the sender channel
+        Object.keys(request.methods).forEach(methodName => {
+            request.methods[methodName] = this.__proxyChannelFunction(
+                request.methods[methodName]
+            );
+        });
+
         // Set this module to be the source of the request
         request.source = this;
-
-        // If this module has already made a request for this type, return those channels instead
-        if (this.core.handlers[request.type])
-            return this.core.handler[request.type].channels;
 
         // Create a subchannel in this channel receiver to handle received data from the requested handlers
         this.core.channelReceiver.createSubChannel(
@@ -453,16 +679,48 @@ export default class Module {
             request.methods
         );
 
-        // Send the request to the registry and receive its created channels
-        const channels = await Registry.requestHandle(request);
+        // Create an object for the return channels
+        let channels;
 
-        // Store the created handlers locally
-        this.core.handlers[request.type] = {
-            request: request,
-            channels: channels instanceof Array ? channels : [channels], // Make sure it is an array of channels
-        };
+        // If this module has already made a request for this type, return those channels instead, TODO: only return if the request data is equivalent
+        if (
+            this.core.handlers.byType[request.type] &&
+            this.core.handlers.byType[request.type][0]
+        ) {
+            // Get the channels that were already stored
+            channels = this.core.handlers.byType[request.type][0].channels;
 
-        // Return the received channels
-        return channels;
+            // Despite not really requesting the modules, we should still normalize the request
+            Registry._normalizeHandleRequest(request);
+        } else {
+            // Send the request to the registry and receive its created channels
+            channels = await Registry.requestHandle(request);
+
+            // Make sure it is an array of channels
+            channels = channels instanceof Array ? channels : [channels];
+
+            // Store the created handlers locally
+            // Store them by type
+            if (!this.core.handlers.byType[request.type])
+                this.core.handlers.byType[request.type] = [];
+            this.core.handlers.byType[request.type].push({
+                request: request,
+                channels: channels,
+            });
+
+            // Store them by request path
+            channels.forEach(channel => {
+                this.core.handlers.byPath[channel._getID()] = channel;
+            });
+        }
+
+        // Check whether a single channel should be returned, or an array
+        if (request.use == "one") {
+            // Return a single received channel
+            return channels[0];
+        } else {
+            // Return all the received channels
+            return channels;
+        }
     }
 }

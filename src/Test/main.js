@@ -87,6 +87,11 @@ app.on("ready", function() {
             testModule2instance
                 .requestHandle({
                     type: "testElement",
+                    methods: {
+                        changeName: function(event, name) {
+                            event.sender.$setName(name);
+                        },
+                    },
                     data: {
                         repeat: true,
                     },

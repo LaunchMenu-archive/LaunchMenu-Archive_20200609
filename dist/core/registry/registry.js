@@ -30,10 +30,6 @@ var _isMain = require("../isMain");
 
 var _isMain2 = _interopRequireDefault(_isMain);
 
-var _module = require("./module");
-
-var _module2 = _interopRequireDefault(_module);
-
 var _requestPath = require("./requestPath/requestPath");
 
 var _requestPath2 = _interopRequireDefault(_requestPath);
@@ -45,6 +41,10 @@ var _settingsHandler2 = _interopRequireDefault(_settingsHandler);
 var _windowHandler = require("../window/windowHandler");
 
 var _windowHandler2 = _interopRequireDefault(_windowHandler);
+
+var _module = require("./module");
+
+var _module2 = _interopRequireDefault(_module);
 
 var _channelHandler = require("../communication/channel/channelHandler");
 
@@ -107,6 +107,20 @@ class Registry {
      * @public
      */
     static requestHandle(request) {
+        // Normalize the request
+        this._normalizeHandleRequest(request);
+
+        // let the private __request method handle the request
+        return this.__request([request], "handle");
+    }
+
+    /**
+     * Normalizes the handle request to a fixed format
+     * @param {Request} request - The request to normalize
+     * @returns {Request} The normalized request (same object as the paramater)
+     * @protected
+     */
+    static _normalizeHandleRequest(request) {
         // Check if the request contains a valid use, if not set it to 'one'
         const hasInvalidUse = !request.use || typeof request.use == "string" || !request.use.match(/^(one|all)$/g);
         if (hasInvalidUse) request.use = "one";
@@ -120,8 +134,8 @@ class Registry {
         // Check if the request source type is a module, if so, get its string identifier
         if (request.source instanceof _module2.default) request.source = request.source.getPath().toString(true);
 
-        // let the private __request method handle the request
-        return this.__request([request], "handle");
+        // Return the request
+        return request;
     }
 
     /**
@@ -131,24 +145,8 @@ class Registry {
      * @public
      */
     static requestModule(request) {
-        // Get all the requests that were passed (multiple are allowed) TODO: indicate multiple in JSdoc
-        var requests = (0, _from2.default)(arguments);
-
-        // Normalize the format of the requests
-        var requests = requests.map(request => {
-            // If the request is only a string rather than an object, turn it into an object
-            if (typeof request == "string") request = { type: request };
-
-            // Check if the request contains a valid use, if not set it to 'one'
-            const hasInvalidUse = !request.use || typeof request.use == "string" || !request.use.match(/^(one|all)$/g);
-            if (hasInvalidUse) request.use = "one";
-
-            // Ensure at least an empty data object is present in the request
-            if (!request.data) request.data = {};
-
-            // Return the new request variable
-            return request;
-        });
+        // Normalize all the possibly passed requests
+        const requests = this._normalizeModuleRequest.apply(this, arguments);
 
         // Retrieve the request modules
         const requestsModules = this.__request(requests, "module", true);
@@ -169,6 +167,36 @@ class Registry {
             // Directly return the modules from the only request
             return requestsModules[0];
         }
+    }
+
+    /**
+     * Normalizes the module request to a fixed format
+     * @param {Request} request - The request to normalize
+     * @returns {Request[]} The normalized requests in array form
+     * @protected
+     */
+    static _normalizeModuleRequest(request) {
+        // Get all the requests that were passed (multiple are allowed) TODO: indicate multiple in JSdoc
+        var requests = (0, _from2.default)(arguments);
+
+        // Normalize the format of the requests
+        var requests = requests.map(request => {
+            // If the request is only a string rather than an object, turn it into an object
+            if (typeof request == "string") request = { type: request };
+
+            // Check if the request contains a valid use, if not set it to 'one'
+            const hasInvalidUse = !request.use || typeof request.use == "string" || !request.use.match(/^(one|all)$/g);
+            if (hasInvalidUse) request.use = "one";
+
+            // Ensure at least an empty data object is present in the request
+            if (!request.data) request.data = {};
+
+            // Return the new request variable
+            return request;
+        });
+
+        // Return the requests
+        return requests;
     }
 
     /**
@@ -268,6 +296,16 @@ class Registry {
     }
 
     /**
+     * Loads a module at the specified path relative to the modules folder, should only be used once the module is already properly loaded, and only from the main process
+     * @param {string} modulePath - The modulePath for the module to return
+     * @returns {Class<Module>} The module that is located here
+     * @protected
+     */
+    static _getModule(modulePath) {
+        return require(this.__getModulesPath(modulePath)).default;
+    }
+
+    /**
      * Loads all the configs of available modules
      * @returns {Promise<Array<Config>>} All the configs that have been loaded
      * @async
@@ -340,15 +378,17 @@ class Registry {
     /**
      * Registeres the module so the registry knows of its existence
      * @param {Module} moduleInstance - The module to register
+     * @param {number} [uniqueID] - A specific uniqueID that the module should get (only used when moving modules)
      * @returns {number} The unique ID that the module instance has now been assigned
      * @async
      * @protected
      */
-    static async _registerModuleInstance(moduleInstance) {
+    static async _registerModuleInstance(moduleInstance, uniqueID) {
         // Get the a unique ID for the request path
         const requestPath = moduleInstance.getPath();
         const ID = (await _IPC2.default.send("Registry.registerModuleInstance", {
-            requestPath: requestPath.toString(true)
+            requestPath: requestPath.toString(true),
+            uniqueID: uniqueID
         }, 0))[0];
 
         // Assign the ID to this request path and return it
@@ -721,9 +761,17 @@ class Registry {
                 let paths = this.requestPaths[requestPath.toString()];
                 if (!paths) paths = this.requestPaths[requestPath.toString()] = {};
 
-                // Find a unique ID in this collection
+                // Create a unique ID for the path
                 let ID = 0;
-                while (paths[ID]) ID++;
+
+                // Check if a ID was provided by the event
+                if (event.data.uniqueID) {
+                    // If so, just use that ID
+                    ID = event.data.uniqueID;
+                } else {
+                    // Find a unique ID in this collection
+                    while (paths[ID]) ID++;
+                }
 
                 // Asssign this unique ID to the last module of the request path and store the path
                 requestPath.getModuleID().ID = ID;

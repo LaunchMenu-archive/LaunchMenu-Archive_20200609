@@ -70,6 +70,7 @@ export default class ChannelReceiver {
         this.subChannelListeners[ID] = listeners;
         this.__broadCastMessageTypes("*");
     }
+
     /**
      * Delete a subchannel
      * @param  {string} ID - The subChannel to remove
@@ -93,7 +94,7 @@ export default class ChannelReceiver {
      * @returns {undefined}
      * @public
      */
-    close() {
+    dispose() {
         // Clear the IPC listeners
         IPC.off("channel.message:" + this.ID, this.IPClisteners.message);
         IPC.off(
@@ -127,10 +128,12 @@ export default class ChannelReceiver {
         if (listener) return listener.call(this, event);
     }
 
+    // Methods to broadcast data to all the possible senders that exist for this receiver
     /**
-     * Broadcast all available message types to the specified processes/windows
+     * Broadcasts all available message types to the specified processes/windows
      * @param  {(string|string[])} [processes="*"] The processes/windows to send the message types to
      * @returns {undefined}
+     * @async
      * @private
      */
     __broadCastMessageTypes(processes = "*") {
@@ -138,7 +141,7 @@ export default class ChannelReceiver {
         const messageTypes = this._getMessageTypes();
 
         // Broadcast the messages
-        IPC.send(
+        return IPC.send(
             "channel.sendMessageTypes:" + this.ID,
             messageTypes,
             processes
@@ -167,5 +170,33 @@ export default class ChannelReceiver {
 
         // Return the message types
         return messageTypes;
+    }
+
+    /**
+     * Broadcasts the new process ID that this receiver is in to the specified processes/windows
+     * @param  {(string|string[])} [processes="*"] The processes/windows to send the new process location to
+     * @returns {undefined}
+     * @async
+     * @protected
+     */
+    _broadCastProcessChange(processes = "*") {
+        // Get the process ID that this receiver is located in
+        const ID = IPC.getID();
+
+        // Broadcast the new process ID
+        return IPC.send("channel.sendProcessChange:" + this.ID, ID, processes);
+    }
+
+    /**
+     * Broadcasts whether or not this receiver is disabled to the specified processes/windows
+     * @param {boolean} disabled - Whether or not the receiver is disabled
+     * @param  {(string|string[])} [processes="*"] The processes/windows to send the state to
+     * @returns {undefined}
+     * @async
+     * @protected
+     */
+    _broadCastDisabled(disabled, processes = "*") {
+        // Broadcast the state
+        return IPC.send("channel.sendDisabled:" + this.ID, disabled, processes);
     }
 }

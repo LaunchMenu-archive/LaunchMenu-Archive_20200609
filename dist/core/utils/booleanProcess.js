@@ -15,6 +15,9 @@ class State {
      */
     constructor(state) {
         this.state = state || 0;
+
+        // Listeners that check for state changes
+        this.listeners = [];
     }
 
     /**
@@ -24,7 +27,7 @@ class State {
      * @public
      */
     true(setState) {
-        if (setState) this.state = 2;
+        if (setState) this.__setState(2);
         return this.state == 2;
     }
 
@@ -35,7 +38,7 @@ class State {
      * @public
      */
     false(setState) {
-        if (setState) this.state = 0;
+        if (setState) this.__setState(0);
         return this.state == 0;
     }
 
@@ -46,7 +49,7 @@ class State {
      * @public
      */
     turningTrue(setState) {
-        if (setState) this.state = 1;
+        if (setState) this.__setState(1);
         return this.state == 1;
     }
 
@@ -57,7 +60,7 @@ class State {
      * @public
      */
     turningFalse(setState) {
-        if (setState) this.state = 3;
+        if (setState) this.__setState(3);
         return this.state == 3;
     }
 
@@ -77,6 +80,55 @@ class State {
      */
     falseOrTurningFalse() {
         return this.state == 0 || this.state == 3;
+    }
+
+    // Listener related methods
+    /**
+     * Adds a listener to check for changes
+     * @param {function} listener - The listener to be called when the state is changed
+     * @returns {undefined}
+     * @public
+     */
+    addListener(listener) {
+        // Check if the listener isn't already in the list
+        if (this.listeners.indexOf(listener) == -1)
+            // Add the listener
+            this.listeners.push(listener);
+    }
+
+    /**
+     * Adds a listener to check for changes
+     * @param {function} listener - The listener to be called when the state is changed
+     * @returns {undefined}
+     * @public
+     */
+    removeListener(listener) {
+        // Get the index of the listener
+        const index = this.listeners.indexOf(listener);
+
+        // Check if the listener is in the list
+        if (index != -1)
+            // Remove the listener
+            this.listeners.splice(index, 1);
+    }
+
+    /**
+     * Changes the state and calls all listeners
+     * @param {('0'|'1'|'2'|'3')} newState - The new state we should have
+     * @returns {undefined}
+     * @private
+     */
+    __setState(state) {
+        // Store the old state
+        const oldState = this.state;
+
+        // Set the new state
+        this.state = state;
+
+        // Go through all listeners and call them
+        this.listeners.forEach(listener => {
+            listener.call(this, this.state, oldState);
+        });
     }
 }
 exports.default = State;

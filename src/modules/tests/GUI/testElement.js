@@ -7,6 +7,7 @@ export default class TestElement extends GUIModule {
         this.name = "test";
         this.someSetting = false;
         this.childElement = false;
+        this.textElement = false;
 
         // If the request indicates that the element should repeat (embed a child instance in itself)
         if (request.data.repeat) {
@@ -16,6 +17,16 @@ export default class TestElement extends GUIModule {
                     embedGUI: "true",
                 }).then(channel => {
                     this.childElement = channel;
+                    channel.$setName(this.name);
+                });
+            });
+
+            this.__init(async () => {
+                return this.requestHandle({
+                    type: "testElement2",
+                }).then(channel => {
+                    console.log(channel);
+                    this.textElement = channel;
                 });
             });
         }
@@ -43,15 +54,44 @@ export default class TestElement extends GUIModule {
     $setName(event, name) {
         this.name = name;
         if (this.childElement) this.childElement.$setName(name);
+        if (this.textElement) this.textElement.$setText(name + " text");
         this.requestElementUpdate();
+    }
+
+    // Serialization and deserialization
+    __serialize() {
+        const data = super.__serialize();
+        data.name = this.name;
+        return data;
+    }
+    __deserialize(data) {
+        this.$setName(null, data.name);
+        super.__deserialize(data);
     }
 
     // Render method
     render() {
+        const move = () => {
+            if (window.ID == 1) {
+                this.move({
+                    window: 2,
+                    section: 0,
+                });
+            } else {
+                this.move({
+                    window: 1,
+                    section: 1,
+                });
+            }
+        };
+        const changeNameRequest = () => {
+            this.getSource().changeName(this.name + 1);
+        };
+
         return (
             <div style={{padding: 10}}>
-                <h2>{this.name}</h2>
-                <span>
+                <h2 onClick={move}>{this.name}</h2>
+                <span onClick={changeNameRequest}>
                     The setting has value: {JSON.stringify(this.someSetting)}
                 </span>
                 {this.childElement && (

@@ -4,6 +4,7 @@ import FS from "fs";
 import GlobalDataHandler from "../globalData/globalDataHandler";
 import Settings from "./settings";
 import ModuleSettings from "./moduleSettings";
+import Registry from "../../../registry/registry";
 import RequestPath from "../../../registry/requestPath/requestPath";
 import RequestPathPattern from "../../../registry/requestPath/requestPathPattern";
 import isMain from "../../../isMain";
@@ -336,6 +337,25 @@ export default class SettingsHandler {
                 section: 0,
             };
 
+            // Get the module itself
+            const module = Registry._getModule(modulePath);
+
+            // Check if the module even exists
+            if (module) {
+                // If it does, get its config
+                const config = module.getConfig();
+
+                // Check if the config contains a location
+                const location = config.settings && config.settings.location;
+                if (location) {
+                    // Copy any available parts of the location to be used as the default
+                    if (location.window)
+                        defaultLocation.window = location.window;
+                    if (location.section)
+                        defaultLocation.section = location.section;
+                }
+            }
+
             // Check if there are UUIDs for this end point
             const patternsData = this.pathPatternUUIDs[modulePath];
             if (patternsData) {
@@ -369,6 +389,12 @@ export default class SettingsHandler {
 
             // If no data could be found return some default
             return defaultLocation;
+        } else {
+            return IPC.sendSync(
+                "Settings.getModuleLocation",
+                requestPath.toString(true),
+                0
+            )[0];
         }
     }
 
@@ -379,6 +405,11 @@ export default class SettingsHandler {
      */
     static __setup() {
         if (isMain) {
+            // Listen for moduleLocation requests, so they can be executed from the main process
+            IPC.on("Settings.getModuleLocation", event => {
+                return this._getModuleLocation(event.data);
+            });
+
             // Listen for settings save events
             IPC.on("Settings.save", async event => {
                 // Get the data of the settings that want to be saved

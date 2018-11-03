@@ -63,7 +63,7 @@ export default class WindowHandler {
         // Check if this code is ran in the main process
         if (!isMain) {
             // If it is not ran in the main process, forward the call to the main process
-            return IPC.sendSync("WindowHandler.open", {
+            return IPC.send("WindowHandler.open", {
                 ID: windowID,
             });
         } else {
@@ -108,6 +108,9 @@ export default class WindowHandler {
                         height: settings.height,
                     });
 
+                    // Open dev tools for debugging TODO: add some option to disable/enable this
+                    window.openDevTools();
+
                     // Load the window index path into this window
                     window.loadURL(
                         Url.format({
@@ -116,9 +119,6 @@ export default class WindowHandler {
                             slashes: true,
                         })
                     );
-
-                    // Open dev tools for debugging TODO: add some option to disable/enable this
-                    window.openDevTools();
 
                     // Wait for the window to finish loading
                     await new Promise((resolve, reject) => {
@@ -386,9 +386,6 @@ export default class WindowHandler {
                     this.dockingContainer.__data.elementCreator,
                     document.getElementById("body")
                 );
-
-                // TODO: setup GUI sections and load the modules
-                console.log(settings, this.dockingContainer);
             });
         }
     }

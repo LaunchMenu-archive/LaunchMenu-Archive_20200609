@@ -154,7 +154,18 @@ export default class DockingSection extends GUIModule {
     $openModule(event, requestPath) {
         const element = this.__getGUIFromPath(requestPath);
         this.content = [element];
+
         this.requestElementUpdate();
+
+        // Check when the module is deregistered (destroyed)
+        const module = Registry._getModuleInstance(requestPath);
+        module.core.registration.registered.addListener(state => {
+            if (state == 0) {
+                // Stop showing the element when the module is destroyed
+                this.content = [];
+                this.requestElementUpdate();
+            }
+        });
     }
 
     // Resize related methods

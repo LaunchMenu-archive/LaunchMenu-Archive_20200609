@@ -42,6 +42,10 @@ var _moduleSettings = require("./moduleSettings");
 
 var _moduleSettings2 = _interopRequireDefault(_moduleSettings);
 
+var _registry = require("../../../registry/registry");
+
+var _registry2 = _interopRequireDefault(_registry);
+
 var _requestPath = require("../../../registry/requestPath/requestPath");
 
 var _requestPath2 = _interopRequireDefault(_requestPath);
@@ -364,6 +368,23 @@ class SettingsHandler {
                 section: 0
             };
 
+            // Get the module itself
+            const module = _registry2.default._getModule(modulePath);
+
+            // Check if the module even exists
+            if (module) {
+                // If it does, get its config
+                const config = module.getConfig();
+
+                // Check if the config contains a location
+                const location = config.settings && config.settings.location;
+                if (location) {
+                    // Copy any available parts of the location to be used as the default
+                    if (location.window) defaultLocation.window = location.window;
+                    if (location.section) defaultLocation.section = location.section;
+                }
+            }
+
             // Check if there are UUIDs for this end point
             const patternsData = this.pathPatternUUIDs[modulePath];
             if (patternsData) {
@@ -392,6 +413,8 @@ class SettingsHandler {
 
             // If no data could be found return some default
             return defaultLocation;
+        } else {
+            return _IPC2.default.sendSync("Settings.getModuleLocation", requestPath.toString(true), 0)[0];
         }
     }
 
@@ -402,6 +425,11 @@ class SettingsHandler {
      */
     static __setup() {
         if (_isMain2.default) {
+            // Listen for moduleLocation requests, so they can be executed from the main process
+            _IPC2.default.on("Settings.getModuleLocation", event => {
+                return this._getModuleLocation(event.data);
+            });
+
             // Listen for settings save events
             _IPC2.default.on("Settings.save", async event => {
                 // Get the data of the settings that want to be saved
