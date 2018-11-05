@@ -22,9 +22,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 /**
  * @typedef {Object} ChannelHander~ChannelIdentifier
- * @property {string} ID - The unique identifier for the channel, or all the 3 channel fields in 1 object
+ * @property {(string|RequestPath)} ID - The unique identifier for the channel, or all the 3 channel fields in 1 object
  * @property {string} subChannelID - The subChannelID that will be used to access special subchannel methods
- * @property {string} [senderID] - An ID that the reciever of this channel can respond to
+ * @property {(string|Module|RequestPath)} [senderID] - An ID that the reciever of this channel can respond to
  */
 
 /**
@@ -35,9 +35,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 class ChannelHandler {
     /**
      * Create a new channel sender, allowing to send messages to the channel
-     * @param {(string|ChannelHander~ChannelIdentifier)} ID - The unique identifier for the channel, or all data at once
+     * @param {(string|ChannelHander~ChannelIdentifier|RequestPath)} ID - The unique identifier for the channel, or all data at once
      * @param {string} subChannelID - The subChannelID that will be used to access special subchannel methods
-     * @param {string} [senderID] - An ID that the reciever of this channel can respond to
+     * @param {(string|Module|RequestPath)} [senderID] - An ID that the reciever of this channel can respond to
      * @returns {Promise<ChannelSender>} An instance of the ChannelSender class
      * @public
      * @async
@@ -60,7 +60,7 @@ class ChannelHandler {
 
     /**
      * Create a new channel reciever, allowing to recieve messages from the channel
-     * @param {string} ID - The unique identifier for the channel
+     * @param {(string|RequestPath)} ID - The unique identifier for the channel
      * @param {Object} listeners - An object of functions to act on messages indexed by message type
      * @returns {Promise<ChannelReceiver>} An instance of the ChannelReceiver class
      * @public

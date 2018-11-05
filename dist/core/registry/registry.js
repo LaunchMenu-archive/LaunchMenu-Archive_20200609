@@ -34,6 +34,10 @@ var _requestPath = require("./requestPath/requestPath");
 
 var _requestPath2 = _interopRequireDefault(_requestPath);
 
+var _requestPathPattern = require("./requestPath/requestPathPattern");
+
+var _requestPathPattern2 = _interopRequireDefault(_requestPathPattern);
+
 var _settingsHandler = require("../communication/data/settings/settingsHandler");
 
 var _settingsHandler2 = _interopRequireDefault(_settingsHandler);
@@ -376,7 +380,7 @@ class Registry {
     }
 
     /**
-     * Registeres the module so the registry knows of its existence
+     * Registers the module so the registry knows of its existence
      * @param {Module} moduleInstance - The module to register
      * @param {number} [uniqueID] - A specific uniqueID that the module should get (only used when moving modules)
      * @returns {number} The unique ID that the module instance has now been assigned
@@ -384,10 +388,14 @@ class Registry {
      * @protected
      */
     static async _registerModuleInstance(moduleInstance, uniqueID) {
-        // Get the a unique ID for the request path
+        // Extract data from the moduleInstance
         const requestPath = moduleInstance.getPath();
+        const isEmbeded = moduleInstance._isEmbeded();
+
+        // Get the a unique ID for the request path
         const ID = (await _IPC2.default.send("Registry.registerModuleInstance", {
             requestPath: requestPath.toString(true),
+            isEmbeded: isEmbeded,
             uniqueID: uniqueID
         }, 0))[0];
 
@@ -399,6 +407,129 @@ class Registry {
 
         // Return the obtained ID
         return ID;
+    }
+    /**
+     * A method to set up the required IPC listener for the registerModuleInstance method
+     * @returns {undefined}
+     * @private
+     */
+    static __setupRegisterModuleInstance() {
+        // Make sure to only set this up in the main process
+        if (_isMain2.default) {
+            // List for modules getting registered
+            _IPC2.default.on("Registry.registerModuleInstance", event => {
+                // Get whether or not the module is embeded
+                const embeded = event.data.isEmbeded;
+
+                // Get the request path for the module to register
+                const requestPath = new _requestPath2.default(event.data.requestPath);
+
+                // Get the module class of the path to register
+                const moduleClass = requestPath.getModuleID().module;
+
+                // Retrieve the path collection that exists for this non unique request path, or create it if non-existent
+                let paths = this.requestPaths[requestPath.toString()];
+                if (!paths) paths = this.requestPaths[requestPath.toString()] = {};
+
+                // Create a unique ID for the path
+                let ID = 0;
+
+                // Check if a ID was provided by the event
+                if (event.data.uniqueID) {
+                    // If so, just use that ID
+                    ID = event.data.uniqueID;
+                } else {
+                    // Find a unique ID in this collection
+                    while (paths[ID]) ID++;
+                }
+
+                // Asssign this unique ID to the last module of the request path and store the path
+                requestPath.getModuleID().ID = ID;
+                paths[ID] = requestPath;
+
+                // Retrieve the request path list that exists for that class, or create it if non-existent
+                let pathList = this.moduleInstancePaths[moduleClass];
+                if (!pathList) pathList = this.moduleInstancePaths[moduleClass] = [];
+
+                // Add this path to the list together with the window it is stored in
+                pathList.push({
+                    window: event.sourceID,
+                    path: requestPath.toString(true),
+                    embeded: embeded,
+                    active: false
+                });
+
+                // Return the unique request path identifier
+                return ID;
+            });
+        }
+    }
+
+    /**
+     * Indicates that the registration and initialisation process of a module instance has completed
+     * @param {Module} moduleInstance - The module that finished registration
+     * @returns {undefined}
+     * @async
+     * @protected
+     */
+    static async _registerModuleInstanceCompleted(moduleInstance) {
+        // Retiever the requestPath of the moduleInstance
+        const requestPath = moduleInstance.getPath();
+
+        // Forward the data to the main process
+        return _IPC2.default.send("Registry.registerModuleInstanceCompleted", { requestPath: requestPath.toString(true) }, 0);
+    }
+    /**
+     * A method to set up the required IPC listener for the registerModuleInstanceComplete method
+     * @returns {undefined}
+     * @private
+     */
+    static __setupRegisterModuleInstanceCompleted() {
+        // Make sure to only set this up in the main process
+        if (_isMain2.default) {
+            // Listen for modules indicating that their setup has completed
+            _IPC2.default.on("Registry.registerModuleInstanceCompleted", event => {
+                // Get the request path for the module to activate
+                const requestPath = new _requestPath2.default(event.data.requestPath);
+
+                // Get the module class of the path to activate
+                const moduleClass = requestPath.getModuleID().module;
+
+                // Retrieve the request path list that exists for that class, or create it if non-existent
+                const pathList = this.moduleInstancePaths[moduleClass];
+
+                // Get the item corresponding to this requestPath
+                const item = pathList.find(item => item.path == event.data.requestPath);
+
+                // Make sure an item was found
+                if (item) {
+                    // Indicate that the module is now active
+                    item.active = true;
+
+                    // Check if there is a pattern waiting that matches this requestPath
+                    this.moduleAwaiters.forEach((waiter, index) => {
+                        // Extract the pattern
+                        const pattern = waiter.pattern;
+
+                        // Make sure we either accept embeded modules, or this module isn't embeded
+                        if (!waiter.acceptEmbeded && item.embeded) return;
+
+                        // Test if the pattern matches the new module instance
+                        if (pattern.test(requestPath)) {
+                            // If it does, delete the item
+                            this.moduleAwaiters.splice(index, 1);
+
+                            // And resolve the promise when the module finished registering
+                            waiter.resolve(requestPath.toString(true));
+                        }
+                    });
+                } else {
+                    // This should in theory not happen
+                    console.error("Something went wrong; ", event.data.requestPath + " couldn't be found");
+                    console.log(pathList);
+                }
+            });
+        }
     }
 
     /**
@@ -420,6 +551,43 @@ class Registry {
 
         // Close this window if there are no more modules in it
         if ((0, _keys2.default)(this.moduleInstances).length == 0) _windowHandler2.default._close();
+    }
+    /**
+     * A method to set up the required IPC listener for the deregisterModuleInstance method
+     * @returns {undefined}
+     * @private
+     */
+    static __setupDeregisterModuleInstance() {
+        // Make sure to only set this up in the main process
+        if (_isMain2.default) {
+            // Listen for modules getting deregistered
+            _IPC2.default.on("Registry.deregisterModuleInstance", event => {
+                // Get the request path for the module to deregister
+                const requestPath = new _requestPath2.default(event.data.requestPath);
+
+                // Get the module class of the path to deregister
+                const moduleClass = requestPath.getModuleID().module;
+
+                // Get the paths that are stored for this class
+                const pathList = this.moduleInstancePaths[moduleClass];
+                if (pathList) {
+                    // get the unique request path in string form
+                    const requestPathString = requestPath.toString(true);
+
+                    // Filter out the object that corresponds with this string
+                    this.moduleInstancePaths[moduleClass] = pathList.filter(path => {
+                        return path.path != requestPathString;
+                    });
+                }
+
+                // Get the unique path identifier from the request path
+                const ID = requestPath.getModuleID().ID;
+
+                // Retrieve the path collection that exists for this non unique request path, and delete the path with this unique ID
+                const paths = this.requestPaths[requestPath.toString()];
+                if (paths) delete paths[ID];
+            });
+        }
     }
 
     /**
@@ -449,7 +617,7 @@ class Registry {
      * Establishes a connection with a module with the defined requestPath
      * @param {(string|requestPath)} requestPath - The unique request path of the module you are trying to conenct to
      * @param {string} [subChannelType=undefined] - The sub channel to connect with
-     * @param {string} [senderID=undefined] - The channel ID to send messages back to for communication
+     * @param {(Module|string|requestPath)} [senderID=undefined] - The channel ID to send messages back to for communication
      * @returns {ChannelSender} A channel set up for communication with the specified module
      * @async
      * @public
@@ -592,6 +760,29 @@ class Registry {
             }
         }
     }
+    /**
+     * A method to set up the required IPC listener for the request method
+     * @returns {undefined}
+     * @private
+     */
+    static __setupRequest() {
+        // Make sure to only set this up in the main process
+        if (_isMain2.default) {
+            // Listen for requests getting routed through the main process
+            _IPC2.default.on("Registry.request", event => {
+                const requests = event.data.requests;
+                const requiringModules = event.data.requiringModules;
+
+                // Retrieve the priority mapping for every request
+                const requestsModules = requests.map(request => {
+                    return this.__getModules(request, requiringModules);
+                });
+
+                // Return the mapping of modules and their priorities
+                return requestsModules;
+            });
+        }
+    }
 
     /**
      * Finishes the request by serving the correct data based on the module classes that were found
@@ -663,12 +854,12 @@ class Registry {
         }
     }
 
-    // TODO: test if this method works at all
+    // TODO: test if this method works at all, TODO: make this use requestPathPatterns instead
     /**
      * Gets channels to all instances of a specific module class
      * @param {(Class<Module>|Module)} module - The module to get the instance of
      * @param {string} [subChannel] - The sub channel to target
-     * @param {(Module|string)} source - The channelID to return messages to if needed
+     * @param {(Module|RequestPath|string)} source - The channelID to return messages to if needed
      * @param {number} [windowID] - Only looks in this window for instances if provided
      * @returns {Promise<ChannelSender[]>} The channels that were set up for the found modules
      * @async
@@ -692,11 +883,178 @@ class Registry {
 
         // Create a channel for each of retrieved instance paths
         const channels = instancePaths.map(path => {
-            return _channelHandler2.default.createSender(path.path, subChannel, source);
+            return this.getModuleChannel(path.path, subChannel, source);
         });
 
         // Wait for all channels to be created and then return them
         return _promise2.default.all(channels);
+    }
+    /**
+     * A method to set up the required IPC listener for the getModuleInstanceChannels method
+     * @returns {undefined}
+     * @private
+     */
+    static __setupGetModuleInstanceChannels() {
+        // Make sure to only set this up in the main process
+        if (_isMain2.default) {
+            // Listen for windows/processes requesting instances of a certain module
+            _IPC2.default.on("Registry.getModuleInstances", event => {
+                // Extract the module class path that we are looking for
+                const data = event.data;
+                const modulePath = data.modulePath;
+
+                // Return the request path attached to this class
+                return this.moduleInstancePaths[modulePath];
+            });
+        }
+    }
+
+    /**
+     * Moves a specific module from one location to another
+     * @param {RequestPathPattern} requestPathPattern - A pattern for the module to target
+     * @param {WindowHandler~moduleLocation} moduleLocation - The location that the module should move to
+     * @param {boolean} [includeEmbeded=false] - Whether to also target embeded modules
+     * @returns {Promise<RequestPath[]>} - The request paths of the modules that were moved
+     * @async
+     * @public
+     */
+    static async moveModuleTo(requestPathPattern, moduleLocation, includeEmbeded) {
+        // Send a request to move the module to all windows/processes
+        const responses = await _IPC2.default.send("Registry.moveModuleTo", {
+            pattern: requestPathPattern.toString(),
+            location: moduleLocation,
+            includeEmbeded: includeEmbeded
+        });
+
+        // Create an array to store all module paths
+        const modulePaths = [];
+
+        // Combine all responses to a single array
+        responses.forEach(response => {
+            // Push all paths to the array
+            modulePaths.push.apply(modulePaths, response);
+        });
+
+        // Return the module ids
+        return modulePaths;
+    }
+    /**
+     * A method to set up the required IPC listener for the moveModuleTo method
+     * @returns {undefined}
+     * @private
+     */
+    static __setupMoveModuleTo() {
+        // Listen for windows/processes trying to move modules
+        _IPC2.default.on("Registry.moveModuleTo", event => {
+            // Extract the relevant information
+            const pattern = new _requestPathPattern2.default(event.data.pattern);
+            const location = event.data.location;
+            const includeEmbeded = event.data.includeEmbeded;
+
+            // Go through all module instances to find any matches
+            const modulePaths = (0, _keys2.default)(this.moduleInstances).filter(modulePath => {
+                // Get the module corresponding to this modulePath
+                const module = this.moduleInstances[modulePath];
+
+                // Check whether this module is not embeded
+                const embedCheck = includeEmbeded || !module.getRequest() || !module.getRequest().embedGUI;
+
+                // Check if the pattern matches
+                return embedCheck && pattern.test(modulePath);
+            });
+
+            // Move all matching modules to the specified location and return a promise resolving in the path once the module moved
+            return _promise2.default.all(modulePaths.map(modulePath => {
+                // Get the module corresponding to this modulePath
+                const module = this.moduleInstances[modulePath];
+
+                // Move the module
+                const promise = module.moveTo(location);
+
+                // Make the promise resolve into the module's path
+                return promise.then(channelSender => {
+                    return modulePath;
+                });
+            }));
+        });
+    }
+
+    /**
+     * Waits for a particular module matching the given requestPath to be registered
+     * @param {RequestPathPattern} requestPathPattern - A pattern for the module to target
+     * @param {boolean} [acceptEmbeded=false] - Whether to also accept embeded modules
+     * @returns {Promise<RequestPath>} - The request path that matched the request
+     * @async
+     * @public
+     */
+    static async awaitModuleCreation(requestPathPattern, acceptEmbeded) {
+        // Send the await call to the main module and return it's promise
+        return _IPC2.default.send("Registry.awaitModuleCreation", {
+            pattern: requestPathPattern.toString(),
+            acceptEmbeded: acceptEmbeded
+        }, 0).then(responses => responses[0]);
+    }
+    /**
+     * A method to set up the required IPC listener for the awaitModuleCreation method
+     * @returns {undefined}
+     * @private
+     */
+    static __setupAwaitModuleCreation() {
+        // Make sure to only set this up in the main process
+        if (_isMain2.default) {
+            // Listen for windows/processes listening for the creation of a module
+            _IPC2.default.on("Registry.awaitModuleCreation", event => {
+                // Exactract the passed data
+                const acceptEmbeded = event.data.acceptEmbeded;
+                const pattern = new _requestPathPattern2.default(event.data.pattern);
+
+                // Check if a module already exists that matches this pattern
+                const moduleClassPaths = (0, _keys2.default)(this.moduleInstancePaths);
+
+                // Create a list to store the matches
+                const matches = [];
+
+                // Go through all paths
+                moduleClassPaths.forEach(requestPath => {
+                    // Get the list of unique module instance paths from the path
+                    const uniquePaths = this.moduleInstancePaths[requestPath];
+
+                    // Go through the unique paths
+                    uniquePaths.forEach(item => {
+                        // Make sure the module is active
+                        if (!item.active) return;
+
+                        // Make sure we either accept embeded modules, or this module isn't embeded
+                        if (!acceptEmbeded && item.embeded) return;
+
+                        // Get the unique path from the item
+                        const uniquePath = item.path;
+
+                        // Test the unique path
+                        if (pattern.test(uniquePath)) matches.push(uniquePath);
+                    });
+                });
+
+                // Check if any matches were found
+                if (matches.length > 0) return matches[0];
+
+                // If no matches were found, create a promise to return
+                let resolver;
+                const promise = new _promise2.default(resolve => {
+                    resolver = resolve;
+                });
+
+                // Store the awaiter to be resolved later
+                this.moduleAwaiters.push({
+                    pattern: pattern,
+                    acceptEmbeded: acceptEmbeded,
+                    resolve: resolver
+                });
+
+                // Return the promise
+                return promise;
+            });
+        }
     }
 
     /**
@@ -717,108 +1075,26 @@ class Registry {
         // Keep track of modules that are currently being required
         this.requiringModules = [];
 
-        // Set up the IPC listeners in the renderers and main process to allow renderers to request modules
+        // Add fields unique to the main process
         if (_isMain2.default) {
-            // Filter out possible modules in this window to handle the handle request
-            _IPC2.default.on("Registry.request", event => {
-                const requests = event.data.requests;
-                const requiringModules = event.data.requiringModules;
-
-                // Retrieve the priority mapping for every request
-                const requestsModules = requests.map(request => {
-                    return this.__getModules(request, requiringModules);
-                });
-
-                // Return the mapping of modules and their priorities
-                return requestsModules;
-            });
-
             // Stores unique module instance request paths, indexed by [request path][UID]
             this.requestPaths = {};
 
             // Stores unique module instance request path lists, indexed by module path
             this.moduleInstancePaths = {};
 
-            // Listen for module instances being registered
-            _IPC2.default.on("Registry.registerModuleInstance", event => {
-                // Get the request path for the module to register
-                const requestPath = new _requestPath2.default(event.data.requestPath);
-
-                // Get the module class of the path to register
-                const moduleClass = requestPath.getModuleID().module;
-
-                // Retrieve the request path list that exists for that class, or create it if non-existent
-                let pathList = this.moduleInstancePaths[moduleClass];
-                if (!pathList) pathList = this.moduleInstancePaths[moduleClass] = [];
-
-                // Add this path to the list together with the window it is stored in
-                pathList.push({
-                    window: event.sourceID,
-                    path: requestPath.toString(true)
-                });
-
-                // Retrieve the path collection that exists for this non unique request path, or create it if non-existent
-                let paths = this.requestPaths[requestPath.toString()];
-                if (!paths) paths = this.requestPaths[requestPath.toString()] = {};
-
-                // Create a unique ID for the path
-                let ID = 0;
-
-                // Check if a ID was provided by the event
-                if (event.data.uniqueID) {
-                    // If so, just use that ID
-                    ID = event.data.uniqueID;
-                } else {
-                    // Find a unique ID in this collection
-                    while (paths[ID]) ID++;
-                }
-
-                // Asssign this unique ID to the last module of the request path and store the path
-                requestPath.getModuleID().ID = ID;
-                paths[ID] = requestPath;
-
-                // Return the unique request path identifier
-                return ID;
-            });
-
-            // Listen for module instances being deregistered
-            _IPC2.default.on("Registry.deregisterModuleInstance", event => {
-                // Get the request path for the module to deregister
-                const requestPath = new _requestPath2.default(event.data.requestPath);
-
-                // Get the module class of the path to deregister
-                const moduleClass = requestPath.getModuleID().module;
-
-                // Get the paths that are stored for this class
-                const pathList = this.moduleInstancePaths[moduleClass];
-                if (pathList) {
-                    // get the unique request path in string form
-                    const requestPathString = requestPath.toString(true);
-
-                    // Filter out the object that corresponds with this string
-                    this.moduleInstancePaths[moduleClass] = pathList.filter(path => {
-                        return path.path != requestPathString;
-                    });
-                }
-
-                // Get the unique path identifier from the request path
-                const ID = requestPath.getModuleID().ID;
-
-                // Retrieve the path collection that exists for this non unique request path, and delete the path with this unique ID
-                const paths = this.requestPaths[requestPath.toString()];
-                if (paths) delete paths[ID];
-            });
-
-            // Listen for windows/processes requesting instances of a certain module
-            _IPC2.default.on("Registry.getModuleInstances", event => {
-                // Extract the module class path that we are looking for
-                const data = event.data;
-                const modulePath = data.modulePath;
-
-                // Return the request path attached to this class
-                return this.moduleInstancePaths[modulePath];
-            });
+            // Store listeners for the creation of specific modules
+            this.moduleAwaiters = [];
         }
+
+        // Setup all IPC listeners
+        this.__setupRequest();
+        this.__setupRegisterModuleInstance();
+        this.__setupRegisterModuleInstanceCompleted();
+        this.__setupDeregisterModuleInstance();
+        this.__setupGetModuleInstanceChannels();
+        this.__setupMoveModuleTo();
+        this.__setupAwaitModuleCreation();
     }
 }
 exports.default = Registry;

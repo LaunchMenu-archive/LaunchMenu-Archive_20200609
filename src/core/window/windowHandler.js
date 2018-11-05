@@ -24,6 +24,14 @@ import RequestPath from "../registry/requestPath/requestPath";
             -Else: Open the module's GUI in the window by sending it to the docking system
  */
 
+/**
+ * The data to specify the location of a module
+ * @typedef {Object} WindowHandler~moduleLocation
+ * @property {number} window - The ID of the window
+ * @property {number} [section] - The ID of the section
+ * @property {boolean} embedGUI - Whether the new location is intended as an embed
+ */
+
 let windowSettings;
 let settingsPromise;
 function settingsLoaded() {
@@ -214,9 +222,7 @@ export default class WindowHandler {
 
     /**
      * Opens a module in the proper window, will automatically open the window if it isn't already
-     * @param {object} moduleLocation - The location that the module should open at
-     * @param {number} moduleLocation.window - The window that the module should open in
-     * @param {number} moduleLocation.section - The section of the window that the module should open in
+     * @param {WindowHandler~moduleLocation} moduleLocation - The location that the module should open at
      * @param {Registry~Request} request - The request that caused this module to be opened
      * @param {Class<Module>} moduleClass - The module class to be instantiated
      * @returns {Promise<ChannelSender>} A channel to the module that has been created
@@ -319,7 +325,7 @@ export default class WindowHandler {
                     // If the module is an GUI module, do something with that GUI
                     if (module.core.elementCreator) {
                         // Check whether we are requesting a module to be embeded directly to the page
-                        if (!data.request.embedGUI) {
+                        if (!module._isEmbeded()) {
                             // Open the module in the appropriate section
                             this.dockingContainer.$openModule(
                                 path,

@@ -34,6 +34,19 @@ export default class GUIModule extends Module {
     }
 
     /**
+     * Returns whether or not this module is embeded in another (only applicable to GUI modules)
+     * @returns {boolean} Whether or not the module is embded GUI
+     * @protected
+     */
+    _isEmbeded() {
+        // Retrieve the request
+        const request = this.getRequest();
+
+        // Return whether or not the request was made to embed GUI
+        return request && !!request.embedGUI;
+    }
+
+    /**
      * Checks the settings for associated styling data
      * @param {Object} style - The json representation of the default style
      * @param {ReactConnector~ElementIdentifier} [identifier] - The identifier of the element

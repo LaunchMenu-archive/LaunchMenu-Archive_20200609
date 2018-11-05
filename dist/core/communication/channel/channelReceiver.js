@@ -26,12 +26,14 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 class ChannelReceiver {
     /**
      * Create a new channel reciever, allowing to recieve messages from the channel
-     * @param {string} ID - The unique identifier for the channel
+     * @param {(string|RequestPath)} ID - The unique identifier for the channel
      * @param {Object} listeners - An object of functions to act on messages indexed by message type
      * @constructs ChannelReceiver
      * @hideconstructor
      */
     constructor(ID, listeners) {
+        // Normalize the ID and store it
+        ID = ID.toString(true);
         this.ID = ID;
 
         // Create objects to store listeners

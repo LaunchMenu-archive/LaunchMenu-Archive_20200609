@@ -14,7 +14,7 @@
     -   [ ] Make module become embedable
     -   [ ] Close window when all modules are moved out of the window
 
--   [ ] Add moduleSearch method to Registry, that allows to find a module with a certain request path
+-   [x] Add moduleSearch method to Registry, that allows to find a module with a certain request path
 
 *   [ ] GUI system
 

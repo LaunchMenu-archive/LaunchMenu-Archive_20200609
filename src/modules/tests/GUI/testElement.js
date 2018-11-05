@@ -8,6 +8,7 @@ export default class TestElement extends GUIModule {
         this.someSetting = false;
         this.childElement = false;
         this.textElement = false;
+        this.randomEmbed = false;
 
         // If the request indicates that the element should repeat (embed a child instance in itself)
         if (request.data.repeat) {
@@ -28,6 +29,28 @@ export default class TestElement extends GUIModule {
                     console.log(channel);
                     this.textElement = channel;
                 });
+            });
+
+            this.__init(async () => {
+                // Try to embed a random other element, created by main
+                const target = "**->tests/GUI/testElement3.js";
+
+                // Wait for it to be created
+                const modulePath = await Registry.awaitModuleCreation(target);
+
+                // Move the target
+                await Registry.moveModuleTo(target, {
+                    window: window.ID,
+                    embedGUI: true,
+                });
+
+                // Get the channel for this module
+                this.randomEmbed = await Registry.getModuleChannel(
+                    modulePath,
+                    null,
+                    this
+                );
+                this.requestElementUpdate();
             });
         }
 
@@ -73,12 +96,12 @@ export default class TestElement extends GUIModule {
     render() {
         const move = () => {
             if (window.ID == 1) {
-                this.move({
+                this.moveTo({
                     window: 2,
                     section: 0,
                 });
             } else {
-                this.move({
+                this.moveTo({
                     window: 1,
                     section: 1,
                 });
@@ -99,6 +122,7 @@ export default class TestElement extends GUIModule {
                         {this.childElement}
                     </div>
                 )}
+                {this.randomEmbed}
             </div>
         );
     }

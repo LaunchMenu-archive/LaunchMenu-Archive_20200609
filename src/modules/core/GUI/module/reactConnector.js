@@ -107,6 +107,9 @@ export default class ReactConnector extends React.Component {
      */
     render() {
         try {
+            // Check if the module isn't disposed
+            if (this.props.module.core.registration.registered.false()) return;
+
             // When the component renders, ask the module what to render
             const element = this.props.module.render();
 

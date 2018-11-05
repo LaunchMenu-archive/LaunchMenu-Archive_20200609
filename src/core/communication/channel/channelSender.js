@@ -4,13 +4,22 @@ import Registry from "../../registry/registry";
 export default class ChannelSender {
     /**
      * Create a new channel sender, allowing to send messages to the channel
-     * @param {string} ID - The unique identifier for the channel
+     * @param {(string|RequestPath)} ID - The unique identifier for the channel
      * @param {string} subChannelID - The subChannelID that will be used to access special subchannel methods
-     * @param {string} senderID - An ID that the reciever of this channel can respond to (can be left out)
+     * @param {(string|Module|RequestPath)} [senderID] - An ID that the reciever of this channel can respond to (can be left out)
      * @constructs ChannelSender
      * @hideconstructor
      */
     constructor(ID, subChannelID, senderID) {
+        // Normalize the ID
+        ID = ID.toString(true);
+
+        // Normalize the senderID
+        if (senderID) {
+            if (senderID.getPath) senderID = senderID.getPath();
+            senderID = senderID.toString(true);
+        }
+
         // Store data in a seperate object such that it isn't confused with channel methods
         this.__data = {
             ID: ID,

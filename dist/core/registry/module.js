@@ -176,6 +176,11 @@ class Module {
                         this.core.channelReceiver._broadCastDisabled(false);
                     });
                 }
+
+                // Notify the registry that the module finished setup
+                this.__init(() => {
+                    _registry2.default._registerModuleInstanceCompleted(this);
+                }, "4");
             } else {
                 // If the module was not instantiated by a request, the request path is simply this module path
                 source.requestPath = new _requestPath2.default(this.getClass().modulePath, 0);
@@ -189,6 +194,11 @@ class Module {
                 // Indicate that registering has finished and resolve th epromise
                 this.core.registration.registered.true(true);
                 this.core.registration.registerPromiseResolve(this);
+
+                // Notify the registry that the module finished setup
+                this.__init(() => {
+                    _registry2.default._registerModuleInstanceCompleted(this);
+                });
             }
         }
     }
@@ -346,6 +356,24 @@ class Module {
     }
 
     /**
+     * Returns the request that created this module instance
+     * @returns {Registry~Request} The request that was passed with this module's instanciation
+     * @public
+     */
+    getRequest() {
+        return this.core.source.request;
+    }
+
+    /**
+     * Returns whether or not this module is embeded in another (only applicable to GUI modules)
+     * @returns {boolean} Whether or not the module is embded GUI
+     * @protected
+     */
+    _isEmbeded() {
+        return false;
+    }
+
+    /**
      * Returns the settings of the module
      * @returns {ModuleSettings} The settings that apply to this module instance
      * @public
@@ -399,20 +427,21 @@ class Module {
 
     /**
      * Moves a module from one section/window to another, will destroy this object and return a channelSender to the new instance
-     * @param {object} moduleLocation - The location that the module should be moved to
-     * @param {number} moduleLocation.window - The window that the module should be moved to
-     * @param {number} moduleLocation.section - The section of the window that the module should be moved to
-     * @returns {ChannelSender} The channelSender to communicate with the new module instance
+     * @param {WindowHandler~moduleLocation} moduleLocation - The location that the module should be moved to
+     * @returns {Promise<ChannelSender>} The channelSender to communicate with the new module instance
      * @public
      * @async
      */
-    async move(moduleLocation) {
+    async moveTo(moduleLocation) {
         // Get the data that defines this module instance
         const data = this.__serialize();
 
         // Create a special request that contains this serialization data
         const request = this.core.source.request;
         request.serializationData = data;
+
+        // Modify the request to contain embed if the location does
+        if (location.embedGUI) request.embedGUI = true;
 
         // Dispose the module instance partially
         await this.dispose(false);
@@ -562,6 +591,12 @@ class Module {
             // Indicate that the module is now in the process of deregestering
             this.core.registration.registered.turningFalse(true);
 
+            // If we aren't fully disposing the module, temporarly disable traffic on the channel receiver
+            if (!fully) await this.core.channelReceiver._broadCastDisabled(true);
+
+            // Tell the registry that this module no longer exists
+            await _registry2.default._deregisterModuleInstance(this);
+
             // Object to track all the promises of modules being disposed
             const channelDisposalPromises = [];
 
@@ -591,9 +626,6 @@ class Module {
                 });
             });
 
-            // If we aren't fully disposing the module, temporarly disable traffic on the channel receiver
-            if (!fully) await this.core.channelReceiver._broadCastDisabled(true);
-
             // Wait for all modules to finish disposing
             await _promise2.default.all(channelDisposalPromises);
 
@@ -610,9 +642,6 @@ class Module {
 
             // Dispose the settings
             await this.getSettings().dispose();
-
-            // Tell the registry that this module no longer exists
-            await _registry2.default._deregisterModuleInstance(this);
 
             // Indicate that deregistering has finished
             this.core.registration.registered.false(true);

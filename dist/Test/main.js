@@ -96,6 +96,27 @@ _electron.app.on("ready", function () {
         //         });
         //     });
 
+        const target = "**->tests/GUI/testElement.js";
+        Registry.awaitModuleCreation(target).then(modulePath => {
+            console.log(modulePath);
+            Registry.moveModuleTo(target, {
+                window: 1,
+                section: 0
+            }).then(modules => {
+                console.log(modules);
+            });
+        });
+
+        testModule2instance.requestHandle({
+            type: "testElement3"
+        }).then(channel => {
+            channel.$setText("Just something");
+            // Check if the connection wasn't altered by the embed
+            setTimeout(() => {
+                channel.$setText("Just something else");
+            }, 4000);
+        });
+
         testModule2instance.requestHandle({
             type: "testElement",
             methods: {
