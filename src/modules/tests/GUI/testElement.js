@@ -33,7 +33,7 @@ export default class TestElement extends GUIModule {
 
             this.__init(async () => {
                 // Try to embed a random other element, created by main
-                const target = "**->tests/GUI/testElement3.js";
+                const target = "*->tests/GUI/testElement3.js";
 
                 // Wait for it to be created
                 const modulePath = await Registry.awaitModuleCreation(target);
@@ -69,7 +69,7 @@ export default class TestElement extends GUIModule {
             this.requestElementUpdate();
 
             // Log the settings for console debug interaction
-            console.log(settings);
+            console.log(settings, this);
         });
     }
 

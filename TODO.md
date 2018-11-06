@@ -6,12 +6,12 @@
 -   [x] automatically load modules in the main thread
 -   [x] allow module handles to return the GUI for embeding
 -   [x] Add the settings system to the module system
--   [ ] Extend the requestPathPattern, to allow for more extensive expressions
+-   [x] Extend the requestPathPattern, to allow for more extensive expressions
 -   [x] Add module serialisation system that allows modules to be moved:
 
     -   [x] Make a way to indicate a module is being moved, and pause channel traffic
     -   [x] Add a way to easily move a module to another window
-    -   [ ] Make module become embedable
+    -   [x] Allow to make module become embedable
     -   [ ] Close window when all modules are moved out of the window
 
 -   [x] Add moduleSearch method to Registry, that allows to find a module with a certain request path

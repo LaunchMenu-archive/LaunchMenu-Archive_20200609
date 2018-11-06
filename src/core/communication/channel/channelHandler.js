@@ -1,5 +1,5 @@
-import ChannelReceiver from "./ChannelReceiver";
-import ChannelSender from "./ChannelSender";
+import ChannelReceiver from "./channelReceiver";
+import ChannelSender from "./channelSender";
 
 /**
  * @typedef {Object} ChannelHander~ChannelIdentifier

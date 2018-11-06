@@ -17,6 +17,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 class ModuleExt1 extends _LMModule2.default {
     constructor(request, canBeDirectlyInstantiated) {
         super(request, canBeDirectlyInstantiated);
+        this.somethingCool = true;
         try {
             // alert("You suck");
         } catch (e) {}

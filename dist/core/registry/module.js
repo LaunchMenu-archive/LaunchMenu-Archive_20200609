@@ -113,7 +113,7 @@ class Module {
 
                 // Store the requestPath to this module by agumenting the request's requestPath by this module
                 const requestPath = new _requestPath2.default(source.request.source);
-                source.requestPath = requestPath.augmentPath(this.getClass().modulePath, 0);
+                source.requestPath = requestPath.augmentPath(this.getClass().getPath(), 0);
 
                 // Check if the request provided a 'unique' ID that should be used
                 if (serializationData) {
@@ -183,7 +183,7 @@ class Module {
                 }, "4");
             } else {
                 // If the module was not instantiated by a request, the request path is simply this module path
-                source.requestPath = new _requestPath2.default(this.getClass().modulePath, 0);
+                source.requestPath = new _requestPath2.default(this.getClass().getPath(), 0);
 
                 // Register this module in the registry (which will automatically assign a unique module ID)
                 await _registry2.default._registerModuleInstance(this);
@@ -333,8 +333,8 @@ class Module {
      * @public
      */
     static getPath() {
-        // Get the modulePath that has been assigned by the registry when loading the module class
-        return this.modulePath;
+        // Get the modulePath which is part of the config that has been assigned by the registry when loading the module class
+        return this.config.modulePath;
     }
 
     /**
@@ -433,6 +433,9 @@ class Module {
      * @async
      */
     async moveTo(moduleLocation) {
+        // Dispose the module instance partially
+        await this.dispose(false);
+
         // Get the data that defines this module instance
         const data = this.__serialize();
 
@@ -442,9 +445,6 @@ class Module {
 
         // Modify the request to contain embed if the location does
         if (location.embedGUI) request.embedGUI = true;
-
-        // Dispose the module instance partially
-        await this.dispose(false);
 
         // Open this same module at the specified location
         return _windowHandler2.default.openModuleInstance(moduleLocation, request, this.getClass());
@@ -591,9 +591,6 @@ class Module {
             // Indicate that the module is now in the process of deregestering
             this.core.registration.registered.turningFalse(true);
 
-            // If we aren't fully disposing the module, temporarly disable traffic on the channel receiver
-            if (!fully) await this.core.channelReceiver._broadCastDisabled(true);
-
             // Tell the registry that this module no longer exists
             await _registry2.default._deregisterModuleInstance(this);
 
@@ -642,6 +639,9 @@ class Module {
 
             // Dispose the settings
             await this.getSettings().dispose();
+
+            // If we aren't fully disposing the module, temporarly disable traffic on the channel receiver
+            if (!fully) await this.core.channelReceiver._broadCastDisabled(true);
 
             // Indicate that deregistering has finished
             this.core.registration.registered.false(true);

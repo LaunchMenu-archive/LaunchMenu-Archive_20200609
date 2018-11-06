@@ -44,6 +44,12 @@ const defaultModuleData = {
  * @property {string} type - The type of request to handle
  * @property {Function} [filter] - A method that will get passed a request, that determines whether to use this module and with what priority
  * @property {string} [module] - The relative path to the module to use
+ * @property {Object} [settings] - The default settings to apply to modules of this type
+ */
+
+/**
+ * The location of a certain module, relative to the modules directory
+ * @typedef {string} Registry~ModulePath
  */
 
 /**
@@ -52,19 +58,96 @@ const defaultModuleData = {
  * @hideconstructor
  */
 export default class Registry {
+    // Request related code
     /**
      * Request modules to handle the passed data and establish a connection with these modules
      * @param  {Request} request - The information on how to handle the data
-     * @return {Promise<ChannelSender[]>} The channel(s) that have been created to answer the request
+     * @return {(Promise<ChannelSender>|Promise<ChannelSender[]>)} The channel(s) that have been created to answer the request
      * @async
      * @public
      */
-    static requestHandle(request) {
+    static async requestHandle(request) {
         // Normalize the request
         this._normalizeHandleRequest(request);
 
-        // let the private __request method handle the request
-        return this.__request([request], "handle");
+        // Retrieve the modules to resolve the request
+        let requestModules;
+
+        // Check if we are in the main process
+        if (isMain) {
+            // Directly resolve the request as we have access to all modules
+            requestModules = this.__getModules(request, this.requiringModules);
+        } else {
+            // Send a command to the main window to look for modules to resolve the request
+            requestModules = (await IPC.send(
+                "Registry.request",
+                {
+                    request: request,
+                    requiringModules: this.requiringModules,
+                },
+                0
+            ))[0];
+        }
+
+        // Instanciate all the modules
+
+        // In order to batch the await, instead of waiting between each open instance request
+        const instantiatePromises = [];
+
+        // Go through modules for 1 request
+        requestModules.forEach(module => {
+            try {
+                // Create the proper request path
+                let source;
+                if (request.source) {
+                    source = new RequestPath(request.source).augmentPath(
+                        module
+                    );
+                } else {
+                    source = new RequestPath(module);
+                }
+
+                // Attempt to retrieve the correct startup location
+                let moduleLocation;
+
+                // Check if the request defined a location
+                if (request._destinationWindowID != null) {
+                    // If it did, use this
+                    moduleLocation = {
+                        window: request._destinationWindowID,
+                        section: request._destinationSectionID || 0,
+                    };
+                } else {
+                    // Otherwise load the location from the settings
+                    moduleLocation = SettingsHandler._getModuleLocation(source);
+                }
+
+                // Open the window that the module should appear in
+                instantiatePromises.push(
+                    WindowHandler.openModuleInstance(
+                        moduleLocation,
+                        request,
+                        module
+                    )
+                );
+            } catch (e) {
+                // TODO: properply handle the error if something goes wrong
+                console.error(
+                    `Something went wrong while trying to instantiate ${module}: `,
+                    e
+                );
+            }
+        });
+
+        // Wait for all the promises to resolve and get their channels
+        const channels = await Promise.all(instantiatePromises);
+
+        // Determine whether to return only a single channel or an array of channels and return it
+        if (request.use == "one") {
+            return channels[0];
+        } else {
+            return channels.filter(channel => channel); // Remove failed instanciations
+        }
     }
 
     /**
@@ -98,7 +181,7 @@ export default class Registry {
     /**
      * Request module classes of a specific type
      * @param {Request} request - The information on what module to get
-     * @returns {(Class<Module>|Array<Class<Module>>)} The module(s) that it could find with the specified type
+     * @returns {(Class<Module>|Object<string, Class<Module>>)} The module(s) that it could find with the specified type
      * @public
      */
     static requestModule(request) {
@@ -106,23 +189,54 @@ export default class Registry {
         const requests = this._normalizeModuleRequest.apply(this, arguments);
 
         // Retrieve the request modules
-        const requestsModules = this.__request(requests, "module", true);
+        let requestsModules;
+
+        // Check if we are in the main process
+        if (isMain) {
+            // Directly resolve the request as we have access to all modules
+            requestsModules = requests.map(request => {
+                return this.__getModules(request, this.requiringModules);
+            });
+        } else {
+            // Send a command to the main window to look for modules to resolve the request
+            requestsModules = IPC.sendSync("Registry.request", {
+                requests: requests,
+                requiringModules: this.requiringModules,
+            })[0];
+        }
 
         // Format the response appropriately
         if (requestsModules.length > 1) {
+            // Create a object to hold the output
             const response = {};
 
             // Map the modules to their request types
-            for (let i = 0; i < requestsModules.length; i++) {
-                const requestType = requests[i].type;
-                response[requestType] = requestsModules[i];
-            }
+            requestsModules.forEach((requestModules, i) => {
+                // Get the request corresponding to this module
+                const request = requests[i];
+
+                // Determine whether to return only a single channel or an array of module classes and return it
+                if (request.use == "one") {
+                    // Store a single request module under the correct name
+                    response[request.type] = requestModules[0];
+                } else {
+                    // Store all request modules under the correct name
+                    response[request.type] = requestModules;
+                }
+            });
 
             // Return the modules indexed by request type
             return response;
         } else {
-            // Directly return the modules from the only request
-            return requestsModules[0];
+            // Get the module class(es) corresponding to the request
+            const requestModules = requestsModules[0];
+
+            // Determine whether to return only a single channel or an array of module classes and return it
+            if (requests[0].use == "one") {
+                return requestModules[0];
+            } else {
+                return requestModules;
+            }
         }
     }
 
@@ -160,6 +274,144 @@ export default class Registry {
     }
 
     /**
+     * A method to set up the required IPC listener for the request method
+     * @returns {undefined}
+     * @private
+     */
+    static __setupRequest() {
+        // Make sure to only set this up in the main process
+        if (isMain) {
+            // Listen for requests getting routed through the main process
+            IPC.on("Registry.request", event => {
+                // Check if there is a single request or multiples
+                if (event.data.request) {
+                    const request = event.data.request;
+                    const requiringModules = event.data.requiringModules;
+
+                    // Retrieve the priority mapping for the request
+                    const requestModules = this.__getModules(
+                        request,
+                        requiringModules
+                    );
+
+                    // Return the modules and their priorities
+                    return requestModules;
+                } else {
+                    const requests = event.data.requests;
+                    const requiringModules = event.data.requiringModules;
+
+                    // Retrieve the priority mapping for every request
+                    const requestsModules = requests.map(request => {
+                        return this.__getModules(request, requiringModules);
+                    });
+
+                    // Return the mapping of modules and their priorities
+                    return requestsModules;
+                }
+            });
+        }
+    }
+
+    /**
+     * Retrieves the modules that can handle the passed request
+     * @param {Registry~Request} request - The request to find module classes for
+     * @param {string[]} loadingModules - A list of module paths that are currently being required
+     * @returns {(Class<Module>|Array<Class<Module>>)} The module classes that have been chosen to handle the request
+     * @private
+     */
+    static __getModules(request, loadingModules) {
+        // Get the module listeners to handle this type of request
+        const listenerType = this.__getListeners(request.type);
+
+        // Map modules with their priority to this particular request
+        const priorities = listenerType.configs
+            .map(config => {
+                return {
+                    priority: config.filter(request),
+                    config: config,
+                };
+            })
+            .filter(
+                priority =>
+                    priority.priority > 0 &&
+                    loadingModules.indexOf(priority.config.modulePath) == -1
+            );
+
+        // Sort the results
+        priorities.sort((a, b) => b.priority - a.priority);
+
+        // Determine what modules to return
+        if (request.use == "all") {
+            // If all modules should be returned, simply extract the modules from the priority data and return them
+            return this.__getModulesFromConfigs(priorities.map(a => a.config));
+        } else if (typeof request.use == "Function") {
+            // If a filter function is provided, apply it and then extract the modules from the data and return them
+            return this.__getModulesFromConfigs(
+                priorities.filter(request.use).map(a => a.config)
+            );
+        } else {
+            // Otherwise only a single module should be returned, so simply return this module
+            return (
+                priorities[0] &&
+                this.__getModulesFromConfigs([priorities[0].config])
+            );
+        }
+    }
+
+    /**
+     * Goes through the array of configs and maps it to the modules of the configs (requires modules if needed)
+     * @param {Registry~config[]} configs - The configs to get the modules from
+     * @returns {Array<Class<Module>>} The modules that got extracted fromt he configs
+     * @private
+     */
+    static __getModulesFromConfigs(configs) {
+        return configs.map(config => {
+            // Require the module from the config if this hasn't happened yet
+            if (!(config.module instanceof Module)) this._loadModule(config);
+
+            // Return the module itself, which should now in no situation be a path
+            return config.module;
+        });
+    }
+
+    /**
+     * Establishes a connection with a module with the defined requestPath
+     * @param {(string|requestPath)} requestPath - The unique request path of the module you are trying to conenct to
+     * @param {string} [subChannelType=undefined] - The sub channel to connect with
+     * @param {(Module|string|requestPath)} [senderID=undefined] - The channel ID to send messages back to for communication
+     * @returns {ChannelSender} A channel set up for communication with the specified module
+     * @async
+     * @public
+     */
+    static async getModuleChannel(requestPath, subChannelType, senderID) {
+        // Normalize the path to a string
+        if (typeof requestPath != "string")
+            requestPath = requestPath.toString(true);
+
+        // Create a channel sender to this module instance and return it
+        const channelSender = await ChannelHandler.createSender(
+            requestPath,
+            subChannelType,
+            senderID
+        );
+
+        // Find the requested module instance in this window (if present in this window)
+        const module = Registry._getModuleInstance(requestPath);
+
+        // Check if the module exists, and if so extract its element creator
+        if (module) {
+            const elementCreator = module.core.elementCreator;
+
+            // Attach the elementCreator to the channel
+            channelSender.__data.elementCreator = elementCreator;
+        }
+
+        // Return the channelSender
+        return channelSender;
+    }
+
+    // Module loading related methods
+    /**
      * Loads a module at the specified path relative to the modules folder
      * @param {string} path - The path to the module class
      * @returns {Class<Module>} The module class that was loaded
@@ -170,8 +422,8 @@ export default class Registry {
         const path = config.modulePath;
 
         // Only load the module if it hadn't been loaded already
-        if (!this.moduleClasses[path]) {
-            // Indicate that we have started requiring this module
+        if (!config.module) {
+            // Indicate that we have started requiring this module, to prevent import LM: recursion
             this.requiringModules.push(path);
 
             // Require module
@@ -182,20 +434,33 @@ export default class Registry {
             if (index != -1) this.requiringModules.splice(index, 1);
 
             if (moduleImport) {
-                // Register the module itself
-                this.moduleClasses[path] = moduleImport.default;
-
-                // Attach the location to the class
+                // Get the module from the import
                 const module = moduleImport.default;
-                module.modulePath = path;
 
                 // Attach the config to the class
                 module.config = config;
+
+                // Attach the module to the config
+                config.module = module;
             }
         }
 
         // Return the module
-        return this.moduleClasses[path];
+        return config.module;
+    }
+
+    /**
+     * Loads a module at the specified path relative to the modules folder, should only be used once the module is already properly loaded, and only from the main process
+     * @param {string} modulePath - The modulePath for the module to return
+     * @returns {Class<Module>} The module that is located here
+     * @protected
+     */
+    static _getModule(modulePath) {
+        // Retrieve the config for this path
+        const config = this.moduleConfigs[modulePath];
+
+        // If a config was found, return its module
+        if (config) return this._loadModule(config);
     }
 
     /**
@@ -246,6 +511,9 @@ export default class Registry {
 
             // Store the path of the config
             config.path = path;
+
+            // Store the config under its modulePath
+            this.moduleConfigs[modulePath] = config;
         });
 
         // If a modulePath was defined, return only the config of said path
@@ -254,16 +522,6 @@ export default class Registry {
 
         // Return all the retrieved configs
         return configs;
-    }
-
-    /**
-     * Loads a module at the specified path relative to the modules folder, should only be used once the module is already properly loaded, and only from the main process
-     * @param {string} modulePath - The modulePath for the module to return
-     * @returns {Class<Module>} The module that is located here
-     * @protected
-     */
-    static _getModule(modulePath) {
-        return require(this.__getModulesPath(modulePath)).default;
     }
 
     /**
@@ -341,6 +599,84 @@ export default class Registry {
         return Path.join(back, "dist", "modules", path);
     }
 
+    /**
+     * Creates an object to store what classes can answer a certain request type if it hasn't been created already, and returns it
+     * @param {String} type - The request type to return the object of
+     * @returns {Registry~Requestlistener} An object that tracks the listeners for a certain request type
+     * @private
+     */
+    static __getListeners(type) {
+        // Create listeners type variable if not available
+        if (!this.listeners[type])
+            this.listeners[type] = {
+                type: type,
+                configs: [],
+            };
+
+        // Return listener type
+        return this.listeners[type];
+    }
+
+    /**
+     * Returns a module's config' based on its location, if it has been loaded in this window/process
+     * @param {Registry~ModulePath} modulePath - The location of the module class to get the config from
+     * @returns {Registry~Config} The config that was found
+     * @protected
+     */
+    static _getModuleConfig(modulePath) {
+        return this.moduleConfigs[modulePath];
+    }
+
+    /**
+     * Returns the config file of a certain module
+     * @param {Registry~ModulePath} modulePath - The location of the module
+     * @returns {Registry~Config} - The config that was found for this modulePath
+     * @public
+     */
+    static getModuleConfig(modulePath) {
+        // First check for a local config in this window/process
+        const localModuleConfig = this._getModuleConfig(modulePath);
+
+        // If present, return it
+        if (localModuleConfig) return localModuleConfig;
+
+        // Otherwise request the config from the main process
+        if (!isMain) {
+            const moduleConfig = IPC.send(
+                "Registry.getModuleConfig",
+                modulePath.toString()
+            );
+
+            // Check if a config was found
+            if (moduleConfig) {
+                // Store the config locally to improve future performance
+                this.moduleConfigs[moduleConfig.modulePath] = moduleConfig;
+
+                // return the moduleConfig
+                return moduleConfig;
+            }
+        }
+    }
+    /**
+     * A method to set up the required IPC listener for the getModuleConfig method
+     * @returns {undefined}
+     * @private
+     */
+    static __setupGetModuleConfig() {
+        // Make sure to only set this up in the main process
+        if (isMain) {
+            // Listen for windows/processes listening for the request of a module config
+            IPC.on("Registry.getModuleConfig", event => {
+                // Extract the modulePath
+                const modulePath = event.data;
+
+                // Return the config if found
+                return this.getModuleConfig(modulePath);
+            });
+        }
+    }
+
+    // Module registation related methods
     /**
      * Registers the module so the registry knows of its existence
      * @param {Module} moduleInstance - The module to register
@@ -600,283 +936,8 @@ export default class Registry {
         return this.moduleInstances[requestPath];
     }
 
-    /**
-     * Establishes a connection with a module with the defined requestPath
-     * @param {(string|requestPath)} requestPath - The unique request path of the module you are trying to conenct to
-     * @param {string} [subChannelType=undefined] - The sub channel to connect with
-     * @param {(Module|string|requestPath)} [senderID=undefined] - The channel ID to send messages back to for communication
-     * @returns {ChannelSender} A channel set up for communication with the specified module
-     * @async
-     * @public
-     */
-    static async getModuleChannel(requestPath, subChannelType, senderID) {
-        // Normalize the path to a string
-        if (typeof requestPath != "string")
-            requestPath = requestPath.toString(true);
-
-        // Create a channel sender to this module instance and return it
-        const channelSender = await ChannelHandler.createSender(
-            requestPath,
-            subChannelType,
-            senderID
-        );
-
-        // Find the requested module instance in this window (if present in this window)
-        const module = Registry._getModuleInstance(requestPath);
-
-        // Check if the module exists, and if so extract its element creator
-        if (module) {
-            const elementCreator = module.core.elementCreator;
-
-            // Attach the elementCreator to the channel
-            channelSender.__data.elementCreator = elementCreator;
-        }
-
-        // Return the channelSender
-        return channelSender;
-    }
-
-    /**
-     * Creates an object to store what classes can answer a certain request type if it hasn't been created already, and returns it
-     * @param {String} type - The request type to return the object of
-     * @returns {Registry~Requestlistener} An object that tracks the listeners for a certain request type
-     * @private
-     */
-    static __getListeners(type) {
-        // Create listeners type variable if not available
-        if (!this.listeners[type])
-            this.listeners[type] = {
-                type: type,
-                configs: [],
-            };
-
-        // Return listener type
-        return this.listeners[type];
-    }
-
-    /**
-     * Retrieves the modules that can handle the passed request
-     * @param {Registry~Request} request - The request to find module classes for
-     * @param {string[]} loadingModules - A list of module paths that are currently being required
-     * @returns {(Class<Module>|Array<Class<Module>>)} The module classes that have been chosen to handle the request
-     * @private
-     */
-    static __getModules(request, loadingModules) {
-        // Get the module listeners to handle this type of request
-        const listenerType = this.__getListeners(request.type);
-
-        // Map modules with their priority to this particular request
-        const priorities = listenerType.configs
-            .map(config => {
-                return {
-                    priority: config.filter(request),
-                    config: config,
-                };
-            })
-            .filter(
-                priority =>
-                    priority.priority > 0 &&
-                    loadingModules.indexOf(priority.config.modulePath) == -1
-            );
-
-        // Sort the results
-        priorities.sort((a, b) => b.priority - a.priority);
-
-        // Determine what modules to return
-        if (request.use == "all") {
-            // If all modules should be returned, simply extract the modules from the priority data and return them
-            return this.__getModulesFromConfigs(priorities.map(a => a.config));
-        } else if (typeof request.use == "Function") {
-            // If a filter function is provided, apply it and then extract the modules from the data and return them
-            return this.__getModulesFromConfigs(
-                priorities.filter(request.use).map(a => a.config)
-            );
-        } else {
-            // Otherwise only a single module should be returned, so simply return this module
-            return (
-                priorities[0] &&
-                this.__getModulesFromConfigs([priorities[0].config])[0]
-            );
-        }
-    }
-
-    /**
-     * Goes through the array of configs and maps it to the modules of the configs (requires modules if needed)
-     * @param {Registry~config[]} configs - The configs to get the modules from
-     * @returns {Array<Class<Module>>} The modules that got extracted fromt he configs
-     * @private
-     */
-    static __getModulesFromConfigs(configs) {
-        return configs.map(config => {
-            // Require the module from its path if this hasn't happened yet
-            if (!(config.module instanceof Module)) {
-                // Load the module from the config
-                const module = this._loadModule(config);
-
-                // Store the module
-                config.module = module;
-            }
-
-            // Return the module itself, which should now in no situation be a path
-            return config.module;
-        });
-    }
-
-    /**
-     * Handles one or more requests and serves the responses
-     * @param {Registry~Request[]} requests - The requests to make
-     * @param {('module'|'handle')} type - The type of request that was made (either to handle data, or to get modules)
-     * @param {boolean} synced - Whether or not to request data synchronously (can only be synced if type=='module')
-     * @returns {(Promise<Array<Array<Class<Module>>>>|Promise<ChannelSender[]>|Promise<ChannelSender>)} The data that the request results in
-     * @private
-     */
-    static __request(requests, type, synced) {
-        if (synced) {
-            if (isMain) {
-                // Directly resolve the request as we have access to all modules
-                return requests.map(request => {
-                    return this.__getModules(request, this.requiringModules);
-                });
-            } else {
-                // Send a command to the main window to look for modules to resolve the request
-                const modules = IPC.sendSync("Registry.request", {
-                    requests: requests,
-                    requiringModules: this.requiringModules,
-                });
-
-                return modules[0];
-            }
-        } else {
-            // Retrieve the modules to resolve the request
-            if (isMain) {
-                // Directly resolve the request as we have access to all modules
-                const requestsModules = requests.map(request => {
-                    return this.__getModules(request, this.requiringModules);
-                });
-                return this.__finishRequest(type, requests, requestsModules);
-            } else {
-                // Send a command to the main window to look for modules to resolve the request
-                const requestsModules = IPC.sendSync(
-                    "Registry.request",
-                    {
-                        requests: requests,
-                        requiringModules: this.requiringModules,
-                    },
-                    0
-                );
-                return this.__finishRequest(type, requests, requestsModules);
-            }
-        }
-    }
-    /**
-     * A method to set up the required IPC listener for the request method
-     * @returns {undefined}
-     * @private
-     */
-    static __setupRequest() {
-        // Make sure to only set this up in the main process
-        if (isMain) {
-            // Listen for requests getting routed through the main process
-            IPC.on("Registry.request", event => {
-                const requests = event.data.requests;
-                const requiringModules = event.data.requiringModules;
-
-                // Retrieve the priority mapping for every request
-                const requestsModules = requests.map(request => {
-                    return this.__getModules(request, requiringModules);
-                });
-
-                // Return the mapping of modules and their priorities
-                return requestsModules;
-            });
-        }
-    }
-
-    /**
-     * Finishes the request by serving the correct data based on the module classes that were found
-     * @param {('module'|'handle')} type - The type of request that was made (either to handle data, or to get modules)
-     * @param {Registry~Request[]} requests - The requests that are being finished (only contains 1 if type=='handle')
-     * @param {Array<Array<Class<Module>>>} requestsModules - The modules that are found to match each request
-     * @returns {(Promise<Array<Array<Class<Module>>>>|Promise<ChannelSender[]>|Promise<ChannelSender>)} The data that the request results in
-     * @async
-     * @private
-     */
-    static async __finishRequest(type, requests, requestsModules) {
-        // Resolve request by simply returning the module if it was a module request,
-        //      or instanciate a module and return a channel on a handle request
-        if (type == "module") {
-            return requestsModules;
-        } else if (type == "handle") {
-            // The handle type only permits 1 request to exist
-            let requestModules = requestsModules[0];
-            const request = requests[0];
-
-            // In order to batch the await, instead of waiting between each open instance request
-            const instantiatePromises = [];
-
-            if (!(requestModules instanceof Array))
-                requestModules = [requestModules];
-
-            // Go through modules for 1 request
-            requestModules.forEach(module => {
-                try {
-                    // Create the proper request path
-                    let source;
-                    if (request.source) {
-                        source = new RequestPath(request.source).augmentPath(
-                            module
-                        );
-                    } else {
-                        source = new RequestPath(module);
-                    }
-
-                    // Attempt to retrieve the correct startup location
-                    let moduleLocation;
-
-                    // Check if the request defined a location
-                    if (request._destinationWindowID != null) {
-                        // If it did, use this
-                        moduleLocation = {
-                            window: request._destinationWindowID,
-                            section: request._destinationSectionID || 0,
-                        };
-                    } else {
-                        // Otherwise load the location from the settings
-                        moduleLocation = SettingsHandler._getModuleLocation(
-                            source
-                        );
-                    }
-
-                    // Open the window that the module should appear in
-                    instantiatePromises.push(
-                        WindowHandler.openModuleInstance(
-                            moduleLocation,
-                            request,
-                            module
-                        )
-                    );
-                } catch (e) {
-                    // TODO: properply handle the error if something goes wrong
-                    console.error(
-                        `Something went wrong while trying to instantiate ${module}: `,
-                        e
-                    );
-                }
-            });
-
-            // Wait for all the promises to resolve and get their channels
-            const channels = await Promise.all(instantiatePromises);
-
-            // Determine whether to return only a single channel or an array of channels and return it
-            if (request.use == "one") {
-                return channels[0];
-            } else {
-                return channels.filter(channel => channel); // Remove failed instanciations
-            }
-        }
-    }
-
-    // TODO: test if this method works at all, TODO: make this use requestPathPatterns instead
+    // Methods that help with hackability of modules (mainly in other windows)
+    // TODO: deprecate this method and replace it with something that uses
     /**
      * Gets channels to all instances of a specific module class
      * @param {(Class<Module>|Module)} module - The module to get the instance of
@@ -1104,6 +1165,7 @@ export default class Registry {
         }
     }
 
+    // Initialisation code for the class
     /**
      * The initial setup method to be called by this file itself, initialises the static fields of the class
      * @return {undefined}
@@ -1113,8 +1175,8 @@ export default class Registry {
         // Stores the listeners for handle and module requests, indexed by type
         this.listeners = {};
 
-        // Stores the registered modules themselves, indexed by path
-        this.moduleClasses = {};
+        // Stores the configs, indexed by modulePath
+        this.moduleConfigs = {};
 
         // Stores instances of modules registered in this window/process by requestPath
         this.moduleInstances = {};
@@ -1142,6 +1204,7 @@ export default class Registry {
         this.__setupGetModuleInstanceChannels();
         this.__setupMoveModuleTo();
         this.__setupAwaitModuleCreation();
+        this.__setupGetModuleConfig();
     }
 }
 Registry.__setup();

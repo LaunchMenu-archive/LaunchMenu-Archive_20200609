@@ -96,7 +96,7 @@ _electron.app.on("ready", function () {
         //         });
         //     });
 
-        const target = "**->tests/GUI/testElement.js";
+        const target = "*->#testElement";
         Registry.awaitModuleCreation(target).then(modulePath => {
             console.log(modulePath);
             Registry.moveModuleTo(target, {

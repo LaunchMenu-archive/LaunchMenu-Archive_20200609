@@ -10,13 +10,13 @@ var _promise2 = _interopRequireDefault(_promise);
 
 require("source-map-support/register");
 
-var _ChannelReceiver = require("./ChannelReceiver");
+var _channelReceiver = require("./channelReceiver");
 
-var _ChannelReceiver2 = _interopRequireDefault(_ChannelReceiver);
+var _channelReceiver2 = _interopRequireDefault(_channelReceiver);
 
-var _ChannelSender = require("./ChannelSender");
+var _channelSender = require("./channelSender");
 
-var _ChannelSender2 = _interopRequireDefault(_ChannelSender);
+var _channelSender2 = _interopRequireDefault(_channelSender);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -48,10 +48,10 @@ class ChannelHandler {
         // Check if 'ID' is really ChannelIdentifier
         if (ID.ID) {
             // If so use the paramaters of it
-            sender = new _ChannelSender2.default(ID.ID, ID.subChannelID, ID.senderID);
+            sender = new _channelSender2.default(ID.ID, ID.subChannelID, ID.senderID);
         } else {
             // Otherwise just use the 3 parameters as fields
-            sender = new _ChannelSender2.default(ID, subChannelID, senderID);
+            sender = new _channelSender2.default(ID, subChannelID, senderID);
         }
 
         // Return the result of the method setup
@@ -67,7 +67,7 @@ class ChannelHandler {
      * @async
      */
     static createReceiver(ID, listeners) {
-        return _promise2.default.resolve(new _ChannelReceiver2.default(ID, listeners));
+        return _promise2.default.resolve(new _channelReceiver2.default(ID, listeners));
     }
 }
 exports.default = ChannelHandler;
