@@ -99,6 +99,14 @@ const defaultModuleData = {
  */
 
 /**
+ * The format that module instance config should be in, which are used as request listeners
+ * @typedef {Object} Registry~ModuleInstanceConfig
+ * @property {string} [type] - The type of request to handle, defaults to the module instance's type
+ * @property {Function} [filter] - A method that will get passed a request, that determines whether to use this module instance and with what priority
+ * @property {(RequestPath|string)} [requestPath] - The requestPath for the module instance to use
+ */
+
+/**
  * The location of a certain module, relative to the modules directory
  * @typedef {string} Registry~ModulePath
  */
@@ -127,12 +135,12 @@ class Registry {
         // Check if we are in the main process
         if (_isMain2.default) {
             // Directly resolve the request as we have access to all modules
-            requestModules = this.__getModules(request, this.requiringModules);
+            requestModules = this.__getRequestListeners(request, this.__data.requiringModules);
         } else {
             // Send a command to the main window to look for modules to resolve the request
             requestModules = (await _IPC2.default.send("Registry.request", {
                 request: request,
-                requiringModules: this.requiringModules
+                requiringModules: this.__data.requiringModules
             }, 0))[0];
         }
 
@@ -143,35 +151,50 @@ class Registry {
 
         // Go through modules for 1 request
         requestModules.forEach(module => {
-            try {
-                // Create the proper request path
-                let source;
-                if (request.source) {
-                    source = new _requestPath2.default(request.source).augmentPath(module);
-                } else {
-                    source = new _requestPath2.default(module);
+            // Check if the module is an existing module, or a module class
+            if (typeof module == "function") {
+                // The module is a module class
+
+                // Catch any errors that might occur while instanciating
+                try {
+                    // Create the proper request path
+                    let source;
+                    if (request.source) {
+                        source = new _requestPath2.default(request.source).augmentPath(module);
+                    } else {
+                        source = new _requestPath2.default(module);
+                    }
+
+                    // Attempt to retrieve the correct startup location
+                    let moduleLocation;
+
+                    // Check if the request defined a location
+                    if (request._destinationWindowID != null) {
+                        // If it did, use this
+                        moduleLocation = {
+                            window: request._destinationWindowID,
+                            section: request._destinationSectionID || 0
+                        };
+                    } else {
+                        // Otherwise load the location from the settings
+                        moduleLocation = _settingsHandler2.default._getModuleLocation(source);
+                    }
+
+                    // Open the window that the module should appear in
+                    instantiatePromises.push(_windowHandler2.default.openModuleInstance(moduleLocation, request, module));
+                } catch (e) {
+                    // TODO: properply handle the error if something goes wrong
+                    console.error(`Something went wrong while trying to instantiate ${module}: `, e);
                 }
+            } else {
+                // Create a channelSender
+                instantiatePromises.push(this.getModuleChannel(module, undefined, request.source).then(async channel => {
+                    // Connect with the module instance
+                    await channel.$connect(request.source);
 
-                // Attempt to retrieve the correct startup location
-                let moduleLocation;
-
-                // Check if the request defined a location
-                if (request._destinationWindowID != null) {
-                    // If it did, use this
-                    moduleLocation = {
-                        window: request._destinationWindowID,
-                        section: request._destinationSectionID || 0
-                    };
-                } else {
-                    // Otherwise load the location from the settings
-                    moduleLocation = _settingsHandler2.default._getModuleLocation(source);
-                }
-
-                // Open the window that the module should appear in
-                instantiatePromises.push(_windowHandler2.default.openModuleInstance(moduleLocation, request, module));
-            } catch (e) {
-                // TODO: properply handle the error if something goes wrong
-                console.error(`Something went wrong while trying to instantiate ${module}: `, e);
+                    // Forward the channel
+                    return channel;
+                }));
             }
         });
 
@@ -227,13 +250,13 @@ class Registry {
         if (_isMain2.default) {
             // Directly resolve the request as we have access to all modules
             requestsModules = requests.map(request => {
-                return this.__getModules(request, this.requiringModules);
+                return this.__getRequestListeners(request, this.__data.requiringModules);
             });
         } else {
             // Send a command to the main window to look for modules to resolve the request
             requestsModules = _IPC2.default.sendSync("Registry.request", {
                 requests: requests,
-                requiringModules: this.requiringModules
+                requiringModules: this.__data.requiringModules
             })[0];
         }
 
@@ -294,6 +317,9 @@ class Registry {
             // Ensure at least an empty data object is present in the request
             if (!request.data) request.data = {};
 
+            // Indicate that this is a moduleRequest
+            request.isModuleRequest = true;
+
             // Return the new request variable
             return request;
         });
@@ -318,7 +344,7 @@ class Registry {
                     const requiringModules = event.data.requiringModules;
 
                     // Retrieve the priority mapping for the request
-                    const requestModules = this.__getModules(request, requiringModules);
+                    const requestModules = this.__getRequestListeners(request, requiringModules);
 
                     // Return the modules and their priorities
                     return requestModules;
@@ -328,7 +354,7 @@ class Registry {
 
                     // Retrieve the priority mapping for every request
                     const requestsModules = requests.map(request => {
-                        return this.__getModules(request, requiringModules);
+                        return this.__getRequestListeners(request, requiringModules);
                     });
 
                     // Return the mapping of modules and their priorities
@@ -339,23 +365,50 @@ class Registry {
     }
 
     /**
-     * Retrieves the modules that can handle the passed request
+     * Retrieves the listeners that can handle the passed request
      * @param {Registry~Request} request - The request to find module classes for
      * @param {string[]} loadingModules - A list of module paths that are currently being required
      * @returns {(Class<Module>|Array<Class<Module>>)} The module classes that have been chosen to handle the request
      * @private
      */
-    static __getModules(request, loadingModules) {
+    static __getRequestListeners(request, loadingModules) {
         // Get the module listeners to handle this type of request
         const listenerType = this.__getListeners(request.type);
 
         // Map modules with their priority to this particular request
         const priorities = listenerType.configs.map(config => {
-            return {
-                priority: config.filter(request),
-                config: config
-            };
-        }).filter(priority => priority.priority > 0 && loadingModules.indexOf(priority.config.modulePath) == -1);
+            try {
+                // Attempt to apply the filter and return the required data
+                return {
+                    priority: config.filter(request),
+                    config: config
+                };
+            } catch (e) {
+                console.error("Something went wrong while applying filter of config ", config);
+
+                // Return the data with a priority of 0, as the filter errored
+                return {
+                    priority: 0,
+                    config: config
+                };
+            }
+        }).filter(priority => {
+            // Make sure it should be included in the first place
+            if (priority.priority == 0) return false;
+
+            // Check if the config is a module class config
+            if (priority.config.isModuleClassConfig) {
+                // Check if the module isn't being loaded already
+                const modulePath = priority.config.modulePath;
+                if (loadingModules.indexOf(modulePath) != -1) return false;
+            } else {
+                // Check if we allow non-classes
+                if (request.isModuleRequest) return false;
+            }
+
+            // If all checks passed
+            return true;
+        });
 
         // Sort the results
         priorities.sort((a, b) => b.priority - a.priority);
@@ -375,17 +428,23 @@ class Registry {
 
     /**
      * Goes through the array of configs and maps it to the modules of the configs (requires modules if needed)
-     * @param {Registry~config[]} configs - The configs to get the modules from
+     * @param {Registry~Config[]} configs - The configs to get the modules from
      * @returns {Array<Class<Module>>} The modules that got extracted fromt he configs
      * @private
      */
     static __getModulesFromConfigs(configs) {
         return configs.map(config => {
-            // Require the module from the config if this hasn't happened yet
-            if (!(config.module instanceof _module2.default)) this._loadModule(config);
+            // Check if it is a module instance or class config
+            if (config.isModuleClassConfig) {
+                // Require the module from the config if this hasn't happened yet
+                if (!(config.module instanceof _module2.default)) this._loadModule(config);
 
-            // Return the module itself, which should now in no situation be a path
-            return config.module;
+                // Return the module itself, which should now in no situation be a path
+                return config.module;
+            } else {
+                // Return the module's request path
+                return config.requestPath;
+            }
         });
     }
 
@@ -420,7 +479,7 @@ class Registry {
         return channelSender;
     }
 
-    // Module loading related methods
+    // Module loading and listener creation related methods
     /**
      * Loads a module at the specified path relative to the modules folder
      * @param {string} path - The path to the module class
@@ -434,14 +493,14 @@ class Registry {
         // Only load the module if it hadn't been loaded already
         if (!config.module) {
             // Indicate that we have started requiring this module, to prevent import LM: recursion
-            this.requiringModules.push(path);
+            this.__data.requiringModules.push(path);
 
             // Require module
             const moduleImport = require(this.__getModulesPath(path));
 
             // Indicate that we are no longer in the process of loading this module
-            const index = this.requiringModules.indexOf(path);
-            if (index != -1) this.requiringModules.splice(index, 1);
+            const index = this.__data.requiringModules.indexOf(path);
+            if (index != -1) this.__data.requiringModules.splice(index, 1);
 
             if (moduleImport) {
                 // Get the module from the import
@@ -467,7 +526,7 @@ class Registry {
      */
     static _getModule(modulePath) {
         // Retrieve the config for this path
-        const config = this.moduleConfigs[modulePath];
+        const config = this.__data.moduleConfigs[modulePath];
 
         // If a config was found, return its module
         if (config) return this._loadModule(config);
@@ -490,11 +549,11 @@ class Registry {
         // Go through all configs
         configs.forEach(config => {
             // Add listener to the list of listeners for this request type
-            const listeners = this.__getListeners(config.type);
-            const index = listeners.configs.indexOf(config);
+            const listenerType = this.__getListeners(config.type);
+            const index = listenerType.configs.indexOf(config);
             if (index != -1) return; // Don't add it, if it was already added
 
-            listeners.configs.push(config);
+            listenerType.configs.push(config);
 
             // Get the module path
             let modulePath;
@@ -522,8 +581,11 @@ class Registry {
             // Store the path of the config
             config.path = path;
 
+            // Indicate that this config is indeed a config (as it will be used as a 'listener')
+            config.isModuleClassConfig = true;
+
             // Store the config under its modulePath
-            this.moduleConfigs[modulePath] = config;
+            this.__data.moduleConfigs[modulePath] = config;
         });
 
         // If a modulePath was defined, return only the config of said path
@@ -611,13 +673,60 @@ class Registry {
      */
     static __getListeners(type) {
         // Create listeners type variable if not available
-        if (!this.listeners[type]) this.listeners[type] = {
+        if (!this.__data.listeners[type]) this.__data.listeners[type] = {
             type: type,
             configs: []
         };
 
         // Return listener type
-        return this.listeners[type];
+        return this.__data.listeners[type];
+    }
+
+    /**
+     * Registers a module instance to be usable for multiple requests
+     * @param {Module} module - The module instance to use
+     * @param {Registry~ModuleInstanceConfig} [config] - A config for if you want to listen for a specific request]
+     * @returns {Promise<undefined>}
+     * @public
+     */
+    static async registerRequestListener(module, config) {
+        // Normalize the config
+        if (!config) config = {};
+        if (!config.type) config.type = module.getClass().getConfig().type;
+        if (!config.filter) config.filter = () => 1.1;
+        if (!config.requestPath) config.requestPath = module.getPath().toString(true);
+
+        // Check if the module defined a connect method
+        if (!module.core.channelReceiver._hasListener("$connect")) {
+            throw Error("The module should contain a $connect method");
+        }
+
+        // Send the data to the main process to be stored as a listener
+        await _IPC2.default.send("Registry.registerRequestListener", config, 0);
+    }
+    /**
+     * A method to set up the required IPC listener for the registerRequestListener method
+     * @returns {undefined}
+     * @private
+     */
+    static __setupRegisterRequestListener() {
+        // Make sure to only set this up in the main process
+        if (_isMain2.default) {
+            // Listen for windows/processes setting up a request listener
+            _IPC2.default.on("Registry.registerRequestListener", event => {
+                // Retrieve the config
+                const config = event.data;
+
+                // Retrieve the config's type
+                const type = config.type;
+
+                // Get the listeners for this type
+                const listenerType = this.__getListeners(type);
+
+                // Add the config tot hte listeners
+                listenerType.configs.push(config);
+            });
+        }
     }
 
     /**
@@ -627,7 +736,7 @@ class Registry {
      * @protected
      */
     static _getModuleConfig(modulePath) {
-        return this.moduleConfigs[modulePath];
+        return this.__data.moduleConfigs[modulePath];
     }
 
     /**
@@ -650,7 +759,7 @@ class Registry {
             // Check if a config was found
             if (moduleConfig) {
                 // Store the config locally to improve future performance
-                this.moduleConfigs[moduleConfig.modulePath] = moduleConfig;
+                this.__data.moduleConfigs[moduleConfig.modulePath] = moduleConfig;
 
                 // return the moduleConfig
                 return moduleConfig;
@@ -665,7 +774,7 @@ class Registry {
     static __setupGetModuleConfig() {
         // Make sure to only set this up in the main process
         if (_isMain2.default) {
-            // Listen for windows/processes listening for the request of a module config
+            // Listen for windows/processes requesting a module config
             _IPC2.default.on("Registry.getModuleConfig", event => {
                 // Extract the modulePath
                 const modulePath = event.data;
@@ -701,7 +810,7 @@ class Registry {
         requestPath.getModuleID().ID = ID;
 
         // Store the instance in this module/process
-        this.moduleInstances[moduleInstance.getPath().toString(true)] = moduleInstance;
+        this.__data.moduleInstances[moduleInstance.getPath().toString(true)] = moduleInstance;
 
         // Return the obtained ID
         return ID;
@@ -726,8 +835,8 @@ class Registry {
                 const moduleClass = requestPath.getModuleID().module;
 
                 // Retrieve the path collection that exists for this non unique request path, or create it if non-existent
-                let paths = this.requestPaths[requestPath.toString()];
-                if (!paths) paths = this.requestPaths[requestPath.toString()] = {};
+                let paths = this.__data.requestPaths[requestPath.toString()];
+                if (!paths) paths = this.__data.requestPaths[requestPath.toString()] = {};
 
                 // Create a unique ID for the path
                 let ID = 0;
@@ -746,8 +855,8 @@ class Registry {
                 paths[ID] = requestPath;
 
                 // Retrieve the request path list that exists for that class, or create it if non-existent
-                let pathList = this.moduleInstancePaths[moduleClass];
-                if (!pathList) pathList = this.moduleInstancePaths[moduleClass] = [];
+                let pathList = this.__data.moduleInstancePaths[moduleClass];
+                if (!pathList) pathList = this.__data.moduleInstancePaths[moduleClass] = [];
 
                 // Add this path to the list together with the window it is stored in
                 pathList.push({
@@ -794,7 +903,7 @@ class Registry {
                 const moduleClass = requestPath.getModuleID().module;
 
                 // Retrieve the request path list that exists for that class, or create it if non-existent
-                const pathList = this.moduleInstancePaths[moduleClass];
+                const pathList = this.__data.moduleInstancePaths[moduleClass];
 
                 // Get the item corresponding to this requestPath
                 const item = pathList.find(item => item.path == event.data.requestPath);
@@ -805,7 +914,7 @@ class Registry {
                     item.active = true;
 
                     // Check if there is a pattern waiting that matches this requestPath
-                    this.moduleAwaiters.forEach((waiter, index) => {
+                    this.__data.moduleAwaiters.forEach((waiter, index) => {
                         // Extract the pattern
                         const pattern = waiter.pattern;
 
@@ -815,7 +924,7 @@ class Registry {
                         // Test if the pattern matches the new module instance
                         if (pattern.test(requestPath)) {
                             // If it does, delete the item
-                            this.moduleAwaiters.splice(index, 1);
+                            this.__data.moduleAwaiters.splice(index, 1);
 
                             // And resolve the promise when the module finished registering
                             waiter.resolve(requestPath.toString(true));
@@ -845,10 +954,10 @@ class Registry {
         }, 0);
 
         // Remove the instance from this process/window
-        delete this.moduleInstances[moduleInstance.getPath().toString(true)];
+        delete this.__data.moduleInstances[moduleInstance.getPath().toString(true)];
 
         // Close this window if there are no more modules in it
-        if ((0, _keys2.default)(this.moduleInstances).length == 0) _windowHandler2.default._close();
+        if ((0, _keys2.default)(this.__data.moduleInstances).length == 0) _windowHandler2.default._close();
     }
     /**
      * A method to set up the required IPC listener for the deregisterModuleInstance method
@@ -867,13 +976,13 @@ class Registry {
                 const moduleClass = requestPath.getModuleID().module;
 
                 // Get the paths that are stored for this class
-                const pathList = this.moduleInstancePaths[moduleClass];
+                const pathList = this.__data.moduleInstancePaths[moduleClass];
                 if (pathList) {
                     // get the unique request path in string form
                     const requestPathString = requestPath.toString(true);
 
                     // Filter out the object that corresponds with this string
-                    this.moduleInstancePaths[moduleClass] = pathList.filter(path => {
+                    this.__data.moduleInstancePaths[moduleClass] = pathList.filter(path => {
                         return path.path != requestPathString;
                     });
                 }
@@ -882,7 +991,7 @@ class Registry {
                 const ID = requestPath.getModuleID().ID;
 
                 // Retrieve the path collection that exists for this non unique request path, and delete the path with this unique ID
-                const paths = this.requestPaths[requestPath.toString()];
+                const paths = this.__data.requestPaths[requestPath.toString()];
                 if (paths) delete paths[ID];
             });
         }
@@ -894,7 +1003,7 @@ class Registry {
      * @protected
      */
     static _getModuleInstances() {
-        return this.moduleInstances;
+        return this.__data.moduleInstances;
     }
 
     /**
@@ -908,7 +1017,7 @@ class Registry {
         if (typeof requestPath != "string") requestPath = requestPath.toString(true);
 
         // Go through all instances to find a module that matches this path
-        return this.moduleInstances[requestPath];
+        return this.__data.moduleInstances[requestPath];
     }
 
     // Methods that help with hackability of modules (mainly in other windows)
@@ -962,7 +1071,7 @@ class Registry {
                 const modulePath = data.modulePath;
 
                 // Return the request path attached to this class
-                return this.moduleInstancePaths[modulePath];
+                return this.__data.moduleInstancePaths[modulePath];
             });
         }
     }
@@ -1010,9 +1119,9 @@ class Registry {
             const includeEmbeded = event.data.includeEmbeded;
 
             // Go through all module instances to find any matches
-            const modulePaths = (0, _keys2.default)(this.moduleInstances).filter(modulePath => {
+            const modulePaths = (0, _keys2.default)(this.__data.moduleInstances).filter(modulePath => {
                 // Get the module corresponding to this modulePath
-                const module = this.moduleInstances[modulePath];
+                const module = this.__data.moduleInstances[modulePath];
 
                 // Check whether this module is not embeded
                 const embedCheck = includeEmbeded || !module.getRequest() || !module.getRequest().embedGUI;
@@ -1024,7 +1133,7 @@ class Registry {
             // Move all matching modules to the specified location and return a promise resolving in the path once the module moved
             return _promise2.default.all(modulePaths.map(modulePath => {
                 // Get the module corresponding to this modulePath
-                const module = this.moduleInstances[modulePath];
+                const module = this.__data.moduleInstances[modulePath];
 
                 // Move the module
                 const promise = module.moveTo(location);
@@ -1067,7 +1176,7 @@ class Registry {
                 const pattern = new _requestPathPattern2.default(event.data.pattern);
 
                 // Check if a module already exists that matches this pattern
-                const moduleClassPaths = (0, _keys2.default)(this.moduleInstancePaths);
+                const moduleClassPaths = (0, _keys2.default)(this.__data.moduleInstancePaths);
 
                 // Create a list to store the matches
                 const matches = [];
@@ -1075,7 +1184,7 @@ class Registry {
                 // Go through all paths
                 moduleClassPaths.forEach(requestPath => {
                     // Get the list of unique module instance paths from the path
-                    const uniquePaths = this.moduleInstancePaths[requestPath];
+                    const uniquePaths = this.__data.moduleInstancePaths[requestPath];
 
                     // Go through the unique paths
                     uniquePaths.forEach(item => {
@@ -1103,7 +1212,7 @@ class Registry {
                 });
 
                 // Store the awaiter to be resolved later
-                this.moduleAwaiters.push({
+                this.__data.moduleAwaiters.push({
                     pattern: pattern,
                     acceptEmbeded: acceptEmbeded,
                     resolve: resolver
@@ -1122,32 +1231,36 @@ class Registry {
      * @private
      */
     static __setup() {
+        // Create an object to store all variables
+        this.__data = {};
+
         // Stores the listeners for handle and module requests, indexed by type
-        this.listeners = {};
+        this.__data.listeners = {};
 
         // Stores the configs, indexed by modulePath
-        this.moduleConfigs = {};
+        this.__data.moduleConfigs = {};
 
         // Stores instances of modules registered in this window/process by requestPath
-        this.moduleInstances = {};
+        this.__data.moduleInstances = {};
 
         // Keep track of modules that are currently being required
-        this.requiringModules = [];
+        this.__data.requiringModules = [];
 
         // Add fields unique to the main process
         if (_isMain2.default) {
             // Stores unique module instance request paths, indexed by [request path][UID]
-            this.requestPaths = {};
+            this.__data.requestPaths = {};
 
             // Stores unique module instance request path lists, indexed by module path
-            this.moduleInstancePaths = {};
+            this.__data.moduleInstancePaths = {};
 
             // Store listeners for the creation of specific modules
-            this.moduleAwaiters = [];
+            this.__data.moduleAwaiters = [];
         }
 
         // Setup all IPC listeners
         this.__setupRequest();
+        this.__setupRegisterRequestListener();
         this.__setupRegisterModuleInstance();
         this.__setupRegisterModuleInstanceCompleted();
         this.__setupDeregisterModuleInstance();

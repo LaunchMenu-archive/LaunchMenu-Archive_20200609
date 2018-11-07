@@ -52,6 +52,12 @@ export default class TestElement extends GUIModule {
                 );
                 this.requestElementUpdate();
             });
+
+            this.__init(async () => {
+                return Registry.registerRequestListener(this, {
+                    filter: request => (request.data.repeat ? 2 : false),
+                });
+            });
         }
 
         // Listen for changes in the settings
@@ -71,6 +77,11 @@ export default class TestElement extends GUIModule {
             // Log the settings for console debug interaction
             console.log(settings, this);
         });
+    }
+
+    // A listener that checks for extra connections being made to this module
+    $connect(event, requestPath) {
+        console.log(event);
     }
 
     // Example showing interaction with the module through the channel

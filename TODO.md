@@ -15,6 +15,7 @@
     -   [ ] Close window when all modules are moved out of the window
 
 -   [x] Add moduleSearch method to Registry, that allows to find a module with a certain request path
+-   [x] Add system such that modules can easily accept extra requests
 
 *   [ ] GUI system
 

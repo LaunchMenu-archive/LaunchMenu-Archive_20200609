@@ -134,6 +134,17 @@ _electron.app.on("ready", function () {
             }, 2000);
         }).catch(e => console.error(e));
 
+        setTimeout(() => {
+            testModule2instance2.requestHandle({
+                type: "testElement",
+                data: {
+                    repeat: true
+                }
+            }).then(channel => {
+                channel.$setName("second request");
+            }).catch(e => console.error(e));
+        }, 4000);
+
         // testModule2instance
         //     .requestHandle({type: "stress"})
         //     .then(channel => {

@@ -4,6 +4,13 @@ const cleanSymbol = Symbol("clean");
 const serializeSymbol = Symbol("serialize");
 const deserializeSymbol = Symbol("deserialize");
 
+// a function to get the Module class in order to deal with a cyclic import pattern
+let Module;
+const getModule = function() {
+    if (!Module) Module = require("../registry/module").default;
+    return Module;
+};
+
 export {serializeSymbol, deserializeSymbol};
 
 /**
@@ -92,9 +99,8 @@ export default class ExtendedJSON {
                     }
 
                     // If object is a module and serializable, serialize it
-                    const Module = require("../registry/module").default;
                     if (
-                        object instanceof Module &&
+                        object instanceof getModule() &&
                         object[serializeSymbol] &&
                         object[deserializeSymbol]
                     ) {
@@ -122,6 +128,16 @@ export default class ExtendedJSON {
                             type: "object",
                             subType: `module:${modulePath};${configPath}`,
                             value: undefined,
+                        };
+                    }
+
+                    // If object is any other function
+                    if (typeof object == "function") {
+                        // Encode the information
+                        return {
+                            type: "object",
+                            subType: "function",
+                            value: object.toString(),
                         };
                     }
 
@@ -192,6 +208,12 @@ export default class ExtendedJSON {
 
                             // Return the object
                             return obj;
+                        }
+
+                        // If the object is of type function, reconstruct that function
+                        if (value.subType == "function") {
+                            var _;
+                            return eval("_ = " + value.value);
                         }
 
                         let m;

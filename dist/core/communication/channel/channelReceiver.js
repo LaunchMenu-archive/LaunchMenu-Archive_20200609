@@ -112,10 +112,34 @@ class ChannelReceiver {
     }
 
     /**
+     * Returns true if the receiver contains a listener with the given name
+     * @param {string} listenerName - The name of the listener to find
+     * @param  {(string|undefined)} [subChannelID] - The subchannel of which to take look for the listener
+     * @returns {boolean} Whether or not the receiver contains a listener by the passed name
+     * @protected
+     */
+    _hasListener(listenerName, subChannelID) {
+        if (subChannelID) {
+            // Attempt to find message listeners on this subchannel
+            const subChannel = this.subChannelListeners[subChannelID];
+            const listener = subChannel && subChannel[listenerName];
+
+            // If a listener was found, return true
+            if (listener) return true;
+        }
+
+        // Retrieve listeners
+        const listener = this.globalListeners[listenerName];
+
+        // Return whether or not such a listener exists
+        return !!listener;
+    }
+
+    /**
      * Emit an event to the registered listener
      * @param  {string} message - The event type to invoke
      * @param  {ChannelReceiver~ChannelEvent} event - The event data to pass to the listener
-     * @param  {(string|undefined)} subChannelID - The subchannel of which to take the listener if available
+     * @param  {(string|undefined)} [subChannelID] - The subchannel of which to take the listener if available
      * @returns {undefined}
      * @protected
      */

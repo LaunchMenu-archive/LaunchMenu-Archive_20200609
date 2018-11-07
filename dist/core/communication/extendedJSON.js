@@ -23,6 +23,13 @@ const cleanSymbol = (0, _symbol2.default)("clean");
 const serializeSymbol = (0, _symbol2.default)("serialize");
 const deserializeSymbol = (0, _symbol2.default)("deserialize");
 
+// a function to get the Module class in order to deal with a cyclic import pattern
+let Module;
+const getModule = function () {
+    if (!Module) Module = require("../registry/module").default;
+    return Module;
+};
+
 exports.serializeSymbol = serializeSymbol;
 exports.deserializeSymbol = deserializeSymbol;
 
@@ -104,8 +111,7 @@ class ExtendedJSON {
                     }
 
                     // If object is a module and serializable, serialize it
-                    const Module = require("../registry/module").default;
-                    if (object instanceof Module && object[serializeSymbol] && object[deserializeSymbol]) {
+                    if (object instanceof getModule() && object[serializeSymbol] && object[deserializeSymbol]) {
                         // Get relevant information
                         const modulePath = object.getClass().getPath();
                         const configPath = object.getClass().getConfig().path;
@@ -130,6 +136,16 @@ class ExtendedJSON {
                             type: "object",
                             subType: `module:${modulePath};${configPath}`,
                             value: undefined
+                        };
+                    }
+
+                    // If object is any other function
+                    if (typeof object == "function") {
+                        // Encode the information
+                        return {
+                            type: "object",
+                            subType: "function",
+                            value: object.toString()
                         };
                     }
 
@@ -200,6 +216,12 @@ class ExtendedJSON {
 
                             // Return the object
                             return obj;
+                        }
+
+                        // If the object is of type function, reconstruct that function
+                        if (value.subType == "function") {
+                            var _;
+                            return eval("_ = " + value.value);
                         }
 
                         let m;

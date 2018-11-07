@@ -127,6 +127,20 @@ app.on("ready", function() {
                 })
                 .catch(e => console.error(e));
 
+            setTimeout(() => {
+                testModule2instance2
+                    .requestHandle({
+                        type: "testElement",
+                        data: {
+                            repeat: true,
+                        },
+                    })
+                    .then(channel => {
+                        channel.$setName("second request");
+                    })
+                    .catch(e => console.error(e));
+            }, 4000);
+
             // testModule2instance
             //     .requestHandle({type: "stress"})
             //     .then(channel => {
