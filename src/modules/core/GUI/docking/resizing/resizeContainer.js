@@ -27,7 +27,7 @@ import GUIModule from "LM:GUIModule";
             -Return the min of how far each edge can move
 
         [Algorithm:] connectedEdges(edge):
-            -Create copy `k`, of the list of docking elements
+            -Create copy `k`, of the list of Resize elements
             -Create edge list `edges`
             -Loop:
                 -For each element `e1ement` in `k`:
@@ -60,18 +60,18 @@ import GUIModule from "LM:GUIModule";
             -Return the edge position with the lowest distance
 */
 
-export default class DockingContainer extends GUIModule {
+export default class ResizeContainer extends GUIModule {
     /**
-     * Create a DockingContainer which is a container that can hold DockingSections
+     * Create a ResizeContainer which is a container that can hold ResizeSections
      * @param {Request} request - The request that caused this module to be instantiated
-     * @constructs DockingContainer
+     * @constructs ResizeContainer
      * @public
      */
     constructor(request) {
         super(...arguments);
         const sections = request.data;
 
-        // Get docking elements to put in this container
+        // Get Resize elements to put in this container
         this.__init(async () => {
             // Go through all sections
             var promises = Object.keys(sections).map(sectionID => {
@@ -79,8 +79,8 @@ export default class DockingContainer extends GUIModule {
                 var section = sections[sectionID];
                 section.ID = sectionID;
 
-                // Create docking section
-                return this.__createDockingSection(section).then(section => {
+                // Create Resize section
+                return this.__createResizeSection(section).then(section => {
                     // Make the section identifiable
                     section.ID = sectionID;
 
@@ -108,16 +108,16 @@ export default class DockingContainer extends GUIModule {
 
     // Section setup related methods
     /**
-     * Creates a dockingSection that will get placed in this dockingContainer
-     * @param {DockingSection~Data} sectionData - The data to create a sectuib
+     * Creates a ResizeSection that will get placed in this ResizeContainer
+     * @param {ResizeSection~Data} sectionData - The data to create a sectuib
      * @returns {undefined}w
      * @async
      * @private
      */
-    async __createDockingSection(sectionData) {
+    async __createResizeSection(sectionData) {
         // Request a section for this sectionData
         return this.requestHandle({
-            type: "DockingSection",
+            type: "ResizeSection",
             data: {
                 sectionData,
                 containerShape: this.shape,
@@ -142,7 +142,7 @@ export default class DockingContainer extends GUIModule {
 
     /**
      * Updates and retrieves the data that describes the shape of the element
-     * @param {boolean} [updateSections=false] - Whether to send the newly retrieved shape to the dockingSections
+     * @param {boolean} [updateSections=false] - Whether to send the newly retrieved shape to the ResizeSections
      * @returns {Object} The shape described by a x, y, width and height value
      * @private
      */
@@ -212,7 +212,7 @@ export default class DockingContainer extends GUIModule {
     /**
      * Checks for values to snap to to give alignment with other edges
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {DockingSection~Edge} edge - The edge to get the snap position for
+     * @param {ResizeSection~Edge} edge - The edge to get the snap position for
      * @param {number} position - The position that the edge will be moved to
      * @returns {(number|undefined)} The position to snap to, or undefined if there is none
      * @async
@@ -258,7 +258,7 @@ export default class DockingContainer extends GUIModule {
     /**
      * Checks how far the passed edge can at most move
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {DockingSection~EdgeID} edgeID - The edge to move
+     * @param {ResizeSection~EdgeID} edgeID - The edge to move
      * @returns {number} The position that the edge can at most be moved to (When making element smaller)
      * @async
      * @public
@@ -298,7 +298,7 @@ export default class DockingContainer extends GUIModule {
     /**
      * Moves the specified edge to the given position, and also moves all adjacent edges
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {DockingSection~Edge} edge - The edge to move
+     * @param {ResizeSection~Edge} edge - The edge to move
      * @param {number} position - The position to move the edge to
      * @returns {undefined}
      * @async
@@ -338,9 +338,9 @@ export default class DockingContainer extends GUIModule {
 
     /**
      * Retrieves all the edges that are adjacent to the spacified edge
-     * @param {DockingSection~Edge} edge - The edge to check connections with
-     * * @param {DockingSection~EdgeID} [edgeTypeID] - The type of edge to return
-     * @returns {Object[]} An array of tuples of edges and dockingSections
+     * @param {ResizeSection~Edge} edge - The edge to check connections with
+     * * @param {ResizeSection~EdgeID} [edgeTypeID] - The type of edge to return
+     * @returns {Object[]} An array of tuples of edges and ResizeSections
      * @async
      * @private
      */

@@ -163,11 +163,16 @@ export default class RequestPathPattern extends ModuleSequence {
                 if (typeof priorityWeight == "function")
                     priorityWeight = priorityWeight(children);
 
+                // Get the source text
+                const range = stackItem.match.range;
+                const subText = text.substring(range.start, range.end);
+
                 // Combine all the data into one build object
                 const build = {
                     match: matcher,
                     matchTimes: matchTimes,
                     priorityWeight: priorityWeight,
+                    text: subText,
                 };
 
                 // Store the build

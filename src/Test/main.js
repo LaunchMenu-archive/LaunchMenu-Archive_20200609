@@ -123,23 +123,25 @@ app.on("ready", function() {
                     // Just as an example, change the name after 2 seconds
                     setTimeout(() => {
                         channel.$setName("A new name");
+                    }, 1000);
+
+                    // Make another module request this same type
+
+                    setTimeout(() => {
+                        testModule2instance2
+                            .requestHandle({
+                                type: "testElement",
+                                data: {
+                                    repeat: true,
+                                },
+                            })
+                            .then(channel => {
+                                channel.$setName("second request");
+                            })
+                            .catch(e => console.error(e));
                     }, 2000);
                 })
                 .catch(e => console.error(e));
-
-            setTimeout(() => {
-                testModule2instance2
-                    .requestHandle({
-                        type: "testElement",
-                        data: {
-                            repeat: true,
-                        },
-                    })
-                    .then(channel => {
-                        channel.$setName("second request");
-                    })
-                    .catch(e => console.error(e));
-            }, 4000);
 
             // testModule2instance
             //     .requestHandle({type: "stress"})

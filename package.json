@@ -8,7 +8,7 @@
         "test": "node \"dev/test launcher.js\"",
         "start": "node dev/launcher.js",
         "watch-dev": "npx babel --no-babelrc --presets=es2015 dev/src --watch --out-dir dev/dist --source-maps --plugins=transform-runtime,transform-react-jsx,source-map-support",
-        "watch": "node-sass src/ -o dist/ & concurrently \"node-sass src/ -o dist/ -w\" \"cpx \\\"src/**/*.{html,png,jpg,json}\\\" \\\"dist\\\" --watch --verbose\"  \"npx babel src --watch --out-dir dist --source-maps\"",
+        "watch": "node-sass src/ -o dist/ & concurrently \"node-sass src/ -o dist/ -w\" \"cpx \\\"src/**/*.{html,png,jpg,json}\\\" \\\"dist\\\" --watch --verbose\"  \"npx babel src --watch --out-dir dist --source-maps\" ",
         "clean": "rimraf dist/*",
         "jsdoc": "jsdoc src -r -c \".jsdocrc.json\"",
         "babel": "npx babel src/modules/testModule2.js --out-file dist/modules/testModule2.js --source-maps --plugins \"../../dist/dev/babelRequest.js\""
@@ -62,7 +62,8 @@
         "npx": "^10.2.0",
         "rimraf": "^2.6.2",
         "source-map-support": "^0.5.6",
-        "rmdir-cli": "^2.0.6"
+        "rmdir-cli": "^2.0.6",
+        "delmap": "^1.0.11"
     },
     "electron-ava": {
         "files": [

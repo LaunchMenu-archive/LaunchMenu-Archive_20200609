@@ -1,24 +1,23 @@
 import GUIModule from "LM:GUIModule";
-import {throws} from "assert";
 
 /**
  * The way to identify specific edges of the element
- * @typedef {number} DockingSection~EdgeID -1:none, 0:west, 1:east, 2:north, 3:south
+ * @typedef {number} ResizeSection~EdgeID -1:none, 0:west, 1:east, 2:north, 3:south
  */
 
 /**
  * The way to identify specific edges of the element, and communicate its position
- * @typedef {object} DockingSection~Edge
+ * @typedef {object} ResizeSection~Edge
  * @property {number} xBegin - The start position on the x axis of the box that makes up the edge
  * @property {number} xEnd - The end position on the x axis of the box that makes up the edge
  * @property {number} yBegin - The start position on the y axis of the box that makes up the edge
  * @property {number} yEnd - The end position on the y axis of the box that makes up the edge
- * @property {DockingSection~EdgeID} [ID] - The identifier for what edge of the element this is
+ * @property {ResizeSection~EdgeID} [ID] - The identifier for what edge of the element this is
  */
 
 /**
- * The format to store a dockingSection/section as json
- * @typedef {object} DockingSection~Data
+ * The format to store a ResizeSection/section as json
+ * @typedef {object} ResizeSection~Data
  * @property {number} xBegin - The start position on the x axis of the section
  * @property {number} xEnd - The end position on the x axis of the section
  * @property {number} yBegin - The start position on the y axis of the section
@@ -28,17 +27,17 @@ import {throws} from "assert";
 // A mapping for the edges so a edge identifier can be used
 const edgeMapping = ["xBegin", "xEnd", "yBegin", "yEnd"];
 
-export default class DockingSection extends GUIModule {
+export default class ResizeSection extends GUIModule {
     /**
-     * Create a DockingSection which can contain other GUI elements, and make them resizable and moveable to a docking container
+     * Create a ResizeSection which can contain other GUI elements, and make them resizable and moveable to a Resize container
      * @param {Request} request - The request that caused this module to be instantiated
-     * @constructs DockingSection
+     * @constructs ResizeSection
      * @public
      */
     constructor(request) {
         super(...arguments);
 
-        // Store information about the dockingContainer shape (in pixels)
+        // Store information about the ResizeContainer shape (in pixels)
         this.containerShape = request.data.containerShape;
 
         // Load the properties from the data
@@ -67,12 +66,12 @@ export default class DockingSection extends GUIModule {
             height: 5,
         };
 
-        // Store the content that this docking element should display
+        // Store the content that this Resize element should display
         this.content = [];
 
         // Store teh container that this element is a part of
         this.__init(() => {
-            this.dockingContainer = this.getSource();
+            this.ResizeContainer = this.getSource();
         });
 
         //TODO: remove this
@@ -83,7 +82,7 @@ export default class DockingSection extends GUIModule {
 
     // Container related methods
     /**
-     * Informs the module about the new size of the dockingContainer
+     * Informs the module about the new size of the ResizeContainer
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
      * @param {Object} shape - The shape described by a x, y, width and height value
      * @protected
@@ -182,9 +181,9 @@ export default class DockingSection extends GUIModule {
     /**
      * Check whether this element aligns with the provided edge, and if so, return the aligned edge
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {DockingSection~Edge} edge - The edge to check alignment with
-     * @param {DockingSection~EdgeID} [edgeTypeID] - The type of edge to return
-     * @returns {(DockingSection~Edge|boolean)} The edge that was found to connect, or a boolean to indicate if there could be a connection if the edge was longer
+     * @param {ResizeSection~Edge} edge - The edge to check alignment with
+     * @param {ResizeSection~EdgeID} [edgeTypeID] - The type of edge to return
+     * @returns {(ResizeSection~Edge|boolean)} The edge that was found to connect, or a boolean to indicate if there could be a connection if the edge was longer
      * @public
      */
     $checkConnection(event, edge, edgeTypeID) {
@@ -270,7 +269,7 @@ export default class DockingSection extends GUIModule {
     /**
      * Checks whether there is an edge that nearly aligns, and return it
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {DockingSection~Edge} edge - The edge to check alignment with
+     * @param {ResizeSection~Edge} edge - The edge to check alignment with
      * @param {number} position - The position that the edge will be moved to
      * @param {number} range - The maximum distance that the edge may be in order to be returned
      * @param {boolean} [indirectAlignment=false] - Whether to also allow to align with edges that can't connect
@@ -331,8 +330,8 @@ export default class DockingSection extends GUIModule {
 
     /**
      * Gets the edge data by edge ID
-     * @param {DockingSection~EdgeID} edgeID - The identifier for the edge to retrieve
-     * @returns {DockingSection~Edge} The actual edge (which also contains the ID)
+     * @param {ResizeSection~EdgeID} edgeID - The identifier for the edge to retrieve
+     * @returns {ResizeSection~Edge} The actual edge (which also contains the ID)
      * @public
      */
     getEdge(edgeID) {
@@ -357,7 +356,7 @@ export default class DockingSection extends GUIModule {
 
     /**
      * Check how far an edge can at most be moved (when including the pushing of the opposite edge)
-     * @param {DockingSection~EdgeID} edgeID - The edge to move
+     * @param {ResizeSection~EdgeID} edgeID - The edge to move
      * @returns {number} The position that the edge can at most be moved to (When making element smaller)
      * @async
      * @protected
@@ -399,7 +398,7 @@ export default class DockingSection extends GUIModule {
 
     /**
      * Check how far an edge can at most be moved (by checking the adjacent edge from other elements)
-     * @param {DockingSection~EdgeID} edgeID - The edge to move
+     * @param {ResizeSection~EdgeID} edgeID - The edge to move
      * @returns {number} The position that the edge can at most be moved to (When making element bigger)
      * @async
      * @private
@@ -412,14 +411,14 @@ export default class DockingSection extends GUIModule {
         edge.ID = edgeID % 2 == 0 ? edgeID + 1 : edgeID - 1;
 
         // Then ask the container to check how far this edge could at most be moved
-        return this.dockingContainer.$checkMaxEdgeMove(edge);
+        return this.ResizeContainer.$checkMaxEdgeMove(edge);
     }
 
     /**
      * Moves the opposite edge of the passed edge such that the section would remain the min size,
      * even if the edge is moved to the passed position
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {DockingSection~EdgeID} edgeID - The edge to move
+     * @param {ResizeSection~EdgeID} edgeID - The edge to move
      * @param {number} position - The position to move the edge to
      * @returns {undefined}
      * @async
@@ -460,7 +459,7 @@ export default class DockingSection extends GUIModule {
      * Moves the opposite edge of the passed edge such that it returns to the stored 'elasticShape'
      * without making the section smaller than the min size
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {DockingSection~EdgeID} edgeID - The edge to move
+     * @param {ResizeSection~EdgeID} edgeID - The edge to move
      * @returns {undefined}
      * @async
      * @protected
@@ -526,7 +525,7 @@ export default class DockingSection extends GUIModule {
     /**
      * Moves the specified edge to the given position
      * @param {ChannelReceiver~ChannelEvent} event - The event data sent by the channel
-     * @param {DockingSection~EdgeID} edgeID - The edge to move
+     * @param {ResizeSection~EdgeID} edgeID - The edge to move
      * @param {number} position - The position to move the edge to
      * @returns {undefined}
      * @async
@@ -542,7 +541,7 @@ export default class DockingSection extends GUIModule {
 
     /**
      * Moves the specified edge to the given position, and also moves all adjacent edges
-     * @param {DockingSection~EdgeID} edgeID - The edge to move
+     * @param {ResizeSection~EdgeID} edgeID - The edge to move
      * @param {number} position - The position to move the edge to
      * @returns {undefined}
      * @async
@@ -558,7 +557,7 @@ export default class DockingSection extends GUIModule {
             const edge = this.getEdge(edgeID);
 
             // Tell the container to resize any elements touching this edge
-            await this.dockingContainer.$_moveEdgeUnbounded(edge, position);
+            await this.ResizeContainer.$_moveEdgeUnbounded(edge, position);
 
             // Indicate that we are no longer in the process of moving this edge
             delete this.movingEdges[edgeID];
@@ -568,7 +567,7 @@ export default class DockingSection extends GUIModule {
     /**
      * Moves the specified edge to the given position, and also moves all adjacent edges
      * And bounds the passed position to a position that wouldn't allow elements to be smaller than their min size
-     * @param {DockingSection~EdgeID} edgeID - The edge to move
+     * @param {ResizeSection~EdgeID} edgeID - The edge to move
      * @param {number} position - The position to move the edge to
      * @returns {number} The position that the edge was moved to
      * @async
@@ -585,14 +584,14 @@ export default class DockingSection extends GUIModule {
         );
 
         // Check if there is a position to snap to
-        const snapPos = await this.dockingContainer.$getSnapValue(
+        const snapPos = await this.ResizeContainer.$getSnapValue(
             edge,
             position
         );
         if (snapPos) position = snapPos;
 
         // Tell the container to resize any elements touching this edge
-        return this.dockingContainer.$_moveEdgeUnbounded(edge, position);
+        return this.ResizeContainer.$_moveEdgeUnbounded(edge, position);
     }
 
     /**
@@ -639,22 +638,18 @@ export default class DockingSection extends GUIModule {
      */
     async __startResize() {
         // Tell the container that it should request all sections to store their elastic shapes
-        await this.dockingContainer.$_storeElasticShapes();
+        await this.ResizeContainer.$_storeElasticShapes();
 
         // Check how far the edge can be moved in either direction
         this.moveRange = {};
 
         // Check what the max position is that the edge can be moved to the right/down
         const edge = this.getEdge(this.draggingEdgeID);
-        this.moveRange.min = await this.dockingContainer.$checkMaxEdgeMove(
-            edge
-        );
+        this.moveRange.min = await this.ResizeContainer.$checkMaxEdgeMove(edge);
 
         // Check what the max position is that the edge can be moved to the left/up
         edge.ID--; // The direction is based on the ID
-        this.moveRange.max = await this.dockingContainer.$checkMaxEdgeMove(
-            edge
-        );
+        this.moveRange.max = await this.ResizeContainer.$checkMaxEdgeMove(edge);
 
         // Add the event listener to do the resizing
         window.addEventListener("mousemove", this.__dragEdge);
@@ -710,7 +705,7 @@ export default class DockingSection extends GUIModule {
 
         return (
             <div
-                className="dockingSection"
+                className="ResizeSection"
                 style={{
                     ...style.base,
                     left: this.shape.xBegin + "%",

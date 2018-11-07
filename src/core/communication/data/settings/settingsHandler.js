@@ -148,7 +148,7 @@ export default class SettingsHandler {
                 requestPathPattern = new RequestPathPattern(requestPathPattern);
 
             // Get the module that this path would lead to
-            const modulePath = requestPathPattern.getModuleID().module;
+            const modulePath = requestPathPattern.getModuleID().text;
 
             // Check if there already are UUIDs for this end point
             const patterns = this.pathPatternUUIDs[modulePath];
@@ -177,7 +177,7 @@ export default class SettingsHandler {
                 requestPathPattern = new RequestPathPattern(requestPathPattern);
 
             // Get the module that this path would lead to
-            const modulePath = requestPathPattern.getModuleID().module;
+            const modulePath = requestPathPattern.getModuleID().text;
 
             // Get the map of UUIDs for this endpoint
             let patterns = this.pathPatternUUIDs[modulePath];
@@ -301,19 +301,6 @@ export default class SettingsHandler {
     static __getUUIDpath(UUID) {
         return this.__getPath(Path.join("moduleSettings", UUID));
     }
-
-    // /**
-    //  * Gets the contents of a file corresponding to a specific requestPath
-    //  * @param {RequestPath} requestPath - The path for which to get a file
-    //  * @returns {Object} The data that was retrieved from the file
-    //  * @protected
-    //  */
-    // static _getModuleFile(requestPath) {
-    //     // Get the data from the combined escaped request path and the settings path
-    //     return this.__getFile(
-    //         Path.join(dataDir, escapePath(requestPath.toString())) + ".json"
-    //     );
-    // }
 
     // Methods for interfacing with the settings
     /**
@@ -505,7 +492,7 @@ export default class SettingsHandler {
                 const fileName = event.data.fileName;
                 const isModuleFile = event.data.isModuleFile;
 
-                //  Check if global data for these settings is already loaded
+                // Check if no global data for these settings has already been loaded
                 if (!GlobalDataHandler._getData(ID)) {
                     // Check if there is any saved data
                     let data;

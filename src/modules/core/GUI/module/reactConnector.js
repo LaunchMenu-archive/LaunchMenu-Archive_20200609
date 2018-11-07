@@ -91,7 +91,7 @@ export default class ReactConnector extends React.Component {
         if (element.props.children && element.props.children instanceof Array)
             element.props.children.forEach((child, index) => {
                 // Make sure it is a plain html element
-                if (typeof child.type == "string")
+                if (child && typeof child.type == "string")
                     // Recursively get the dynamic style for each child
                     this.__setDynamicStyle(
                         child,

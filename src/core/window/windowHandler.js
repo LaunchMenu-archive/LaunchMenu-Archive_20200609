@@ -377,11 +377,11 @@ export default class WindowHandler {
                 );
 
                 // Create a subchannel on the window receiver, that answers DockingContainer
-                windowChannelReceiver.createSubChannel("DockingContainer", {});
+                windowChannelReceiver.createSubChannel("ResizeContainer", {});
 
                 // Retrieve the class for the docking system
                 this.dockingContainer = await Registry.requestHandle({
-                    type: "DockingContainer",
+                    type: "ResizeContainer",
                     source: ">Window",
                     embedGUI: true,
                     data: settings.sections,

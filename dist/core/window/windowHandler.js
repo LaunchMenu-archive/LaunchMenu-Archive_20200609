@@ -381,11 +381,11 @@ class WindowHandler {
                 const windowChannelReceiver = await _channelHandler2.default.createReceiver(">Window", {});
 
                 // Create a subchannel on the window receiver, that answers DockingContainer
-                windowChannelReceiver.createSubChannel("DockingContainer", {});
+                windowChannelReceiver.createSubChannel("ResizeContainer", {});
 
                 // Retrieve the class for the docking system
                 this.dockingContainer = await _registry2.default.requestHandle({
-                    type: "DockingContainer",
+                    type: "ResizeContainer",
                     source: ">Window",
                     embedGUI: true,
                     data: settings.sections
