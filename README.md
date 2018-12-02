@@ -1,22 +1,130 @@
 # LaunchMenu
 
-## Goal
+### Goal
 
-LaunchMenu is an open source utility application similar to LaunchBar and SpotlightSearch for Mac.
-The aim is to make important utilities quickly accessable and usable. For us having them quickly usable involves having full control with solely the keyboard. We will however also support regular mouse events, and the whole UI will be graphical, not command line based.
-We want LaunchMenu to always be running in the background, and open up using a shortcut like `windows + space`. Then when it appears (Almost instantly) you will be able to type queries, quickly get the result you were looking for, and hide the window again without needing any mouse interaction.
+LaunchMenu is an open source utility application similar to LaunchBar and Spotlight for Mac.
 
-Feel free to get into contact with us if you are a designer, developer, or can somehow contribute to the project in other ways
+The aim, to bring all important utilities (applets) to your fingertips. For us having utilities quickly accessable via the keyboard is vital, however we will also support usage of the mouse.
 
-### Sub goal
+LaunchMenu runs in the background. Upon pressing `⌘ + space`/`⊞ + space` a menu opens allowing you to type a query. Queries are used to open different applets.
 
-We want to make LaunchMenu as modular as possible, so that many utilities can be added in the future, and people can create and install plugins to personallize it. We want to create a module (plugin) system through npm to make modules easily accessable.
+Contact us if you want to contribute to the project. We are currently looking for a designer to improve this look:
 
-The modularity of LaunchMenu is very important to us. We want to allow people to override almost any core behaviour, without having to hack our code. In order to achieve this, a custom 'require' system has been created. Instead of using the regular require or import that comes with node/es6, you should make use of our system.
+![Image](https://github.com/sancarn/LaunchMenu/raw/master/Screen%20shots/general.png)
 
-The main idea behind our system is that you don't directly import a class, but instead request a module (class) to handle your data. So imagine you want to show an image, you wouldn't import some GUI element to show the image, instead you request a module to handle 'show image' and pass it your image as data. This will then automatically load the module and pass it your data. Of course this doesn't always work, sometimes you really need direct access to the class itself, in which case you can still use import, but it is preferred to also then use our special import system. Doing this is rather simple, instead of importing a path you import `LM:[type]`, where type will be the type of class you want to import. We call this requesting a class. Every module will contain both a class, and a config. The config will indicate what type of requests the class can handle. The main benefit of this system in terms of modularity is that people can now create other modules that can handle request types that already exist, and indicate it has higher priority than the default ones in the config. This makes it so the system will automatically start using their modules instead of the default ones, without any core code having to be altered. This system is largely inspired by the intent system on android, but taken a step further by replacing the import system with it. Below is a more schematic overview of this system and its benefits.
+### Functionality
 
-There are two types of requests:
+We have planned the following applet so far:
+
+-   File search
+-   Dictionary
+-   Translator
+-   Calculator
+-   Time tracker (Similar to [toggl](https://toggl.com/))
+
+### Current state
+
+Currently we are working on the Core Framework of LaunchMenu which you can read about below. There are currently no working versions of the LaunchMenu application. 
+
+### RoadMap
+
+You can read the full todo list [here](https://github.com/LaunchMenu/LaunchMenu/blob/master/TODO.md).
+
+* Framework
+    * UI Customisability 
+    * Create the ability to make workspaces for LaunchMenu.
+    * Create demo/test applet (E.G. note maker).
+    * Common UI controls.
+* Start LaunchMenu
+    * Build main UI.
+    * Query system.
+    * FileSearch applet.
+    * Release Version 1.0.0
+    * ???
+    * Profit.
+
+----
+
+# Development
+
+## Installation
+
+```
+git clone https://github.com/LaunchMenu/LaunchMenu
+npm install
+```
+Tested with npm version 6.4.1 and node version 8.12.0
+
+## Commands
+
+| Action | Command         | Description                                                                                      |
+| ------ | --------------- | ------------------------------------------------------------------------------------------------ |
+| run    | `npm start`     | Runs the actual program using the code in the dist folder                                        |
+| watch  | `npm run watch` | Transpiles src to dist folder, and keeps listening for changes and transpile those automatically |
+
+# Bollib - The core of LaunchMenu
+
+LaunchMenu is built on the Electron framework. It is built in a modular fashion such that new features can be added easily in the future. We were inspired by the Atom Editor's hackability, and decided LaunchMenu should also be adaptable to the core. This system is being built into a seperate framework.
+
+The adaptability and modularity of the framework makes it ideal for open source projects built in Electron, as it allows people to make additions without having to adapt to other people's code, and these additions can be adopted as a plugin making the features entirely optional.
+
+This framework is called Bollib.
+
+## Using modules
+
+The framework allows people to override most core behaviour, without having to hack existing code. In order to achieve this, a custom 'require' system has been created.
+
+The syntax is as follows:
+
+```js
+this.requestHandle({
+    type: "someType"
+}).then(channel=>{
+    // Do something with channel
+});
+```
+
+Behind the scenes, the module type is used to find an appropriate module. This module is instantiated and a channel is setup allowing you to communicate with the instance. If multiple modules support the same module type, the module with the highest priority will be chosen, returned and instantiated. The request can also specify that all or a filtered set of modules should be used.
+
+This system is largely inspired by the intent system on android, but taken a step further by replacing the entirity of import system. 
+
+[](EXAMPLE_SHOULD_GO_HERE)
+
+# Importing module classes directly
+
+If you need direct access to the module class, e.g. to extend it, you can import the class directly using the following syntax. 
+
+```js
+// Single
+import bollib from "LM:SomeType";
+
+// Batched Multiple
+import _SomeType from "LM:SomeType";
+import _SomethingElse from "LM:SomethingElse";
+```
+
+Where `SomeType` and `SomethingElse` are Bollib modules you want to import.
+
+Our Babel plugin will transpile this into code like:
+
+```js
+// Single
+var bollib = Registry.requestModule({
+    type: "SomeType"
+});
+bollib = bollib.default;
+
+// Batched Multiple
+var {
+    "SomeType": _SomeType,
+    "SomethingElse": _SomethingElse
+} = Registry.requestModule("SomeType","SomethingElse");
+_SomeType = _SomeType.default;
+_SomethingElse = _SomethingElse.default;
+```
+
+### Overview
+
 
 -   Request Handle
     -   Requests a module to handle your data for you
@@ -33,32 +141,47 @@ And the following applies to both request types:
 -   Allows modules to easily be overriden
 -   Allows users to choose what module they want to handle request if multiple are available
 
-This request system will most likely be released as a standalone project in the future, as we thing this can be very useful for many applications, especially open source ones. This will be similar to how [electron](https://electronjs.org/) and [atom](https://atom.io/) have been released separately, for which we are very gratefull as LaunchMenu makes use of electron.
 
-## Functionality
 
-We have planned the following utilities so far:
+## Module Architecture
 
--   File search
--   Dictionary
--   Translator
--   Calculator
--   Time tracker (Similar to [toggl](https://toggl.com/))
+Every module contains both a class, and a config.
 
-If you want to see our current idea for the design, you can check out the previous version that had the file search system mostly operational (The file search was our initial goal): https://github.com/sancarn/LaunchMenu
+### Config
 
-## Current state
+The config will indicate what type of requests the class can handle and what priority the module has. Priority is used to allow other users to override existing modules. It is also used to define settings of the module which can be dynamically changed by the user. It can also be used to define the location of the module Class files.
 
-The require system is almost done.
+### Module Class
 
-## Installation
+Every module class must extend the base Module class. They should also implement the `serialize()` and `deserialize()` methods. This allows the system to store the state of a module and transfer it between processes.
 
-`npm install`
-Tested with npm version 6.4.1 and node version 8.12.0
+In the below example we store the `someData` property of our class in the serialize method and later set this data in the deserialize method.
 
-## Commands
+```js
+import Module from "LM:Module";
+class MyClass extends Module {
+    serialize(){
+        var data = super.serialize();
+        data.something = this.someData;
+        return data;
+    }
+    deserialize(data){
+        this.someData = data.something;
+        super.deserialize(data);
+    }
+}
+```
 
-| Action | Command         | Description                                                                                      |
-| ------ | --------------- | ------------------------------------------------------------------------------------------------ |
-| run    | `npm start`     | Runs the actual program using the code in the dist folder                                        |
-| watch  | `npm run watch` | Transpiles src to dist folder, and keeps listening for changes and transpile those automatically |
+## Demos
+
+If you want to see demos of the Bollib framework check out the LaunchMenu youtube channel.
+
+[![](https://i.imgur.com/17QWz2E.png)](https://www.youtube.com/channel/UCMBjWTunWsKLoYMbZF07udQ)
+
+## Thanks to
+
+* The contributors of LaunchMenu!
+* The contributors of [Electron](https://electronjs.org/).
+* The contributors of [React](https://reactjs.org/).
+* The contributors of [Babel](https://babeljs.io/).
+* The contributors of [Sass](https://sass-lang.com/).
