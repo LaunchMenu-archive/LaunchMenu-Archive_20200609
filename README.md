@@ -70,6 +70,8 @@ The adaptability and modularity of the framework makes it ideal for open source 
 
 This framework is called Bollib.
 
+As of 23/01/2019 we have decided that all development on LaunchMenu application will hault to work on the a re-write of the [Bollib framework in TypeScript](https://github.com/LaunchMenu/Bollib).
+
 ## Using modules
 
 The framework allows people to override most core behaviour, without having to hack existing code. In order to achieve this, a custom 'require' system has been created.
