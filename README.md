@@ -187,6 +187,7 @@ If you want to see demos of the Bollib framework check out the LaunchMenu youtub
 ## Thanks to
 
 * The contributors of LaunchMenu!
+   * [Zularizal](https://github.com/zularizal) for the logo
 * The contributors of [Electron](https://electronjs.org/).
 * The contributors of [React](https://reactjs.org/).
 * The contributors of [Babel](https://babeljs.io/).
