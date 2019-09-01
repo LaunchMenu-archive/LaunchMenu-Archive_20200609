@@ -28,7 +28,8 @@ We have planned the following applet so far:
 
 ### Current state
 
-Currently we are working on the Core Framework of LaunchMenu which you can read about below. There are currently no working versions of the LaunchMenu application. 
+Currently we are working on the Core Framework of LaunchMenu which you can read about in our other repository: [Adjust](https://github.com/LaunchMenu/Adjust)
+The information within this readme regarding the framework is outdated. We will try to update this file with appropriate information in the near future.
 
 ### RoadMap
 
